@@ -9,6 +9,7 @@ import Mathlib.Topology.Algebra.Module.ModuleTopology
 import Mathlib.Topology.EMetricSpace.Paracompact
 import Mathlib.Topology.MetricSpace.Polish
 import Mathlib.Topology.Separation.CompletelyRegular
+import Mathlib
 
 /-! # Perron-Frobenius Theory for Matrices
 
@@ -127,6 +128,7 @@ Module.End.eigenvectors_linearIndependent [NoZeroSMulDivisors R M] (f : End R M)
 -/
 
 namespace Matrix
+open LinearMap Polynomial Module
 
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
@@ -166,19 +168,6 @@ lemma det_smul_sub_eq_eval_charpoly (A : Matrix n n ℝ) (μ : ℝ) :
   rw [h]
   rw [← eval_charpoly A μ]
 
-/-- A real number `μ` is in the spectrum of a matrix `A` if and only if it is a root
-of the characteristic polynomial of `A`. -/
-lemma mem_spectrum_iff_isRoot_charpoly (A : Matrix n n ℝ) (μ : ℝ) :
-    μ ∈ spectrum ℝ A ↔ (charpoly A).IsRoot μ := by
-  rw [spectrum.mem_iff]
-  rw [Matrix.isUnit_iff_isUnit_det, isUnit_iff_ne_zero, not_ne_iff]
-  have h_alg : (algebraMap ℝ (Matrix n n ℝ)) μ = μ • 1 := by
-    ext i j
-    simp [algebraMap, Matrix.one_apply]
-    rfl
-  rw [h_alg]
-  rw [det_smul_sub_eq_eval_charpoly]
-  rw [Polynomial.IsRoot.def]
 
 /-- A matrix and its transpose have the same spectrum. -/
 lemma spectrum_eq_spectrum_transpose (A : Matrix n n ℝ) :
@@ -218,7 +207,7 @@ lemma LinearMap.isUnit_iff_bijective {K V : Type*} [Field K] [AddCommGroup V] [M
     [FiniteDimensional K V] (f : V →ₗ[K] V) : IsUnit f ↔ Function.Bijective f := by
   constructor
   · intro h_unit
-    exact (End.isUnit_iff f).mp h_unit
+    exact (Module.End.isUnit_iff f).mp h_unit
   · intro h_bij
     rw [LinearMap.isUnit_iff_ker_eq_bot]
     rw [LinearMap.ker_eq_bot]
@@ -232,13 +221,14 @@ lemma LinearMap.injective_of_isUnit {K V : Type*} [Field K] [AddCommGroup V] [Mo
 
 /-- If the kernel of a linear endomorphism on a finite-dimensional vector space is non-trivial,
     then its determinant is zero. -/
-lemma det_eq_zero_of_ker_ne_bot {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Basis.ofVectorSpaceIndex K V)]
+lemma det_eq_zero_of_ker_ne_bot {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)]
     [FiniteDimensional K V] {f : V →ₗ[K] V} (h : LinearMap.ker f ≠ ⊥) :
     LinearMap.det f = 0 := by
   by_contra h_det_ne_zero
   have h_det_unit : IsUnit (LinearMap.det f) := IsUnit.mk0 _ h_det_ne_zero
   have h_f_is_unit : IsUnit f := by
-    let b := Basis.ofVectorSpace K V
+    let b := Module.Basis.ofVectorSpace K V
+    classical
     have h_det_matrix_unit : IsUnit (Matrix.det (LinearMap.toMatrix b b f)) := by
       rw [LinearMap.det_toMatrix b f]
       exact h_det_unit
@@ -252,7 +242,7 @@ lemma det_eq_zero_of_ker_ne_bot {K V : Type*} [Field K] [AddCommGroup V] [Module
   exact h h_ker_eq_bot
 
 /-- If a non-zero vector `v` is in the kernel of a linear map `f`, then `det f` must be zero. -/
-lemma det_eq_zero_of_exists_mem_ker {K V} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Basis.ofVectorSpaceIndex K V)]
+lemma det_eq_zero_of_exists_mem_ker {K V} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)]
     [FiniteDimensional K V] {f : V →ₗ[K] V} (h : ∃ v, v ≠ 0 ∧ f v = 0) :
     LinearMap.det f = 0 := by
   apply det_eq_zero_of_ker_ne_bot
@@ -263,7 +253,7 @@ lemma det_eq_zero_of_exists_mem_ker {K V} [Field K] [AddCommGroup V] [Module K V
 
 /-- If a linear endomorphism on a finite-dimensional vector space is not injective,
     then its determinant is zero. -/
-lemma det_eq_zero_of_not_injective {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Basis.ofVectorSpaceIndex K V)]
+lemma det_eq_zero_of_not_injective {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [DecidableEq ↑(Module.Basis.ofVectorSpaceIndex K V)]
     [FiniteDimensional K V] {f : V →ₗ[K] V} (h : ¬Function.Injective f) :
     LinearMap.det f = 0 := by
   apply det_eq_zero_of_ker_ne_bot
