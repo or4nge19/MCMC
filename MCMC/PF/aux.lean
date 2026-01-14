@@ -1,11 +1,6 @@
-import Mathlib.Algebra.EuclideanDomain.Basic
-import Mathlib.Algebra.EuclideanDomain.Field
-import Mathlib.Analysis.Convex.Basic
-import Mathlib.Analysis.Normed.Order.Lattice
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Topology.Semicontinuous
 import MCMC.PF.LinearAlgebra.Matrix.Spectrum
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Data.Int.Star
 
 open Filter Set Finset Matrix Topology Convex
 

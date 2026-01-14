@@ -434,7 +434,7 @@ lemma dobrushinCoeff_pow [DecidableEq n] (P : Matrix n n ℝ) [Nonempty n] (hP :
               ≤ |(1 : Matrix n n ℝ) i j| + |(1 : Matrix n n ℝ) i' j| := by
         intro j
         simpa [sub_eq_add_neg] using
-          (abs_add ((1 : Matrix n n ℝ) i j) (-(1 : Matrix n n ℝ) i' j))
+          (abs_add_le ((1 : Matrix n n ℝ) i j) (-(1 : Matrix n n ℝ) i' j))
       have hsum_le :
           ∑ j, |(1 : Matrix n n ℝ) i j - (1 : Matrix n n ℝ) i' j|
             ≤ ∑ j, (|(1 : Matrix n n ℝ) i j| + |(1 : Matrix n n ℝ) i' j|) := by
@@ -558,7 +558,7 @@ lemma tvDist_eq_one_sub_sum_min
   Primitive ⇒ some power has Dobrushin coefficient strictly less than 1,
   with an explicit quantitative bound via the minimal entry.
 -/
-lemma dobrushinCoeff_pow_lt_one_of_primitive
+theorem dobrushinCoeff_pow_lt_one_of_primitive
     [Nonempty n] [ DecidableEq n] (P : Matrix n n ℝ)
     (h_stoch : IsStochastic P) (h_prim : IsPrimitive P) :
     ∃ k > 0, Matrix.dobrushinCoeff (P^k) < 1 := by
@@ -637,7 +637,7 @@ lemma dobrushinCoeff_pow_lt_one_of_primitive
   exact ⟨k, hk_pos, lt_of_le_of_lt h_sup hbound_lt_one⟩
 
 -- Primitive stochastic matrices admit a power with Dobrushin coefficient < 1.
-lemma dobrushinCoeff_lt_one_of_primitive
+theorem dobrushinCoeff_lt_one_of_primitive
     [DecidableEq n] [Nonempty n] (P : Matrix n n ℝ)
     (h_stoch : IsStochastic P) (h_prim : IsPrimitive P) :
     ∃ k > 0, Matrix.dobrushinCoeff (P^k) < 1 := by

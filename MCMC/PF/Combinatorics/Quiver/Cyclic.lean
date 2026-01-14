@@ -1,4 +1,6 @@
-import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Defs
+import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
+import Mathlib.Data.Nat.Find
+import Mathlib.Data.Nat.ModEq
 
 namespace Quiver
 variable {V : Type*} [Quiver V]
@@ -11,48 +13,39 @@ and aperiodicity for strongly connected quivers, which are essential for underst
 the cyclic structure of irreducible matrices.
 -/
 
-/-- A quiver is strongly connected if there is a path between any two vertices.
-    Note: Standard graph theory definition allows length 0 paths, but we work
-    with nonnegative matrices and I've already faced the need to include a nonnegativity condition
-    to avoid unneccesary complications -/
-def IsStronglyConnected (G : Quiver V) : Prop :=
-  ∀ i j : V, Nonempty { p : Path i j // p.length > 0 }
-
 -- Definition for the set of lengths of cycles at a vertex i.
 -- We require positive length for cycles relevant to periodicity.
 def CycleLengths (i : V) : Set ℕ := {k | k > 0 ∧ ∃ p : Path i i, p.length = k}
 
-/-- The period of a vertex i, defined as the greatest common divisor (GCD)
-    of the lengths of all cycles passing through i.
-    If there are no cycles, the period is defined as 0 (conventionally). -/
-noncomputable def period (i : V) : ℕ :=
-  sInf {d | ∀ k ∈ CycleLengths i, d ∣ k}
-
-/-- The set of common divisors of all cycle lengths at `i`. (No positivity requirement for the
-  time being: when there are no cycles this is all of `ℕ`, so its infimum is `0`. - tentative) -/
+/-- The set of common divisors of all cycle lengths at `i`. (If there are no cycles this is all
+  of `ℕ`, so the least element is `0`.) -/
 def commonDivisorsSet (i : V) : Set ℕ := {d | ∀ k ∈ CycleLengths i, d ∣ k}
 
 lemma one_mem_commonDivisorsSet (i : V) :
   1 ∈ commonDivisorsSet i := by
   intro k hk; exact one_dvd _
 
-lemma period_def (i : V) :
-  period i = sInf (commonDivisorsSet i) := rfl
+lemma commonDivisorsSet_nonempty (i : V) : (commonDivisorsSet i).Nonempty :=
+  ⟨1, one_mem_commonDivisorsSet i⟩
+
+/-- The period of a vertex `i`: the least common divisor of all cycle lengths at `i`.
+
+If there are no cycles, this is `0` (since then `commonDivisorsSet i = Set.univ`). -/
+noncomputable def period (i : V) : ℕ :=
+by
+  classical
+  letI : DecidablePred fun d : ℕ => d ∈ commonDivisorsSet i := Classical.decPred _
+  exact Nat.find (commonDivisorsSet_nonempty (i := i))
 
 /-- `period i` is the least element of the set of common divisors of all cycle lengths at `i`. -/
 lemma period_min (i : V) :
     period i ∈ commonDivisorsSet i ∧
       ∀ m ∈ commonDivisorsSet i, period i ≤ m := by
   classical
-  let S := commonDivisorsSet i
-  have hS_nonempty : S.Nonempty := ⟨1, one_mem_commonDivisorsSet i⟩
   refine ⟨?mem, ?least⟩
-  · -- For a nonempty subset of ℕ, its infimum belongs to the set.
-    have : sInf S ∈ S := Nat.sInf_mem hS_nonempty
-    simpa [period_def] using this
+  · simpa [period] using (Nat.find_spec (commonDivisorsSet_nonempty (i := i)))
   · intro m hm
-    have : sInf S ≤ m := Nat.sInf_le hm
-    simpa [period_def] using this
+    simpa [period] using (Nat.find_min' (commonDivisorsSet_nonempty (i := i)) hm)
 
 /-- Basic characterization of `period`: divisibility plus minimality.
     TODO: it may be needed a more rigorous characterization-/
@@ -104,12 +97,12 @@ lemma period_pos_of_nonempty_cycles (i : V) (h_nonempty : (CycleLengths i).Nonem
 /--
 **Theorem: In a strongly connected quiver, the period is the same for all vertices**.
 -/
-theorem period_constant_of_strongly_connected (h_sc : IsStronglyConnected (inferInstance : Quiver V)) :
-    ∀ i j : V, period i = period j := by
+theorem period_constant_of_strongly_connected (h_sc : Quiver.IsSStronglyConnected V) :
+  ∀ i j : V, period i = period j := by
   intro i j
   classical
-  rcases h_sc i j with ⟨⟨p, hp_pos⟩⟩
-  rcases h_sc j i with ⟨⟨q, hq_pos⟩⟩
+  rcases h_sc i j with ⟨p, hp_pos⟩
+  rcases h_sc j i with ⟨q, hq_pos⟩
   have h_div_j : ∀ k ∈ CycleLengths j, period i ∣ k := by
     intro k hk
     rcases hk with ⟨hk_pos, ⟨c, hc_len⟩⟩
@@ -179,8 +172,10 @@ theorem period_constant_of_strongly_connected (h_sc : IsStronglyConnected (infer
 /-- The index of imprimitivity (h) of a strongly connected quiver,
     defined as the common period of its vertices. Requires Fintype and Nonempty
     to select an arbitrary vertex. -/
-noncomputable def index_of_imprimitivity [Fintype V] [Nonempty V] (G : Quiver V) : ℕ :=
-  period (Classical.arbitrary V)
+noncomputable def index_of_imprimitivity [Fintype V] [Nonempty V] (G : Quiver V) : ℕ := by
+  classical
+  letI : Quiver V := G
+  exact period (Classical.arbitrary V)
 
 /-- A strongly connected quiver is aperiodic if its index of imprimitivity is 1. -/
 def IsAperiodic [Fintype V] [Nonempty V] (G : Quiver V) : Prop :=
@@ -220,7 +215,7 @@ lemma mem_CycleLengths_of_cons_comp_right {i v w : V}
 Theorem: A strongly connected quiver with index of imprimitivity h admits a cyclic partition.
 -/
 theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V]
-    (h_sc : IsStronglyConnected (inferInstance : Quiver V)) :
+    (h_sc : Quiver.IsSStronglyConnected V) :
     ∀ (h_pos : index_of_imprimitivity (inferInstance : Quiver V) > 0),
       ∃ partition : V → Fin (index_of_imprimitivity (inferInstance : Quiver V)),
         IsCyclicPartition h_pos partition := by
@@ -231,8 +226,9 @@ theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V]
   -- we fix a base vertex i₀ compatible with the definition of `index_of_imprimitivity`
   let i0 : V := Classical.arbitrary V
   -- for each vertex, we choose a positive-length path from i₀ to it
-  have hpaths : ∀ v : V, Nonempty { p : Path i0 v // p.length > 0 } := fun v => h_sc i0 v
-  let chosen : ∀ v : V, { p : Path i0 v // p.length > 0 } := fun v => Classical.choice (hpaths v)
+  have hpaths : ∀ v : V, ∃ p : Path i0 v, 0 < p.length := fun v => h_sc i0 v
+  let chosen : ∀ v : V, { p : Path i0 v // 0 < p.length } :=
+    fun v => ⟨Classical.choose (hpaths v), Classical.choose_spec (hpaths v)⟩
   let P : ∀ v : V, Path i0 v := fun v => (chosen v).1
   have hPpos : ∀ v : V, (P v).length > 0 := fun v => (chosen v).2
   -- we define the partition by taking path lengths modulo h
@@ -241,7 +237,7 @@ theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V]
   dsimp [IsCyclicPartition]
   intro i j hij
   rcases hij with ⟨e⟩
-  obtain ⟨⟨s, hs_pos⟩⟩ := h_sc j i0
+  obtain ⟨s, hs_pos⟩ := h_sc j i0
   have hc1_mem : ((P j).comp s).length ∈ CycleLengths i0 :=
     mem_CycleLengths_of_comp_right (p := P j) (s := s) hs_pos
   have hc2_mem : (((P i).cons e).comp s).length ∈ CycleLengths i0 :=

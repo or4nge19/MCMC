@@ -1,6 +1,7 @@
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 import MCMC.PF.aux
 import Mathlib.Data.Matrix.Basic
+import MCMC.PF.Topology.Compactness.ExtremeValueUSC
 
 namespace Matrix
 open Finset Quiver Matrix
@@ -151,7 +152,7 @@ theorem exists_maximizer (A : Matrix n n ℝ) :
   have h_nonempty : (stdSimplex ℝ n).Nonempty := stdSimplex_nonempty
   have h_usc : UpperSemicontinuousOn (collatzWielandtFn A) (stdSimplex ℝ n) :=
     upperSemicontinuousOn A
-  exact exists_max_on_usco h_compact h_nonempty h_usc
+  exact IsCompact.exists_max_on_usco h_compact h_nonempty h_usc
 
 lemma eq_iInf_of_nonempty
   {n : Type*} [Fintype n] [Nonempty n] (A : Matrix n n ℝ)
@@ -385,7 +386,7 @@ theorem eq_eigenvalue_of_positive_eigenvector
   have h_supp_nonempty : ({i | 0 < v i}.toFinset).Nonempty := by
     let i0 := Classical.arbitrary n
     simp
-    simp_all only [filter_True, Finset.univ_nonempty]
+    simp_all only [Finset.filter_true, Finset.univ_nonempty]
   rw [dif_pos h_supp_nonempty]
   apply Finset.inf'_eq_of_forall_le_of_exists_le h_supp_nonempty
   · intro i hi
@@ -504,7 +505,7 @@ lemma le_eigenvalue_of_left_eigenvector [DecidableEq n]
   -- Since u ⬝ w > 0 we can divide
   have h_dot_pos : 0 < u ⬝ᵥ w :=
     dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hw_nonneg hw_ne_zero
-  exact (mul_le_mul_right h_dot_pos).mp h_dot_le
+  exact le_of_mul_le_mul_right h_dot_le h_dot_pos
 
 /-- If v is an eigenvector of A with eigenvalue r (i.e., A *ᵥ v = r • v),
     this lemma provides the relation in the form needed for rewriting. -/
@@ -620,7 +621,7 @@ lemma le_of_max_le_row_sum [Nonempty n] [DecidableEq n]
           exact mul_le_mul_of_nonneg_left (by { rw [← h_k_max]; exact Finset.le_sup' x hj }) (hB_nonneg k j)
       _ = (∑ j, B k j) * x k := by rw [Finset.sum_mul]
       _ = r * x k := by rw [h_B_row_sum]
-  exact (mul_le_mul_right h_xk_pos).mp (le_trans h_le_k h_Bx_le)
+  exact le_of_mul_le_mul_right (le_trans h_le_k h_Bx_le) h_xk_pos
 
 /--
 For any non-negative vector `w`, its Collatz–Wielandt value is bounded above by a

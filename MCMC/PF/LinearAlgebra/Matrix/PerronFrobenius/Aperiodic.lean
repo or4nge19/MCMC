@@ -1,5 +1,5 @@
 import MCMC.PF.Combinatorics.Quiver.Cyclic
-import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Defs
+import MCMC.PF.Combinatorics.Quiver.Path
 
 open Quiver
 
@@ -16,14 +16,14 @@ noncomputable def index_of_imprimitivity [Nonempty n] (A : Matrix n n ℝ) : ℕ
 
 /-- A matrix is aperiodic if it is irreducible and its index of imprimitivity is 1. -/
 def IsAperiodic [Nonempty n] (A : Matrix n n ℝ) : Prop :=
-  Irreducible A ∧ index_of_imprimitivity A = 1
+  IsIrreducible A ∧ index_of_imprimitivity A = 1
 
 /-- Frobenius (forward direction): A primitive matrix is irreducible and aperiodic. -/
 theorem primitive_implies_irreducible_and_aperiodic
     [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     IsPrimitive A → IsAperiodic A := by
   intro h_prim
-  have h_irred : Irreducible A := (IsPrimitive.to_Irreducible (n := n) (A := A) h_prim hA_nonneg)
+  have h_irred : IsIrreducible A := (Matrix.IsPrimitive.isIrreducible (A := A) h_prim)
   rcases h_prim with ⟨_h_nonneg, ⟨k, hk_pos, hk_pos_entries⟩⟩
   let G := toQuiver A
   letI : Quiver n := G
@@ -31,9 +31,7 @@ theorem primitive_implies_irreducible_and_aperiodic
   have hP : ∀ v : n, Nonempty { p : Path i0 v // p.length = k } := by
     intro v
     have : 0 < (A ^ k) i0 v := hk_pos_entries i0 v
-    simpa using
-      (pow_entry_pos_iff_exists_path (A := A) (i := i0) (j := v) hA_nonneg k
-        |> (fun h => h)).mp this
+    exact (Matrix.pow_apply_pos_iff_nonempty_path (A := A) hA_nonneg k i0 v).mp this
   have hP_i0 : Nonempty { p : Path i0 i0 // p.length = k } := hP i0
   rcases hP_i0 with ⟨p0, hp0⟩
   have hp0_pos : 0 < p0.length := by simpa [hp0] using hk_pos
@@ -89,7 +87,7 @@ def IsPermutationMatrix (P : Matrix n n ℝ) : Prop :=
 Theorem: Frobenius Normal Form.
 -/
 theorem exists_frobenius_normal_form [Nonempty n]
-    (_hA_irred : Irreducible A) (_h_h_gt_1 : index_of_imprimitivity A > 1) :
+    (_hA_irred : IsIrreducible A) (_h_h_gt_1 : index_of_imprimitivity A > 1) :
     ∃ (P : Matrix n n ℝ), IsPermutationMatrix P ∧ True := by
   refine ⟨1, ?_, trivial⟩
   refine ⟨Equiv.refl _, ?_⟩

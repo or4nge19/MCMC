@@ -70,9 +70,9 @@ def HasSpectralGap (P : Matrix n n ℝ) : Prop :=
       ∀ i j k, |(P^k) i j - (LimitMatrix π) i j| ≤ r^(k / k0)
 
 lemma IsPrimitive.irreducible [Nonempty n] {P : Matrix n n ℝ}
-    (h_stoch : IsStochastic P) (h_prim : IsPrimitive P) :
-    Matrix.Irreducible P := by
-  exact Matrix.IsPrimitive.to_Irreducible h_prim h_stoch.1
+    (_ : IsStochastic P) (h_prim : IsPrimitive P) :
+    Matrix.IsIrreducible P := by
+  exact IsPrimitive.isIrreducible h_prim
 
 lemma pow_stationary_mulVec [Nonempty n] (P : Matrix n n ℝ) (k : ℕ)
     (_ : IsStochastic P) (π : stdSimplex ℝ n) (h_stat : IsStationary P π) :
@@ -109,7 +109,7 @@ private lemma delta_nonneg (i : n) : ∀ t, 0 ≤ delta i t := by
 lemma IsPrimitive.has_spectral_gap [Nonempty n] {P : Matrix n n ℝ}
     (h_stoch : IsStochastic P) (h_prim : IsPrimitive P) : HasSpectralGap P := by
   classical
-  have h_irred : Matrix.Irreducible P := IsPrimitive.irreducible h_stoch h_prim
+  have h_irred : Matrix.IsIrreducible P := IsPrimitive.irreducible h_stoch h_prim
   obtain ⟨π, hπ_stat, _hπ_unique⟩ :=
     exists_unique_stationary_distribution_of_irreducible h_stoch h_irred
   obtain ⟨k0, hk0_pos, hδ_lt⟩ :=
@@ -163,7 +163,7 @@ lemma IsPrimitive.has_spectral_gap [Nonempty n] {P : Matrix n n ℝ}
       have : Matrix.tvDist (delta i0) π.val ≤ 1 := by
         have hpt :
             ∀ t, |delta i0 t - π.val t| ≤ |delta i0 t| + |π.val t| := by
-          intro t; simpa [sub_eq_add_neg] using abs_add (delta i0 t) (-(π.val t))
+          intro t; simpa [sub_eq_add_neg] using abs_add_le (delta i0 t) (-(π.val t))
         have hsum_le :
             ∑ t, |delta i0 t - π.val t|
               ≤ ∑ t, (|delta i0 t| + |π.val t|) := by
@@ -251,7 +251,7 @@ lemma IsPrimitive.has_spectral_gap [Nonempty n] {P : Matrix n n ℝ}
           ∀ t, |Matrix.rowDist (P^s) i₁ t - Matrix.rowDist (P^s) i₂ t|
                 ≤ |Matrix.rowDist (P^s) i₁ t| + |Matrix.rowDist (P^s) i₂ t| := by
         intro t; simpa [sub_eq_add_neg] using
-          abs_add (Matrix.rowDist (P^s) i₁ t) (-(Matrix.rowDist (P^s) i₂ t))
+          abs_add_le (Matrix.rowDist (P^s) i₁ t) (-(Matrix.rowDist (P^s) i₂ t))
       have hsum_le :
           ∑ t, |Matrix.rowDist (P^s) i₁ t - Matrix.rowDist (P^s) i₂ t|
             ≤ ∑ t, (|Matrix.rowDist (P^s) i₁ t| + |Matrix.rowDist (P^s) i₂ t|) := by
@@ -333,7 +333,7 @@ open Tendsto
   (Works with the block-exponent version of the spectral gap.)
 -/
 theorem converges_of_spectral_gap [Nonempty n] {P : Matrix n n ℝ} (_ : IsStochastic P)
-    (h_gap : HasSpectralGap P) (_ : Matrix.Irreducible P) :
+    (h_gap : HasSpectralGap P) (_ : Matrix.IsIrreducible P) :
     ∃ (π : stdSimplex ℝ n), IsStationary P π ∧
       Tendsto (fun k : ℕ => P^k) atTop (𝓝 (LimitMatrix π)) := by
   classical

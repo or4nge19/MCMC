@@ -1,15 +1,13 @@
-import Mathlib.Algebra.Azumaya.Basic
 import Mathlib.Algebra.Lie.OfAssociative
+import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.Normed.Algebra.Spectrum
-import Mathlib.Analysis.Normed.Field.Instances
+import Mathlib.Analysis.RCLike.Lemmas
 import Mathlib.Data.Real.StarOrdered
 import Mathlib.LinearAlgebra.Eigenspace.Basic
-import Mathlib.RingTheory.HopkinsLevitzki
-import Mathlib.Topology.Algebra.Module.ModuleTopology
-import Mathlib.Topology.EMetricSpace.Paracompact
-import Mathlib.Topology.MetricSpace.Polish
-import Mathlib.Topology.Separation.CompletelyRegular
-import Mathlib
+import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
+import Mathlib.RingTheory.DedekindDomain.Dvr
+import Mathlib.RingTheory.FiniteLength
+import Mathlib.RingTheory.SimpleRing.Principal
 
 /-! # Perron-Frobenius Theory for Matrices
 
@@ -483,25 +481,7 @@ lemma spectrum.nnnorm_le_nnnorm_of_mem {𝕜 A : Type*}
     exact hk_in_ball
   exact h_norm_le
 
-lemma toLin'_eq_toEuclideanLin (A : Matrix n n ℝ) :
-    Matrix.toLin' A = (Matrix.toEuclideanLin A : (n → ℝ) →ₗ[ℝ] (n → ℝ)) := by
-  rfl
 
-lemma toLin'_toContinuousLinearMap_eq (A : Matrix n n ℝ) :
-    (Matrix.toLin' A).toContinuousLinearMap =
-    (Matrix.toEuclideanLin A).toContinuousLinearMap := by
-  rw [toLin'_eq_toEuclideanLin]
-  rfl
-
-lemma toLin'_apply_eq_toEuclideanLin_apply (A : Matrix n n ℝ) (v : n → ℝ) :
-    Matrix.toLin' A v = Matrix.toEuclideanLin A v := by
-  simp [Matrix.toLin'_apply, Matrix.toEuclideanLin_apply]
-  rfl
-
-lemma toLin'_toContinuousLinearMap (A : Matrix n n ℝ) :
-    (Matrix.toLin' A).toContinuousLinearMap = (Matrix.toEuclideanLin A).toContinuousLinearMap := by
-  ext v
-  rfl
 
 lemma vecMul_eq_mulVec_transpose {n : Type*} [Fintype n] (A : Matrix n n ℝ) (v : n → ℝ) :
     v ᵥ* A = Aᵀ *ᵥ v := by

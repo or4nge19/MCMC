@@ -119,7 +119,7 @@ lemma nodup_iff_not_contains_dup {α : Type*} [DecidableEq α] {l : List α} :
   · intro h x
     specialize h x
     simp only [not_le]
-    exact Nat.lt_of_le_of_lt h (Nat.lt.base 1)
+    exact Nat.lt_of_le_of_lt h (Nat.lt_add_one 1)
   · intro h x
     specialize h x
     exact Nat.le_of_lt_succ (Nat.lt_of_not_le h)

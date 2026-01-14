@@ -12,7 +12,7 @@ variable {n : Type*} {A : Matrix n n ℝ}
 
 /-- If a property `P` holds for at least one vertex `i₀` and propagates along the edges
 of an irreducible matrix's graph (`P i ∧ A i j > 0 → P j`), then `P` holds for all vertices. -/
-lemma Irreducible.eq_univ_of_propagate (hA_irred : Irreducible A) (P : n → Prop)
+lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n → Prop)
     (h_nonempty : ∃ i₀, P i₀)
     (h_propagate : ∀ i j, P i → 0 < A i j → P j) :
     ∀ i, P i := by
@@ -34,7 +34,7 @@ lemma Irreducible.eq_univ_of_propagate (hA_irred : Irreducible A) (P : n → Pro
       simpa [S] using this
     exact hi_T hPi
   obtain ⟨i, hi_S, j, hj_not_S, hAij_pos⟩ :=
-    hA_irred.exists_edge_out S hS_nonempty hS_ne_univ
+    Matrix.Irreducible.exists_edge_out (A := A) hA_irred S hS_nonempty hS_ne_univ
   have hPi : P i := by
     simpa [S] using hi_S
   have hPj : P j := h_propagate i j hPi hAij_pos
@@ -51,8 +51,7 @@ lemma abs_eigenvector_inequality
   (hA_nonneg : ∀ i j, 0 ≤ A i j)
   {μ : ℝ} {v : n → ℝ} (h_eig : A *ᵥ v = μ • v) :
   let w := fun i ↦ |v i|; |μ| • w ≤ A *ᵥ w := by
-  intro w
-  intro i
+  intro w i
   calc
     (|μ| • w) i = |μ| * |v i| := by simp [w]
     _ = |μ * v i| := by rw [abs_mul]
@@ -222,17 +221,6 @@ private lemma sum_component_norms_eq_perron_power_norm [DecidableEq n] -- [CommS
     _ = (perronRoot_alt A) ^ k * ‖x m‖ := by simp [Pi.smul_apply, smul_eq_mul]
 
 /--
-Mapping a matrix power with a ring homomorphism is the same as taking the power of the
-mapped matrix.
--/
-lemma map_pow {R S : Type*} [Semiring R] [Semiring S] (f : R →+* S)
-    (A : Matrix n n R) (k : ℕ) : (A ^ k).map f = (A.map f) ^ k := by
-  induction k with
-  | zero => simp [pow_zero, Matrix.map_one]
-  | succ k ih =>
-    rw [pow_succ, Matrix.map_mul, ih, pow_succ]
-
-/--
 If `x` is a complex eigenvector of a real matrix `A` with eigenvalue `μ`, then `x` is an
 eigenvector of `A^m` with eigenvalue `μ^m`. This is the complex version of the lemma.
 -/
@@ -281,7 +269,7 @@ variable {A : Matrix n n ℝ}
 Under the conditions of the main theorem, the eigenvalue `lam` must be non-zero.
 -/
 lemma eigenvalue_ne_zero_of_irreducible
-    {A : Matrix n n ℝ} (hA_irred : Irreducible A)
+    {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     {lam : ℂ} {x : n → ℂ} (hx_ne_zero : x ≠ 0)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (‖lam‖ : ℝ) • (fun i => ‖x i‖)) :
     lam ≠ 0 := by
@@ -299,20 +287,20 @@ lemma eigenvalue_ne_zero_of_irreducible
     exact norm_eq_zero.mp (congr_fun hx_ne_zero i)
   have h_x_abs_pos : ∀ i, 0 < ‖x i‖ :=
     eigenvector_is_positive_of_irreducible hA_irred h_eig_zero_smul h_x_abs_nonneg h_x_abs_ne_zero
-  rcases hA_irred.exists_pos_entry with ⟨i, j, hAij_pos⟩
+  obtain ⟨i, j, hAij_pos⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
   have h_sum : (A *ᵥ (fun k => ‖x k‖)) i = 0 := by rw [h_eig_zero]; rfl
   rw [mulVec_apply] at h_sum
   have h_sum_pos : 0 < ∑ k, A i k * ‖x k‖ := by
     apply sum_pos_of_mem
     · intro k _
-      exact mul_nonneg (hA_irred.1 i k) (h_x_abs_nonneg k)
+      exact mul_nonneg (hA_irred.nonneg i k) (h_x_abs_nonneg k)
     · exact Finset.mem_univ j
     · exact mul_pos hAij_pos (h_x_abs_pos j)
   exact h_sum_pos.ne' h_sum
 
 theorem eigenvalue_is_perron_root_of_positive_eigenvector
     {r : ℝ} {v : n → ℝ}
-    (_ : Irreducible A)
+    (_ : A.IsIrreducible)
     (hA_nonneg : ∀ i j, 0 ≤ A i j)
     (hr_pos   : 0 < r)
     (hv_pos   : ∀ i, 0 < v i)
@@ -335,20 +323,20 @@ theorem eigenvalue_is_perron_root_of_positive_eigenvector
   exact le_antisymm h_le h_ge
 
 theorem perronRoot_transpose_eq
-    (A : Matrix n n ℝ) (hA_irred : Irreducible A) :
+    (A : Matrix n n ℝ) (hA_irred : A.IsIrreducible) :
     perronRoot_alt A = perronRoot_alt Aᵀ := by
   obtain ⟨r, v, hr_pos, hv_pos, hv_eig⟩ :=
     exists_positive_eigenvector_of_irreducible hA_irred
   have hr_eq_perron : r = perronRoot_alt A :=
     eigenvalue_is_perron_root_of_positive_eigenvector
-      hA_irred hA_irred.1 hr_pos hv_pos hv_eig
-  have hAT_irred : Irreducible Aᵀ :=
-    Irreducible.transpose hA_irred.1 hA_irred
+      hA_irred hA_irred.nonneg hr_pos hv_pos hv_eig
+  have hAT_irred : Aᵀ.IsIrreducible :=
+    Matrix.IsIrreducible.transpose hA_irred
   obtain ⟨r', u, hr'_pos, hu_pos, hu_eig_T⟩ :=
     exists_positive_eigenvector_of_irreducible hAT_irred
   have hr'_eq_perron : r' = perronRoot_alt Aᵀ :=
     eigenvalue_is_perron_root_of_positive_eigenvector
-      hAT_irred (fun i j ↦ hA_irred.1 j i) hr'_pos hu_pos hu_eig_T
+      hAT_irred (fun i j ↦ hA_irred.nonneg j i) hr'_pos hu_pos hu_eig_T
   have hu_eig_left : u ᵥ* A = r' • u := by
     have : Aᵀ *ᵥ u = r' • u := hu_eig_T
     simpa [vecMul_eq_mulVec_transpose] using this
@@ -386,7 +374,7 @@ a non-negative, non-zero vector `y` and a positive scalar `s` such that `A *ᵥ 
 then the Perron root of `A` is at most `s`.
 -/
 lemma perron_root_le_of_subinvariant
-    (hA_irred : Irreducible A)
+    (hA_irred : A.IsIrreducible)
     (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {s : ℝ} (_ : 0 < s)
     {y : n → ℝ} (hy_nonneg : ∀ i, 0 ≤ y i)
@@ -394,7 +382,7 @@ lemma perron_root_le_of_subinvariant
     (h_subinv : A *ᵥ y ≤ s • y) :
     perronRoot_alt A ≤ s := by
   let A_T := Aᵀ
-  have hAT_irred : Irreducible A_T := hA_irred.transpose hA_nonneg
+  have hAT_irred : A_T.IsIrreducible := Matrix.IsIrreducible.transpose hA_irred
   have hAT_nonneg : ∀ i j, 0 ≤ A_T i j := by simp [A_T]; exact fun i j ↦ hA_nonneg j i
   obtain ⟨r, u, hr_pos, hu_pos, hu_eig⟩ :=
     exists_positive_eigenvector_of_irreducible hAT_irred
@@ -409,13 +397,15 @@ lemma perron_root_le_of_subinvariant
     dotProduct_le_dotProduct_of_nonneg_left' (fun i => (hu_pos i).le) h_subinv
   rw [dotProduct_mulVec, h_u_left_eig, dotProduct_smul_left, dotProduct_smul] at h_dot_le
   have h_dot_pos : 0 < u ⬝ᵥ y := dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hy_nonneg hy_ne_zero
-  have h_r_le_s : r ≤ s := (mul_le_mul_right h_dot_pos).mp h_dot_le
+  have h_r_le_s : r ≤ s := by
+    have h_mul_le : r * (u ⬝ᵥ y) ≤ s * (u ⬝ᵥ y) := h_dot_le
+    exact le_of_mul_le_mul_right h_mul_le h_dot_pos
   rwa [h_r_eq_perron] at h_r_le_s
 
 /-- If equality holds in the subinvariance inequality `r • v ≤ A *ᵥ v` for the Perron root `r`,
     then `v` must be an eigenvector. -/
 lemma subinvariant_equality_implies_eigenvector
-    (hA_irred : Irreducible A)
+    (hA_irred : A.IsIrreducible)
     (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {v : n → ℝ} (_ : ∀ i, 0 ≤ v i) (_ : v ≠ 0)
     (h_subinv : perronRoot_alt A • v ≤ A *ᵥ v) :
@@ -430,14 +420,14 @@ lemma subinvariant_equality_implies_eigenvector
   · simp only [sub_eq_zero, z] at hz_zero
     exact hz_zero
   · obtain ⟨r_T, u, hr_T_pos, hu_pos, hu_eig⟩ :=
-      exists_positive_eigenvector_of_irreducible (hA_irred.transpose hA_nonneg)
+      exists_positive_eigenvector_of_irreducible (Matrix.IsIrreducible.transpose hA_irred)
     have h_u_left_eig : u ᵥ* A = r_T • u := by
       rwa [vecMul_eq_mulVec_transpose]
     have h_rT_eq_r : r_T = r := by
       calc
         r_T = perronRoot_alt Aᵀ :=
           eigenvalue_is_perron_root_of_positive_eigenvector
-            (hA_irred.transpose hA_nonneg)
+            (Matrix.IsIrreducible.transpose hA_irred)
             (fun i j ↦ hA_nonneg j i) hr_T_pos hu_pos hu_eig
         _   = perronRoot_alt A   := (perronRoot_transpose_eq A hA_irred).symm
         _   = r                 := rfl
@@ -463,7 +453,7 @@ Any eigenvalue μ of a nonnegative irreducible matrix A has absolute value
 at most equal to the Perron root.
 -/
 theorem eigenvalue_abs_le_perron_root
-    {A : Matrix n n ℝ} (_ : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j)
+    {A : Matrix n n ℝ} (_ : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {μ : ℂ} (h_is_eigenvalue : μ ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ))) :
     ‖μ‖ ≤ perronRoot_alt A := by
   let B := A.map (algebraMap ℝ ℂ)
@@ -486,7 +476,7 @@ theorem eigenvalue_abs_le_perron_root
 
 /-- For an irreducible, non-negative matrix, the Perron root (defined as the Collatz-Wielandt
 supremum) is equal to the unique positive eigenvalue `r` from the existence theorem. -/
-lemma perron_root_eq_positive_eigenvalue (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+lemma perron_root_eq_positive_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     ∃ r v, 0 < r ∧ (∀ i, 0 < v i) ∧ A *ᵥ v = r • v ∧ perronRoot_alt A = r := by
   obtain ⟨r, v, hr_pos, hv_pos, h_eig⟩ := exists_positive_eigenvector_of_irreducible hA_irred
   have h_le : perronRoot_alt A ≤ r :=
@@ -523,7 +513,7 @@ lemma mem_spectrum_of_eigenvalue
   simpa [f, spectrum.Matrix_toLin'_eq_spectrum] using h_mem_f
 
 /-- The Perron root of an irreducible, non-negative matrix is an eigenvalue. -/
-theorem perron_root_is_eigenvalue (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+theorem perron_root_is_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     perronRoot_alt A ∈ spectrum ℝ A := by
   obtain ⟨r', v, _, hv_pos, h_eig, h_eq⟩ := perron_root_eq_positive_eigenvalue hA_irred hA_nonneg
   have hv_ne_0 : v ≠ 0 := fun h => by
@@ -536,7 +526,7 @@ theorem perron_root_is_eigenvalue (hA_irred : Irreducible A) (hA_nonneg : ∀ i 
 /-- **Perron-Frobenius Theorem (Dominance)**: The Perron root of an irreducible, non-negative
 matrix is an eigenvalue and its modulus is greater than or equal to the modulus of any other
 eigenvalue. It is the spectral radius. -/
-theorem perron_root_is_spectral_radius (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     let r := perronRoot_alt A
     r ∈ spectrum ℝ A ∧ ∀ μ ∈ spectrum ℝ A, |μ| ≤ r := by
   constructor
@@ -593,7 +583,7 @@ lemma triangle_equality_of_norm_eq_perron_root
 If `|x|` is a positive eigenvector of an irreducible non-negative matrix `A`, then for any `i`,
 the `i`-th component of `A * |x|` is positive.
 -/
-lemma mulVec_x_abs_pos_of_irreducible {A : Matrix n n ℝ} (hA_irred : Irreducible A)
+lemma mulVec_x_abs_pos_of_irreducible {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     {x_abs : n → ℝ} (h_x_abs_nonneg : ∀ i, 0 ≤ x_abs i)
     (h_x_abs_eig : A *ᵥ x_abs = (perronRoot_alt A) • x_abs)
     (hx_abs_ne_zero : x_abs ≠ 0) (i : n) :
@@ -601,11 +591,11 @@ lemma mulVec_x_abs_pos_of_irreducible {A : Matrix n n ℝ} (hA_irred : Irreducib
   have h_x_abs_pos : ∀ k, 0 < x_abs k :=
     eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig h_x_abs_nonneg hx_abs_ne_zero
   have h_r_pos : 0 < perronRoot_alt A := by
-    rcases hA_irred.exists_pos_entry with ⟨i₀, j₀, hAij_pos⟩
+    obtain ⟨i₀, j₀, hAij_pos⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
     have h_sum_pos : 0 < ∑ k, A i₀ k * x_abs k := by
       apply sum_pos_of_mem
       · intro k _
-        exact mul_nonneg (hA_irred.1 i₀ k) (h_x_abs_pos k).le
+        exact mul_nonneg (hA_irred.nonneg i₀ k) (h_x_abs_pos k).le
       · exact Finset.mem_univ j₀
       · exact mul_pos hAij_pos (h_x_abs_pos j₀)
     have h_eq : (A *ᵥ x_abs) i₀ = (perronRoot_alt A) * x_abs i₀ := by
@@ -623,7 +613,7 @@ lemma mulVec_x_abs_pos_of_irreducible {A : Matrix n n ℝ} (hA_irred : Irreducib
 If the triangle equality holds for an eigenvector `x` of a non-negative irreducible matrix `A`,
 then the sum `s = (A * x) i` is non-zero.
 -/
-lemma sum_s_ne_zero_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : Irreducible A)
+lemma sum_s_ne_zero_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {x : n → ℂ} (h_triangle_eq : ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot_alt A) • (fun i => ‖x i‖))
@@ -654,7 +644,7 @@ lemma term_ne_zero_of_pos_entry {A : Matrix n n ℝ} {x : n → ℂ}
 
 /-- For any row `k` of an irreducible matrix with triangle equality,
 all `x l` where `A k l > 0` have the same phase. -/
-lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : Irreducible A)
+lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {x : n → ℂ} (hx_ne_zero : x ≠ 0)
     (h_triangle_eq : ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖)
@@ -692,7 +682,7 @@ lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : Irreduci
   rw [h_xl_aligned, h_xm_aligned, h_align_l, h_align_m]
 
 /-- The reference phase has norm 1. -/
-lemma reference_phase_norm_one {A : Matrix n n ℝ} (hA_irred : Irreducible A)
+lemma reference_phase_norm_one {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     {x : n → ℂ} (hx_ne_zero : x ≠ 0)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot_alt A) • (fun i => ‖x i‖)) :
     let j₀ := Classical.arbitrary n
@@ -712,7 +702,7 @@ lemma reference_phase_norm_one {A : Matrix n n ℝ} (hA_irred : Irreducible A)
 /--
 All non-zero entries in the same row have aligned phases when triangle equality holds.
 -/
-lemma row_entries_aligned_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : Irreducible A)
+lemma row_entries_aligned_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {x : n → ℂ} (hx_ne_zero : x ≠ 0)
     (h_triangle_eq : ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖)
@@ -736,18 +726,19 @@ lemma phase_aligned_trivial
   simp only [hij]
 
 /-- For an irreducible matrix, every row has at least one positive entry. -/
-lemma Irreducible.exists_pos_entry_in_row {A : Matrix n n ℝ} (hA_irred : Irreducible A) (i : n) :
+lemma IsIrreducible.exists_pos_entry_in_row {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) (i : n) :
     ∃ j, 0 < A i j := by
   by_contra h_no_pos
   push_neg at h_no_pos
   have h_row_zero : ∀ j, A i j = 0 := by
     intro j
-    have h_nonneg := hA_irred.1 i j
+    have h_nonneg := hA_irred.nonneg i j
     have h_not_pos := h_no_pos j
     exact le_antisymm (h_no_pos j) h_nonneg
-  rcases hA_irred.exists_pos_entry with ⟨i₀, j₀, hA_pos⟩
+  obtain ⟨i₀, j₀, hA_pos⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
   letI : Quiver n := toQuiver A
-  rcases hA_irred.2 i j₀ with ⟨p, hp_pos⟩
+  have hconn := hA_irred.connected i j₀
+  obtain ⟨p, hp_pos⟩ := hconn
   have h_pos : p.length > 0 := hp_pos
   obtain ⟨c, e, p', hp_eq, hp_len_eq⟩ :=
     Quiver.Path.path_decomposition_first_edge p h_pos
@@ -836,7 +827,7 @@ lemma Complex.triangle_eq_sum_with_common_phase {ι : Type*} [Fintype ι]
     non-negative matrix A with triangle equality for the eigenvector equation,
     then the complex sum equals the real Perron root times the phase-aligned eigenvector. -/
 lemma sum_eq_perron_root_times_phase_aligned_vector
-    {n : Type*} [Fintype n] [Nonempty n] {A : Matrix n n ℝ} (hA_irred : Irreducible A)
+    {n : Type*} [Fintype n] [Nonempty n] {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {x : n → ℂ} (hx_ne_zero : x ≠ 0)
     (h_triangle_eq : ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖)
@@ -901,7 +892,7 @@ lemma norm_vector_is_eigenvector_of_triangle_eq
     a real eigenvector, then the eigenvalue's norm equals the Perron root. -/
 lemma eigenvalue_norm_eq_perron_root_of_triangle_eq
     {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
-    {A : Matrix n n ℝ} (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j)
+    {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {μ : ℂ} {x : n → ℂ} (hx_ne_zero : x ≠ 0)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (‖μ‖ : ℝ) • (fun i => ‖x i‖)) :
     ‖μ‖ = perronRoot_alt A := by
@@ -921,7 +912,7 @@ lemma eigenvalue_norm_eq_perron_root_of_triangle_eq
 /-- In a matrix with triangle equality, vertices that share a common predecessor have aligned phases. -/
 lemma phase_aligned_within_row
     {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
-    {A : Matrix n n ℝ} (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j)
+    {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {x : n → ℂ} (hx_ne_zero : x ≠ 0)
     (h_triangle_eq : ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot_alt A) • (fun i => ‖x i‖))
@@ -934,7 +925,7 @@ lemma phase_aligned_within_row
     then they share the same phase. This is already proven as `phase_aligned_within_row`. -/
 lemma phase_propagates_within_row
     {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
-    {A : Matrix n n ℝ} (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j)
+    {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j)
     {x : n → ℂ} (hx_ne_zero : x ≠ 0)
     (h_triangle_eq : ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot_alt A) • (fun i => ‖x i‖))
@@ -963,7 +954,7 @@ lemma eigenvector_norm_pos_of_primitive_and_norm_eq_perron_root
     obtain ⟨r', v, hr'_pos, hv_pos, h_eig'⟩ := exists_positive_eigenvector_of_primitive hA_prim hA_nonneg
     have : r' = perronRoot_alt A := by
       apply eigenvalue_is_perron_root_of_positive_eigenvector
-      · exact IsPrimitive.to_Irreducible hA_prim hA_nonneg
+      · exact Matrix.IsPrimitive.isIrreducible (A := A) hA_prim
       · exact hA_nonneg
       · exact hr'_pos
       · exact hv_pos
@@ -1187,7 +1178,7 @@ theorem spectral_dominance_of_primitive
   -- 3. we upgrade sub-invariance to equality, so `|x|` is a Perron eigenvector.
   have h_x_abs_eig :
       A *ᵥ (fun i => ‖x i‖) = (perronRoot_alt A) • (fun i => ‖x i‖) := by
-    have hA_irred : Irreducible A := IsPrimitive.to_Irreducible hA_prim hA_nonneg
+    have hA_irred : A.IsIrreducible := Matrix.IsPrimitive.isIrreducible (A := A) hA_prim
     have hx_abs_nonneg : ∀ i, 0 ≤ ‖x i‖ := fun _ ↦ norm_nonneg _
     have hx_abs_ne_zero : (fun i => ‖x i‖) ≠ 0 := by
       intro h_abs
@@ -1238,7 +1229,7 @@ theorem spectral_dominance_of_primitive'
     (μ : ℂ) (h_is_eigenvalue : μ ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ)))
     (h_ne_perron : μ ≠ perronRoot_alt A) :
     ‖μ‖ < perronRoot_alt A := by
-  have hA_irred : Irreducible A := IsPrimitive.to_Irreducible hA_prim hA_nonneg
+  have hA_irred : A.IsIrreducible := Matrix.IsPrimitive.isIrreducible (A := A) hA_prim
   have h_le : ‖μ‖ ≤ perronRoot_alt A := by
     exact @eigenvalue_abs_le_perron_root n _ _ _ A hA_irred hA_nonneg μ h_is_eigenvalue
   have h_lt_or_eq : ‖μ‖ < perronRoot_alt A ∨ ‖μ‖ = perronRoot_alt A :=

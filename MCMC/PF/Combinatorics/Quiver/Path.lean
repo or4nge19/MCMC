@@ -1,9 +1,7 @@
-import Mathlib.Combinatorics.Quiver.Path.Weight
 import MCMC.PF.Data.List
-import Mathlib
+import Mathlib.Combinatorics.Quiver.Path.Vertices
+import Mathlib.Combinatorics.Quiver.Path.Weight
 
-set_option maxHeartbeats 1000000
-set_option maxRecDepth 10000
 
 open List
 

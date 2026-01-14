@@ -1,3 +1,6 @@
+import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
+import Mathlib.Combinatorics.Quiver.Path
+import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Uniqueness
 
 open Quiver.Path
@@ -9,7 +12,7 @@ variable {n : Type*} [DecidableEq n]
 variable {A : Matrix n n ℝ}
 
 /-- If `A` is irreducible then so is `1 + A`. -/
-theorem Irreducible.add_one (h_irred : Irreducible A) : Irreducible (1 + A) := by
+theorem Irreducible.add_one (h_irred : A.IsIrreducible) : (1 + A).IsIrreducible := by
   let B := (1 : Matrix n n ℝ) + A
   constructor
   · intro i j
@@ -20,48 +23,49 @@ theorem Irreducible.add_one (h_irred : Irreducible A) : Irreducible (1 + A) := b
         linarith
     · simpa [B, h] using h_irred.1 i j
   · intro i j
-    rcases h_irred.2 i j with ⟨pA, hpA_pos⟩
-    letI GA : Quiver n := toQuiver A
-    let GB : Quiver n := toQuiver B
-    have arrow_map : ∀ {u v : n}, GA.Hom u v → GB.Hom u v := by
-      intro u v e
-      change 0 < B u v
+    -- Work in the quiver of `A` to extract a positive-length path.
+    letI : Quiver n := toQuiver A
+    obtain ⟨pA, hpA_pos⟩ := h_irred.connected i j
+    -- Any arrow in `A.toQuiver` is also an arrow in `(1 + A).toQuiver`.
+    have map_edge : ∀ {u v : n}, (0 < A u v) → (0 < B u v) := by
+      intro u v huv
       by_cases h_eq : u = v
       · subst h_eq
-        have : (0 : ℝ) < 1 + A u u := by
-          have : (0 : ℝ) < A u u := e
-          linarith
+        have : (0 : ℝ) < 1 + A u u := by linarith
         simpa [B] using this
-      · simpa [B, h_eq] using e
-    have hB_diag_pos : ∀ i, 0 < B i i := by
-      intro i
-      have : (0 : ℝ) < 1 + A i i := by
-        have hAi : 0 ≤ A i i := h_irred.1 i i
-        linarith
-      simpa [B] using this
-    have rec_path : ∀ {u v : n}, GA.Path u v → GB.Path u v := by
-      intro u v q
-      induction q with
-      | nil            => exact .nil
-      | cons q' e ih   => exact .cons ih (arrow_map e)
-    let loop : Path i i := (Path.nil : Path i i).cons (hB_diag_pos i)
-    let pB : Path i j := loop.comp (rec_path pA)
-    have hpB_len : pB.length > 0 := by
-      rw [@length_comp]
-      simp only [le_refl, gt_iff_lt, add_pos_iff, List.Nat.eq_of_le_zero]
-      simp_all only [gt_iff_lt, cons_eq_comp_toPath, nil_comp, length_toPath, Nat.lt_one_iff,
-        pos_of_gt, true_or, B, GA, GB, loop]
-    have hpB_pos :
-        Quiver.Path.length pB > 0 := by
-      exact hpB_len
-    exact ⟨pB, hpB_pos⟩
+      · simpa [B, h_eq] using huv
+    -- Lift paths from `toQuiver A` to `toQuiver B`, preserving length.
+    let pA' : @Quiver.Path n (toQuiver A) i j := pA
+    let rec liftPath_len :
+      ∀ {u v : n} (p : @Quiver.Path n (toQuiver A) u v),
+        Σ p' : @Quiver.Path n (toQuiver B) u v,
+          PLift
+            ((@Quiver.Path.length n (toQuiver B) u v p') =
+              (@Quiver.Path.length n (toQuiver A) u v p))
+      | u, _, @Quiver.Path.nil n (toQuiver A) u =>
+          ⟨@Quiver.Path.nil n (toQuiver B) u, ⟨by simp⟩⟩
+      | u, _, @Quiver.Path.cons n (toQuiver A) u b c p e =>
+          let ⟨p', hp'⟩ := liftPath_len p
+          have eA : 0 < A b c := e
+          ⟨@Quiver.Path.cons n (toQuiver B) u b c p' (map_edge eA),
+            ⟨by simp [hp'.down]⟩⟩
+    obtain ⟨pB, hp_len⟩ := liftPath_len pA'
+    have hpA_pos' : 0 < (@Quiver.Path.length n (toQuiver A) i j pA') := by
+      simpa using hpA_pos
+    have hpB_pos : 0 < (@Quiver.Path.length n (toQuiver B) i j pB) := by
+      simpa [hp_len.down] using hpA_pos'
+    -- Return a `B.toQuiver`-path witness.
+    letI : Quiver n := toQuiver B
+    have hpB_pos' : 0 < pB.length := by
+      simpa using hpB_pos
+    exact ⟨pB, hpB_pos'⟩
 
 /-
 A non-zero, non-negative eigenvector of an irreducible matrix is
 in fact strictly positive.
 -/
 lemma eigenvector_no_zero_entries_of_irreducible [Fintype n]
-    {r : ℝ} (hA_irred : Irreducible A) (_ : 0 < r)
+  {r : ℝ} (hA_irred : A.IsIrreducible) (_ : 0 < r)
     {v : n → ℝ} (h_eig : A *ᵥ v = r • v)
     (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     ∀ i, 0 < v i := by
@@ -82,7 +86,7 @@ lemma eigenvector_no_zero_entries_of_irreducible [Fintype n]
       simpa [T] using this
     exact hv_ne_zero hv_zero
   obtain ⟨j, hj_T, i, hi_not_T, h_Aji_pos⟩ :=
-    hA_irred.exists_edge_out T hT_nonempty hT_ne_univ
+    Irreducible.exists_edge_out (A := A) hA_irred T hT_nonempty hT_ne_univ
   have vi_pos : 0 < v i := by
     have h_vi_ne_zero : v i ≠ 0 := by
       intro h_eq
@@ -129,7 +133,7 @@ and a strictly positive eigenvector `v` (`∀ i, 0 < v i`) such that `A *ᵥ v =
 The proof uses the auxiliary matrix `B = 1 + A`, which is primitive, to apply the Perron-Frobenius theorem
 for primitive matrices and translate the result back to `A`. -/
 theorem exists_positive_eigenvector_of_irreducible [Nonempty n]
-    (hA_irred : Irreducible A) :
+  (hA_irred : A.IsIrreducible) :
     ∃ (r : ℝ) (v : n → ℝ),
       0 < r ∧ (∀ i, 0 < v i) ∧ A *ᵥ v = r • v := by
   -- 1.  We add the identity: `B := 1 + A`.
@@ -153,9 +157,9 @@ theorem exists_positive_eigenvector_of_irreducible [Nonempty n]
       linarith
     simpa [B] using this
   -- 1c.  `B` is irreducible.
-  have hB_irred : Irreducible (1 + A) := hA_irred.add_one
+  have hB_irred : (1 + A).IsIrreducible := Irreducible.add_one (A := A) hA_irred
   -- 1d.  `B` is primitive.
-  have hB_prim : IsPrimitive B :=
+  have hB_prim : B.IsPrimitive :=
     IsPrimitive.of_irreducible_pos_diagonal B hB_nonneg hB_irred hB_diag_pos
   -- 2.  Primitive Perron–Frobenius applied to `B`.
   obtain ⟨rB, v, hrB_pos, hv_pos, h_eig_B⟩ :=
@@ -172,9 +176,8 @@ theorem exists_positive_eigenvector_of_irreducible [Nonempty n]
   -- 4a.  We find a positive entry of `A`.
   have h_pos_entry : ∃ i j, 0 < A i j := by
     let i₀ : n := Classical.arbitrary n
-    rcases hA_irred.2 i₀ i₀ with ⟨⟨p₀, hp₀_len⟩⟩
-    have h_pos_len : p₀.length > 0 := hp₀_len
-    rcases Quiver.Path.path_decomposition_first_edge p₀ h_pos_len with
+    obtain ⟨p₀, hp₀_len⟩ := hA_irred.connected i₀ i₀
+    rcases Quiver.Path.path_decomposition_first_edge p₀ hp₀_len with
       ⟨j, e, -, -, -⟩
     exact ⟨i₀, j, e⟩
   rcases h_pos_entry with ⟨i₀, j₀, hA_pos⟩
@@ -210,7 +213,7 @@ theorem exists_positive_eigenvector_of_irreducible [Nonempty n]
 
 /-! A non-zero, non-negative eigenvector of an irreducible matrix is in fact **strictly** positive. -/
 lemma eigenvector_is_positive_of_irreducible [Nonempty n] {r : ℝ}
-    (hA_irred : Irreducible A)
+  (hA_irred : A.IsIrreducible)
     {v : n → ℝ} (h_eig : A *ᵥ v = r • v)
     (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     ∀ i, 0 < v i := by
@@ -276,7 +279,7 @@ scalar.
 -/
 theorem uniqueness_of_positive_eigenvector_gen
     {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n]
-    {A : Matrix n n ℝ} {r : ℝ} (hA_irred : Irreducible A) (hr_pos : 0 < r)
+  {A : Matrix n n ℝ} {r : ℝ} (hA_irred : A.IsIrreducible) (hr_pos : 0 < r)
     {v w : n → ℝ}
     (hv_pos : ∀ i, 0 < v i) (hw_pos : ∀ i, 0 < w i)
     (hv_eig : A *ᵥ v = r • v) (hw_eig : A *ᵥ w = r • w) :
@@ -509,14 +512,13 @@ open Quiver
 
 lemma Irreducible.exists_pos_entry
     {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n] {A : Matrix n n ℝ}
-    (hA_irred : Irreducible A) :
+    (hA_irred : A.IsIrreducible) :
     ∃ i j : n, 0 < A i j := by
   classical
   letI : Quiver n := toQuiver A
   let i₀ : n := Classical.arbitrary n
-  obtain ⟨⟨p, hp_pos⟩⟩ := hA_irred.2 i₀ i₀
-  have h_len : p.length > 0 := hp_pos
-  rcases Quiver.Path.path_decomposition_first_edge p h_len with
+  obtain ⟨p, hp_pos⟩ := hA_irred.connected i₀ i₀
+  rcases Quiver.Path.path_decomposition_first_edge p hp_pos with
     ⟨j, e, -, -, -⟩
   exact ⟨i₀, j, e⟩
 
@@ -533,7 +535,7 @@ Moreover, this eigenvector v in the standard simplex is unique, and the correspo
 is the Perron root of A.
 -/
 theorem pft_irreducible {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
-    {A : Matrix n n ℝ} (hA_irred : Irreducible A) :
+  {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) :
     ∃! (v : stdSimplex ℝ n), ∃ (r : ℝ), r > 0 ∧ A *ᵥ v.val = r • v.val := by
   let B : Matrix n n ℝ := 1 + A
   have hB_nonneg : ∀ i j, 0 ≤ B i j := by
@@ -548,9 +550,9 @@ theorem pft_irreducible {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
     have : (0 : ℝ) < 1 + A i i := by
       have := hA_irred.1 i i; linarith
     simpa [B] using this
-  have hB_irred : Irreducible B := by
-    simpa [B] using hA_irred.add_one
-  have hB_prim : IsPrimitive B :=
+  have hB_irred : B.IsIrreducible := by
+    simpa [B] using (Irreducible.add_one (A := A) hA_irred)
+  have hB_prim : B.IsPrimitive :=
     IsPrimitive.of_irreducible_pos_diagonal B hB_nonneg hB_irred hB_diag_pos
   obtain ⟨v, hv_unique⟩ := pft_primitive hB_prim hB_nonneg
   obtain ⟨rB, hrB_pos, h_eig_B⟩ := hv_unique.1

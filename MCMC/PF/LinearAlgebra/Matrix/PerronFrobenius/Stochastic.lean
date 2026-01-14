@@ -15,7 +15,7 @@ eigenvector `v` for this eigenvalue. This stationary vector is unique when const
 to the standard simplex.
 -/
 theorem exists_positive_eigenvector_of_irreducible_stochastic
-    {A : Matrix n n ℝ} (hA_irred : Irreducible A) (h_col_stoch : ∀ j, ∑ i, A i j = 1) :
+    {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) (h_col_stoch : ∀ j, ∑ i, A i j = 1) :
     ∃! (v : stdSimplex ℝ n), A *ᵥ v.val = v.val := by
   have hA_nonneg : ∀ i j, 0 ≤ A i j := hA_irred.1
   let A_T := Aᵀ
@@ -24,7 +24,7 @@ theorem exists_positive_eigenvector_of_irreducible_stochastic
     simpa [A_T, transpose_apply] using h_col_stoch
   have h_ones_eig : A_T *ᵥ (fun _ => 1) = 1 • (fun _ => 1) := by
     simpa using row_sum_eigenvalue hAT_nonneg 1 hAT_row_sum
-  have hAT_irred : Irreducible A_T := hA_irred.transpose hA_nonneg
+  have hAT_irred : A_T.IsIrreducible := Matrix.IsIrreducible.transpose hA_irred
   have r_AT_eq_one : perronRoot_alt A_T = 1 := by
     have h :=
       eigenvalue_is_perron_root_of_positive_eigenvector

@@ -38,7 +38,7 @@ The geometric multiplicity of the Perron root of an irreducible non-negative mat
 The eigenspace is spanned by the unique positive eigenvector.
 -/
 lemma geometric_multiplicity_one_of_irreducible
-    (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     let r := perronRoot_alt A
     ∃ v : n → ℝ, (∀ i, 0 < v i) ∧ Module.End.eigenspace (toLin' A) r = Submodule.span ℝ {v} := by
   let r := perronRoot_alt A
@@ -88,7 +88,7 @@ lemma geometric_multiplicity_one_of_irreducible
          intro i j; by_cases h : i = j
          · subst h; have := hA_nonneg i i; simp [B]; linarith
          · simp [B, h, hA_nonneg i j]
-      have hB_irred := hA_irred.add_one
+      have hB_irred := Matrix.Irreducible.add_one (A := A) hA_irred
       have hB_diag_pos : ∀ i, 0 < B i i := by
         intro i; have := hA_nonneg i i; simp [B]; linarith
       have hB_prim : IsPrimitive B := IsPrimitive.of_irreducible_pos_diagonal B hB_nonneg hB_irred hB_diag_pos
@@ -173,7 +173,7 @@ The algebraic multiplicity of the Perron root of an irreducible non-negative mat
 The generalized eigenspace equals the eigenspace.
 -/
 lemma algebraic_multiplicity_one_of_irreducible
-    (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     Module.End.maxGenEigenspace (toLin' A) (perronRoot_alt A) =
     Module.End.eigenspace (toLin' A) (perronRoot_alt A) := by
   classical
@@ -189,7 +189,7 @@ lemma algebraic_multiplicity_one_of_irreducible
       have hu_eig : f u = r • u := by
         simp only [g, LinearMap.sub_apply, sub_eq_zero] at hu_g
         exact hu_g
-      have hAT_irred := hA_irred.transpose hA_nonneg
+      have hAT_irred := Matrix.IsIrreducible.transpose hA_irred
       obtain ⟨rT, u_star, hrT_pos, hu_star_pos, hu_star_eig_T_mat⟩ :=
         exists_positive_eigenvector_of_irreducible hAT_irred
       have hrT_eq_r : rT = r := by

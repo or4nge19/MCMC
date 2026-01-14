@@ -28,7 +28,7 @@ theorem IsReversible.is_stationary {P : Matrix n n ℝ} {π : stdSimplex ℝ n}
 class IsMCMC' [DecidableEq n] (P : Matrix n n ℝ) (π : stdSimplex ℝ n) where
   stochastic : IsStochastic P
   stationary : IsStationary P π
-  irreducible : Matrix.Irreducible P
+  irreducible : Matrix.IsIrreducible P
   primitive : IsPrimitive P
 
 /-!
@@ -225,7 +225,7 @@ theorem metropolisHastings_is_stationary [DecidableEq n] (hQ_stoch : IsStochasti
 -/
 def isMCMC_MetropolisHastings [DecidableEq n]
     (hQ_stoch : IsStochastic Q)
-    (hP_irred : Matrix.Irreducible (metropolisHastingsKernel π Q))
+    (hP_irred : Matrix.IsIrreducible (metropolisHastingsKernel π Q))
     (hP_prim : IsPrimitive (metropolisHastingsKernel π Q)) :
     IsMCMC (metropolisHastingsKernel π Q) π where
   stochastic := metropolisHastings_is_stochastic hQ_stoch

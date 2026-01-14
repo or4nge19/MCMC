@@ -56,7 +56,7 @@ variable [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ}
     (unless n=1, which is handled). A zero row would imply the sum of its entries is zero, which
     is the Collatz-Wielandt value for the vector of all ones. -/
 lemma collatzWielandtFn_of_ones_is_pos
-    (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+  (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     0 < collatzWielandtFn A (fun _ ↦ 1) := by
   let x_ones : n → ℝ := fun _ ↦ 1
   have h_supp_nonempty : ({i | 0 < x_ones i}.toFinset).Nonempty := by
@@ -86,19 +86,11 @@ lemma collatzWielandtFn_of_ones_is_pos
         apply Fintype.card_le_one_iff.mp
         linarith [h_card_one]
       have h_need_self_loop : 0 < A i i := by
-        obtain ⟨⟨p, hp_pos⟩⟩ := hA_irred.2 i i
-        letI := toQuiver A
-        have h_path_ne_zero : p.length ≠ 0 := ne_of_gt hp_pos
-        cases p with
-        | nil => exact (h_path_ne_zero rfl).elim
-        | cons p_tail e =>
-          have h_path_in_one_element : ∀ (a b : n), a = i ∧ b = i := by
-            intro a b
-            exact ⟨h_i_unique a, h_i_unique b⟩
-          exact irreducible_one_element_implies_diagonal_pos hA_irred h_card_one i
+        exact irreducible_one_element_implies_diagonal_pos hA_irred h_card_one i
       have h_Aii_zero : A i i = 0 := h_zero_row i
       exact lt_irrefl 0 (h_Aii_zero ▸ h_need_self_loop)
-    · obtain ⟨j, hj_pos⟩ := irreducible_no_zero_row A hA_irred h_card_gt_one i
+    · haveI : Nontrivial n := Fintype.one_lt_card_iff_nontrivial.1 h_card_gt_one
+      obtain ⟨j, hj_pos⟩ := Matrix.IsIrreducible.exists_pos (A := A) hA_irred i
       have h_Aij_zero : A i j = 0 := h_zero_row j
       exact lt_irrefl 0 (h_Aij_zero ▸ hj_pos)
 
@@ -106,7 +98,7 @@ lemma collatzWielandtFn_of_ones_is_pos
     irreducible, non-negative matrix. This follows by showing the value for the vector of
     all ones is positive, and that value is a lower bound for the supremum. -/
 lemma collatzWielandt_sup_is_pos
-    (hA_irred : Irreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+  (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     0 < sSup (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}) := by
   let P_set := {x : n → ℝ | (∀ i, 0 ≤ x i) ∧ x ≠ 0}
   let x_ones : n → ℝ := fun _ ↦ 1
@@ -206,7 +198,8 @@ theorem maximizer_is_eigenvector  (hA_prim : IsPrimitive A)
     · simp
       subst hr_def
       simp_all only [ne_eq, Pi.smul_apply, smul_eq_mul, inv_pos, mul_pos_iff_of_pos_left, setOf_true,
-        toFinset_univ, mulVec_mulVec, Pi.sub_apply, sub_nonneg, filter_True, y, y_norm_factor, y_norm, z]
+        toFinset_univ, mulVec_mulVec, Pi.sub_apply, sub_nonneg, Finset.filter_true,
+        y, y_norm_factor, y_norm, z]
     · subst hr_def
       simp_all only [ne_eq, Pi.smul_apply, smul_eq_mul, inv_pos, mul_pos_iff_of_pos_left, setOf_true,
         toFinset_univ, mulVec_mulVec, Finset.univ_nonempty, not_true_eq_false, y, y_norm_factor, y_norm]
@@ -260,7 +253,7 @@ lemma perron_root_pos_of_primitive
     simp_all only [ne_eq, Nat.cast_eq_zero, Fintype.card_ne_zero, not_false_eq_true, mul_inv_cancel₀]
   have h₁ : ones_norm ∈ stdSimplex ℝ n := ones_norm_mem_simplex
   have cw_one_pos : 0 < collatzWielandtFn A (fun _ => 1) :=
-    collatzWielandtFn_of_ones_is_pos (hA_prim.to_Irreducible hA_nonneg) hA_nonneg
+    collatzWielandtFn_of_ones_is_pos (Matrix.IsPrimitive.isIrreducible (A := A) hA_prim) hA_nonneg
   have cw_scale : collatzWielandtFn A ones_norm = collatzWielandtFn A (fun _ => 1) := by
     let c := (Fintype.card n : ℝ)⁻¹
     have hc_pos : 0 < c := inv_pos.mpr (Nat.cast_pos.mpr Fintype.card_pos)

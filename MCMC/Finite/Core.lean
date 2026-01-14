@@ -71,7 +71,7 @@ def IsStationary (P : Matrix n n ℝ) (π : stdSimplex ℝ n) : Prop :=
 class IsMCMC [DecidableEq n] (P : Matrix n n ℝ) (π : stdSimplex ℝ n) where
   stochastic : IsStochastic P
   stationary : IsStationary P π
-  irreducible : Matrix.Irreducible P
+  irreducible : Matrix.IsIrreducible P
   primitive : IsPrimitive P
 
 variable [Nonempty n]
@@ -82,10 +82,10 @@ variable [Nonempty n]
 -/
 theorem exists_unique_stationary_distribution_of_irreducible
     [DecidableEq n]
-    {P : Matrix n n ℝ} (h_stoch : IsStochastic P) (h_irred : Matrix.Irreducible P) :
+    {P : Matrix n n ℝ} (h_stoch : IsStochastic P) (h_irred : Matrix.IsIrreducible P) :
     ∃! (π : stdSimplex ℝ n), IsStationary P π := by
   -- 1. Pᵀ is Irreducible. (Irreducibility is preserved under transposition for non-negative matrices).
-  have hPT_irred : Matrix.Irreducible Pᵀ := h_irred.transpose h_stoch.1
+  have hPT_irred : Matrix.IsIrreducible Pᵀ := isIrreducible_transpose_iff.mpr h_irred
   -- 2. Pᵀ is Column-Stochastic. (Since P is row-stochastic).
   have hPT_col_stoch : ∀ j, ∑ i, Pᵀ i j = 1 := by
     intro j
@@ -98,11 +98,11 @@ theorem exists_unique_stationary_distribution_of_irreducible
   exact h_exists
 
 /-- The unique stationary distribution of an irreducible stochastic matrix. -/
-noncomputable def stationaryDistribution [DecidableEq n] (P : Matrix n n ℝ) (h_irred : Matrix.Irreducible P)
+noncomputable def stationaryDistribution [DecidableEq n] (P : Matrix n n ℝ) (h_irred : Matrix.IsIrreducible P)
   (h_stoch : IsStochastic P) : stdSimplex ℝ n :=
   (Classical.choose (exists_unique_stationary_distribution_of_irreducible h_stoch h_irred).exists)
 
-lemma stationaryDistribution_is_stationary [DecidableEq n] (P : Matrix n n ℝ) (h_irred : Matrix.Irreducible P)
+lemma stationaryDistribution_is_stationary [DecidableEq n] (P : Matrix n n ℝ) (h_irred : Matrix.IsIrreducible P)
   (h_stoch : IsStochastic P) :
   IsStationary P (stationaryDistribution P h_irred h_stoch) :=
   (Classical.choose_spec (exists_unique_stationary_distribution_of_irreducible h_stoch h_irred).exists)
@@ -115,7 +115,7 @@ lemma stationaryDistribution_is_stationary [DecidableEq n] (P : Matrix n n ℝ) 
 theorem isMCMC_of_properties
     (P : Matrix n n ℝ) [DecidableEq n]
     (h_stoch : IsStochastic P)
-    (h_irred : Matrix.Irreducible P)
+    (h_irred : Matrix.IsIrreducible P)
     (h_prim : IsPrimitive P) :
     IsMCMC P (stationaryDistribution P h_irred h_stoch) :=
 {

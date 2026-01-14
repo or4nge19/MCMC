@@ -13,7 +13,7 @@ import MCMC.PF.Data.List
 import MCMC.PF.LinearAlgebra.Matrix.Spectrum
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Aperiodic
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.CollatzWielandt
-import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Defs
+import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Dominance
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Irreducible
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
