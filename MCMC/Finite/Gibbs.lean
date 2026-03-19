@@ -54,7 +54,7 @@ noncomputable def gibbs_kernel_α (π : stdSimplex ℝ (α × β)) : Matrix (α 
     if x.2 = y.2 then gibbs_conditional_α π x.2 y.1 else 0
 
 /- TODO: MK?
-  Theorem: The Gibbs kernel K_α is stochastic.
+  Theorem: The Gibbs kernel K_α is stochastic.-/
 
 theorem gibbs_kernel_α_is_stochastic (π : stdSimplex ℝ (α × β)) :
   IsStochastic (gibbs_kernel_α π) := by
@@ -64,7 +64,7 @@ theorem gibbs_kernel_α_is_stochastic (π : stdSimplex ℝ (α × β)) :
   · -- 2. Rows sum to 1.
     · -- Case: marg_b > 0.
       sorry
--/
+
 /-!
 ### The Gibbs as a special case of Metropolis-Hastings
 -/
