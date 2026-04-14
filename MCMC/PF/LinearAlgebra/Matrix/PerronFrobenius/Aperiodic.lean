@@ -5,7 +5,7 @@ open Quiver
 
 namespace Matrix
 open Quiver
-variable {n : Type*} [Fintype n] [DecidableEq n]
+variable {n : Type*} [DecidableEq n]
 variable {A : Matrix n n ℝ}
 
 /-! # Aperiodic matrices -/
@@ -14,19 +14,19 @@ variable {A : Matrix n n ℝ}
 def IsAperiodic (A : Matrix n n ℝ) : Prop :=
   IsIrreducible A ∧ Quiver.IsAperiodic (toQuiver A)
 
-omit [Fintype n] [DecidableEq n] in
+omit [DecidableEq n] in
 /-- Aperiodicity implies irreducibility. -/
 theorem IsAperiodic.isIrreducible {A : Matrix n n ℝ} (hA : IsAperiodic A) :
     IsIrreducible A :=
   hA.1
 
-omit [Fintype n] [DecidableEq n] in
+omit [DecidableEq n] in
 /-- Aperiodicity of a matrix is aperiodicity of its positive-edge quiver. -/
 theorem IsAperiodic.quiver_isAperiodic {A : Matrix n n ℝ} (hA : IsAperiodic A) :
     Quiver.IsAperiodic (toQuiver A) :=
   hA.2
 
-omit [Fintype n] [DecidableEq n] in
+omit [DecidableEq n] in
 /--
 For an irreducible matrix, aperiodicity is equivalent to the period-one condition at any chosen
 vertex of the positive-edge quiver.
@@ -44,6 +44,7 @@ theorem isAperiodic_iff_period_eq_one
 For a primitive nonnegative matrix, every vertex of the positive-edge quiver has period `1`.
 -/
 theorem period_eq_one_of_primitive
+    [Fintype n]
     (hA_nonneg : ∀ i j, 0 ≤ A i j) (h_prim : IsPrimitive A) (i0 : n) :
     letI : Quiver n := toQuiver A
     Quiver.period i0 = 1 := by
@@ -98,7 +99,7 @@ theorem period_eq_one_of_primitive
 
 /-- Frobenius (forward direction): A primitive matrix is irreducible and aperiodic. -/
 theorem primitive_implies_irreducible_and_aperiodic
-    [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    [Fintype n] [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     IsPrimitive A → IsAperiodic A := by
   intro h_prim
   have h_irred : IsIrreducible A := (Matrix.IsPrimitive.isIrreducible (A := A) h_prim)
@@ -111,7 +112,6 @@ theorem primitive_implies_irreducible_and_aperiodic
 def IsPermutationMatrix (P : Matrix n n ℝ) : Prop :=
   ∃ σ : Equiv.Perm n, ∀ i j, P i j = if σ i = j then 1 else 0
 
-omit [Fintype n] in
 /--
 Theorem: Frobenius Normal Form.
 -/

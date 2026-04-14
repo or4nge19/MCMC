@@ -15,6 +15,7 @@ as a function `α → α → ℝ` and define matrix multiplication using `tsum`.
 * `InfMatrix`: real-valued infinite matrices.
 * `infMatMul`, `InfMatrix.pow`: `tsum`-based multiplication and powers.
 * `IsStochastic`, `IsSubstochastic`: stochasticity and substochasticity for infinite matrices.
+* `IsIrreducible`, `IsAperiodic`: irreducibility and aperiodicity via the positive-edge quiver.
 * `firstPassageProb`, `meanRecurrenceTime`: first-passage probabilities and mean recurrence times.
 * `IsTransient`, `IsRecurrent`, `IsPositiveRecurrent`, `IsNullRecurrent`: recurrence classes.
 * `IsInvariantMeasure`, `IsInvariantDistribution`: invariant weights and invariant probability
@@ -129,35 +130,75 @@ def IsSubstochastic (Q : InfMatrix α) : Prop :=
   (∀ i j, 0 ≤ Q i j) ∧ ∀ i, Summable (Q i) ∧ ∑' j, Q i j ≤ 1
 
 /--
-Irreducibility of an infinite nonnegative matrix, expressed through positivity of some power.
+Irreducibility of an infinite matrix, following mathlib's finite `Matrix.IsIrreducible` API.
 
-This is the standard path-positivity formulation for countable matrices.
+It packages entrywise nonnegativity together with strong connectivity of the positive-edge quiver
+`InfMatrix.toQuiver P`.
 -/
-def IsIrreducible (P : InfMatrix α) : Prop :=
-  ∀ i j, ∃ k : ℕ, 0 < InfMatrix.pow P (k + 1) i j
+@[mk_iff] structure IsIrreducible (P : InfMatrix α) : Prop where
+  nonneg (i j : α) : 0 ≤ P i j
+  connected : @Quiver.IsSStronglyConnected α (InfMatrix.toQuiver P)
+
+omit [DecidableEq α] in
+/--
+If an irreducible infinite matrix acts on a nontrivial state space, then every row has a positive
+entry.
+-/
+theorem IsIrreducible.exists_pos [Nontrivial α] {P : InfMatrix α} (hP : IsIrreducible P) (i : α) :
+    ∃ j, 0 < P i j := by
+  sorry
 
 /--
-A countable stochastic matrix is aperiodic if it is irreducible and its positive-edge quiver is
-aperiodic.
+An infinite matrix is aperiodic if it is irreducible and its positive-edge quiver is aperiodic.
 -/
 def IsAperiodic (P : InfMatrix α) : Prop :=
   IsIrreducible P ∧ Quiver.IsAperiodic (InfMatrix.toQuiver P)
 
+omit [DecidableEq α] in
 /-- Aperiodicity implies irreducibility. -/
 theorem IsAperiodic.isIrreducible {P : InfMatrix α} (hP : IsAperiodic P) :
     IsIrreducible P :=
   hP.1
 
+omit [DecidableEq α] in
 /-- Aperiodicity of an infinite matrix is aperiodicity of its positive-edge quiver. -/
 theorem IsAperiodic.quiver_isAperiodic {P : InfMatrix α} (hP : IsAperiodic P) :
     Quiver.IsAperiodic (InfMatrix.toQuiver P) :=
   hP.2
 
+omit [DecidableEq α] in
 /-- An aperiodic infinite matrix has a period-one vertex in its positive-edge quiver. -/
 theorem IsAperiodic.exists_period_eq_one {P : InfMatrix α} (hP : IsAperiodic P) :
     letI : Quiver α := InfMatrix.toQuiver P
     ∃ i : α, Quiver.period i = 1 :=
   hP.2
+
+omit [DecidableEq α] in
+/--
+For an irreducible infinite matrix, aperiodicity is equivalent to the period-one condition at any
+chosen vertex of the positive-edge quiver.
+-/
+theorem isAperiodic_iff_period_eq_one
+    {P : InfMatrix α} (hP_irred : IsIrreducible P) (i : α) :
+    IsAperiodic P ↔ (letI : Quiver α := InfMatrix.toQuiver P; Quiver.period i = 1) := by
+  constructor
+  · intro hP
+    exact Quiver.isAperiodic_iff_period_eq_one (G := InfMatrix.toQuiver P) hP_irred.connected i
+      |>.mp hP.2
+  · intro hi
+    exact
+      ⟨hP_irred,
+        Quiver.isAperiodic_iff_period_eq_one (G := InfMatrix.toQuiver P) hP_irred.connected i
+          |>.mpr hi⟩
+
+omit [DecidableEq α] in
+/--
+For an aperiodic infinite matrix, every vertex of the positive-edge quiver has period `1`.
+-/
+theorem IsAperiodic.period_eq_one {P : InfMatrix α} (hP : IsAperiodic P) (i : α) :
+    letI : Quiver α := InfMatrix.toQuiver P
+    Quiver.period i = 1 := by
+  exact Quiver.IsAperiodic.period_eq_one hP.1.connected hP.2 i
 
 /--
 The first-passage probability `fᵢⱼ^(k)`.

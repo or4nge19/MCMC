@@ -122,7 +122,7 @@ Monotone exhaustive truncations recover the inverse convergence parameter throug
 of the finite truncations.
 -/
 theorem truncation_perronRoot_monotone_convergence
-    {T : InfMatrix α} (hT_nonneg : ∀ i j, 0 ≤ T i j) (hT_irred : IsIrreducible T)
+    {T : InfMatrix α} (hT_irred : IsIrreducible T)
     (i₀ : α) (hR_pos : 0 < rParam T i₀) (hR_lt_top : rParam T i₀ < ⊤)
     (s : ℕ → Finset α) (hs_mono : Monotone s) (hs_exhaust : ∀ a : α, ∃ n, a ∈ s n) :
     Tendsto (fun n : ℕ => Matrix.CollatzWielandt.perronRoot_alt (finsetTruncation T (s n))) atTop

@@ -94,23 +94,23 @@ def IsRInvariantVector (T : InfMatrix α) (i : α) (y : α → ℝ) : Prop :=
 
 /-- The convergence radius is independent of the pair of states in the irreducible case. -/
 theorem convergenceRadius_eq_of_irreducible
-    {T : InfMatrix α} (hT_nonneg : ∀ i j, 0 ≤ T i j) (hT_irred : IsIrreducible T)
+    {T : InfMatrix α} (hT_irred : IsIrreducible T)
     (i j u v : α) :
     convergenceRadius T i j = convergenceRadius T u v := by
   sorry
 
 /-- In the irreducible case, `rParam T i` does not depend on the chosen state `i`. -/
 theorem rParam_eq_of_irreducible
-    {T : InfMatrix α} (hT_nonneg : ∀ i j, 0 ≤ T i j) (hT_irred : IsIrreducible T)
+    {T : InfMatrix α} (hT_irred : IsIrreducible T)
     (i j : α) :
     rParam T i = rParam T j := by
-  exact convergenceRadius_eq_of_irreducible hT_nonneg hT_irred i i j j
+  exact convergenceRadius_eq_of_irreducible hT_irred i i j j
 
 /--
 In the `R`-recurrent case there is a unique normalized positive left `R`-invariant measure.
 -/
 theorem exists_unique_rInvariantMeasure_of_rRecurrent
-    {T : InfMatrix α} (hT_nonneg : ∀ i j, 0 ≤ T i j) (hT_irred : IsIrreducible T)
+    {T : InfMatrix α} (hT_irred : IsIrreducible T)
     (i₀ : α) (hR_pos : 0 < rParam T i₀) (hR_lt_top : rParam T i₀ < ⊤)
     (hRrec : IsRRecurrent T i₀) :
     ∃! x : α → ℝ, x i₀ = 1 ∧ IsRInvariantMeasure T i₀ x := by
@@ -120,7 +120,7 @@ theorem exists_unique_rInvariantMeasure_of_rRecurrent
 Asymptotic Perron-Frobenius limit theorem under `R`-recurrence and aperiodicity.
 -/
 theorem limit_of_rRecurrent_of_aperiodic
-    {T : InfMatrix α} (hT_nonneg : ∀ i j, 0 ≤ T i j) (hT_aper : IsAperiodic T)
+    {T : InfMatrix α} (hT_aper : IsAperiodic T)
     {i₀ i j : α} (hR_pos : 0 < rParam T i₀) (hR_lt_top : rParam T i₀ < ⊤)
     {x y : α → ℝ} (hx : IsRInvariantMeasure T i₀ x) (hy : IsRInvariantVector T i₀ y)
     (hxy : Summable (fun k : α => x k * y k))

@@ -19,8 +19,8 @@ This file bridges the countable-state matrix interface in
 * `isStochastic_iff_isMarkovKernel`: a nonnegative matrix is stochastic iff the associated kernel is
   Markov.
 * `isInvariantMeasure_iff_invariant`: pointwise invariant measures agree with kernel invariance.
-* `kernel_isIrreducible_of_isIrreducible`: path-positivity irreducibility implies kernel
-  irreducibility with respect to counting measure.
+* `kernel_isIrreducible_of_isIrreducible`: countable irreducibility implies kernel irreducibility
+  with respect to counting measure.
 
 ## Implementation notes
 
@@ -98,13 +98,12 @@ theorem isInvariantMeasure_iff_invariant
   sorry
 
 /--
-Path-positivity irreducibility implies irreducibility of the associated discrete kernel with
-respect to counting measure.
+Countable irreducibility implies irreducibility of the associated discrete kernel with respect to
+counting measure.
 -/
 theorem kernel_isIrreducible_of_isIrreducible
-    {P : InfMatrix α} (hP_nonneg : ∀ i j, 0 ≤ P i j)
-    (hP_irred : IsIrreducible P) :
-    ProbabilityTheory.Kernel.IsIrreducible Measure.count (matrixToKernel P hP_nonneg) := by
+    {P : InfMatrix α} (hP_irred : IsIrreducible P) :
+    ProbabilityTheory.Kernel.IsIrreducible Measure.count (matrixToKernel P hP_irred.nonneg) := by
   sorry
 
 end KernelBridge
