@@ -127,7 +127,67 @@ theorem projectiveDist_mulVec_le
     (x y : PositiveVec n) :
     Matrix.projectiveDist (Matrix.mulVecPositive A hA_nonneg hA_row x)
       (Matrix.mulVecPositive A hA_nonneg hA_row y) ≤ Matrix.projectiveDist x y := by
-  sorry
+  unfold projectiveDist
+  simp only [coe_mulVecPositive]
+  set M := Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i with hM_def
+  set m := Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i with hm_def
+  set M' := Finset.univ.sup' Finset.univ_nonempty fun i => (A *ᵥ x.1) i / (A *ᵥ y.1) i with hM'_def
+  set m' := Finset.univ.inf' Finset.univ_nonempty fun i => (A *ᵥ x.1) i / (A *ᵥ y.1) i with hm'_def
+  have hm_pos : 0 < m := by
+    rw [Finset.lt_inf'_iff]
+    intro j _
+    exact div_pos (x.2 j) (y.2 j)
+  have hM_pos : 0 < M := by
+    obtain ⟨i₀, hi₀⟩ := Finset.univ_nonempty (α := n)
+    have h1 : 0 < x.1 i₀ / y.1 i₀ := div_pos (x.2 i₀) (y.2 i₀)
+    have h2 : x.1 i₀ / y.1 i₀ ≤ M := Finset.le_sup' (fun i => x.1 i / y.1 i) (Finset.mem_univ i₀)
+    linarith
+  have hm'_pos : 0 < m' := by
+    rw [Finset.lt_inf'_iff]
+    intro j _
+    exact div_pos ((mulVecPositive A hA_nonneg hA_row x).2 j) ((mulVecPositive A hA_nonneg hA_row y).2 j)
+  have hM'_pos : 0 < M' := by
+    obtain ⟨i₀, hi₀⟩ := Finset.univ_nonempty (α := n)
+    have h1 : 0 < (A *ᵥ x.1) i₀ / (A *ᵥ y.1) i₀ := div_pos ((mulVecPositive A hA_nonneg hA_row x).2 i₀) ((mulVecPositive A hA_nonneg hA_row y).2 i₀)
+    have h2 : (A *ᵥ x.1) i₀ / (A *ᵥ y.1) i₀ ≤ M' := Finset.le_sup' (fun i => (A *ᵥ x.1) i / (A *ᵥ y.1) i) (Finset.mem_univ i₀)
+    linarith
+  have hM'_le_M : M' ≤ M := by
+    apply Finset.sup'_le
+    intro i _
+    have hAy_pos : 0 < (A *ᵥ y.1) i := (mulVecPositive A hA_nonneg hA_row y).2 i
+    rw [div_le_iff₀ hAy_pos]
+    simp only [Matrix.mulVec]
+    have hy_pos : ∀ j, y.1 j ≠ 0 := fun j => (y.2 j).ne'
+    calc ∑ j, A i j * x.1 j
+        = ∑ j, A i j * (x.1 j / y.1 j) * y.1 j := by
+          congr 1; ext j; field_simp [hy_pos j]
+      _ ≤ ∑ j, A i j * M * y.1 j := by
+          apply Finset.sum_le_sum; intro j _
+          have h1 : x.1 j / y.1 j ≤ M := Finset.le_sup' (fun k => x.1 k / y.1 k) (Finset.mem_univ j)
+          have h2 : A i j * (x.1 j / y.1 j) ≤ A i j * M := mul_le_mul_of_nonneg_left h1 (hA_nonneg i j)
+          exact mul_le_mul_of_nonneg_right h2 (le_of_lt (y.2 j))
+      _ = M * ∑ j, A i j * y.1 j := by rw [Finset.mul_sum]; congr 1; ext j; ring
+  have hm_le_m' : m ≤ m' := by
+    apply Finset.le_inf'
+    intro i _
+    have hAy_pos : 0 < (A *ᵥ y.1) i := (mulVecPositive A hA_nonneg hA_row y).2 i
+    rw [le_div_iff₀ hAy_pos]
+    simp only [Matrix.mulVec]
+    have hy_pos : ∀ j, y.1 j ≠ 0 := fun j => (y.2 j).ne'
+    calc m * ∑ j, A i j * y.1 j
+        = ∑ j, A i j * m * y.1 j := by rw [Finset.mul_sum]; congr 1; ext j; ring
+      _ ≤ ∑ j, A i j * (x.1 j / y.1 j) * y.1 j := by
+          apply Finset.sum_le_sum; intro j _
+          have h1 : m ≤ x.1 j / y.1 j := Finset.inf'_le (fun k => x.1 k / y.1 k) (Finset.mem_univ j)
+          have h2 : A i j * m ≤ A i j * (x.1 j / y.1 j) := mul_le_mul_of_nonneg_left h1 (hA_nonneg i j)
+          exact mul_le_mul_of_nonneg_right h2 (le_of_lt (y.2 j))
+      _ = ∑ j, A i j * x.1 j := by
+          congr 1; ext j; field_simp [hy_pos j]
+  have h1 : Real.log M' - Real.log m' ≤ Real.log M - Real.log m := by
+    have hlog1 : Real.log M' ≤ Real.log M := Real.log_le_log hM'_pos hM'_le_M
+    have hlog2 : Real.log m ≤ Real.log m' := Real.log_le_log hm_pos hm_le_m'
+    linarith
+  exact h1
 
 /--
 The Birkhoff coefficient is bounded by `1` for a nonnegative row-allowable matrix.
