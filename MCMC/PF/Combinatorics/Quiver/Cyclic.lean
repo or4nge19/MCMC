@@ -6,11 +6,13 @@ namespace Quiver
 variable {V : Type*} [Quiver V]
 
 /-!
-# Periodicity and Aperiodicity in Quivers
+# Periodicity and aperiodicity in quivers
 
-This section defines the concepts of periodicity, the index of imprimitivity,
-and aperiodicity for strongly connected quivers, which are essential for understanding
-the cyclic structure of irreducible matrices.
+This file develops the basic periodicity API for quivers via cycle lengths and periods.
+
+The fundamental invariant is `period i`, attached to a vertex `i`. For strongly connected quivers,
+`period_constant_of_strongly_connected` shows that the period is independent of the vertex. The
+predicate `IsAperiodic` is then expressed by the existence of a vertex of period `1`.
 -/
 
 -- Definition for the set of lengths of cycles at a vertex i.
@@ -33,7 +35,6 @@ lemma commonDivisorsSet_nonempty (i : V) : (commonDivisorsSet i).Nonempty :=
 If there are no cycles, this is `0` (since then `commonDivisorsSet i = Set.univ`). -/
 noncomputable def period (i : V) : ℕ :=
 by
-  classical
   letI : DecidablePred fun d : ℕ => d ∈ commonDivisorsSet i := Classical.decPred _
   exact Nat.find (commonDivisorsSet_nonempty (i := i))
 
@@ -52,7 +53,6 @@ lemma period_min (i : V) :
 lemma period_spec (i : V) :
   (∀ k ∈ CycleLengths i, period i ∣ k) ∧
   (∀ m, (∀ k ∈ CycleLengths i, m ∣ k) → period i ≤ m) := by
-  classical
   have h := period_min i
   refine ⟨?div, ?min⟩
   · intro k hk
@@ -100,7 +100,6 @@ lemma period_pos_of_nonempty_cycles (i : V) (h_nonempty : (CycleLengths i).Nonem
 theorem period_constant_of_strongly_connected (h_sc : Quiver.IsSStronglyConnected V) :
   ∀ i j : V, period i = period j := by
   intro i j
-  classical
   rcases h_sc i j with ⟨p, hp_pos⟩
   rcases h_sc j i with ⟨q, hq_pos⟩
   have h_div_j : ∀ k ∈ CycleLengths j, period i ∣ k := by
@@ -169,17 +168,44 @@ theorem period_constant_of_strongly_connected (h_sc : Quiver.IsSStronglyConnecte
   have h_le_ij : period i ≤ period j := period_le_of_commonDivisor i h_div_i
   exact le_antisymm h_le_ij h_le_ji
 
-/-- The index of imprimitivity (h) of a strongly connected quiver,
-    defined as the common period of its vertices. Requires Fintype and Nonempty
-    to select an arbitrary vertex. -/
-noncomputable def index_of_imprimitivity [Fintype V] [Nonempty V] (G : Quiver V) : ℕ := by
-  classical
+/-- A quiver is aperiodic if some vertex has period `1`. -/
+def IsAperiodic (G : Quiver V) : Prop := by
   letI : Quiver V := G
-  exact period (Classical.arbitrary V)
+  exact ∃ i : V, period i = 1
 
-/-- A strongly connected quiver is aperiodic if its index of imprimitivity is 1. -/
-def IsAperiodic [Fintype V] [Nonempty V] (G : Quiver V) : Prop :=
-  index_of_imprimitivity G = 1
+omit [Quiver V] in
+/-- Unpack `Quiver.IsAperiodic` as the existence of a period-one vertex. -/
+theorem IsAperiodic.exists_period_eq_one {G : Quiver V} (hG : IsAperiodic G) :
+    letI : Quiver V := G
+    ∃ i : V, period i = 1 :=
+  hG
+
+omit [Quiver V] in
+/--
+In a strongly connected quiver, aperiodicity forces every vertex to have period `1`.
+-/
+theorem IsAperiodic.period_eq_one {G : Quiver V}
+    (h_sc : @Quiver.IsSStronglyConnected V G) (hG : IsAperiodic G) (i : V) :
+    letI : Quiver V := G
+    period i = 1 := by
+  letI : Quiver V := G
+  rcases hG with ⟨j, hj⟩
+  rw [period_constant_of_strongly_connected h_sc i j, hj]
+
+omit [Quiver V] in
+/--
+For a strongly connected quiver, aperiodicity is equivalent to the period-one condition at any
+chosen vertex.
+-/
+theorem isAperiodic_iff_period_eq_one {G : Quiver V}
+    (h_sc : @Quiver.IsSStronglyConnected V G) (i : V) :
+    IsAperiodic G ↔ (letI : Quiver V := G; period i = 1) := by
+  constructor
+  · intro hG
+    exact Quiver.IsAperiodic.period_eq_one h_sc hG i
+  · intro hi
+    letI : Quiver V := G
+    exact ⟨i, hi⟩
 
 /-! # Cyclic Structure and Frobenius Normal Form -/
 
@@ -212,19 +238,13 @@ lemma mem_CycleLengths_of_cons_comp_right {i v w : V}
   mem_CycleLengths_of_comp_right (p := p.cons e) (s := s) hs_pos
 
 /--
-Theorem: A strongly connected quiver with index of imprimitivity h admits a cyclic partition.
+A strongly connected quiver with positive period at a chosen base vertex admits a cyclic partition.
 -/
-theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V]
-    (h_sc : Quiver.IsSStronglyConnected V) :
-    ∀ (h_pos : index_of_imprimitivity (inferInstance : Quiver V) > 0),
-      ∃ partition : V → Fin (index_of_imprimitivity (inferInstance : Quiver V)),
-        IsCyclicPartition h_pos partition := by
-  intro h_pos
-  classical
-  let h := index_of_imprimitivity (inferInstance : Quiver V)
+theorem exists_cyclic_partition_of_strongly_connected
+    (i0 : V) (h_sc : Quiver.IsSStronglyConnected V) (h_pos : period i0 > 0) :
+    ∃ partition : V → Fin (period i0), IsCyclicPartition h_pos partition := by
+  let h := period i0
   change ∃ partition : V → Fin h, IsCyclicPartition h_pos partition
-  -- we fix a base vertex i₀ compatible with the definition of `index_of_imprimitivity`
-  let i0 : V := Classical.arbitrary V
   -- for each vertex, we choose a positive-length path from i₀ to it
   have hpaths : ∀ v : V, ∃ p : Path i0 v, 0 < p.length := fun v => h_sc i0 v
   let chosen : ∀ v : V, { p : Path i0 v // 0 < p.length } :=
@@ -245,11 +265,11 @@ theorem exists_cyclic_partition_of_strongly_connected [Fintype V] [Nonempty V]
   have hdvd1 : h ∣ ((P j).comp s).length := by
     have : period i0 ∣ ((P j).comp s).length :=
       (divides_cycle_length (i := i0) (k := ((P j).comp s).length)) hc1_mem
-    simpa [index_of_imprimitivity, i0]
+    simpa [h] using this
   have hdvd2 : h ∣ (((P i).cons e).comp s).length := by
     have : period i0 ∣ (((P i).cons e).comp s).length :=
       (divides_cycle_length (i := i0) (k := (((P i).cons e).comp s).length)) hc2_mem
-    simpa [index_of_imprimitivity, i0]
+    simpa [h] using this
   have len_c1 :
       ((P j).comp s).length = (P j).length + s.length := by
     simp [Path.length_comp]
