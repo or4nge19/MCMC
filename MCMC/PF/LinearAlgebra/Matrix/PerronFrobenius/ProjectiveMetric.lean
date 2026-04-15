@@ -117,7 +117,51 @@ theorem projectiveDist_eq_zero_iff_exists_pos_smul
     (x y : PositiveVec n) :
     Matrix.projectiveDist x y = 0 ↔
       ∃ c : ℝ, 0 < c ∧ x.1 = c • y.1 := by
-  sorry
+  unfold projectiveDist
+  simp only [sub_eq_zero]
+  have h_pos_ratio : ∀ i, 0 < x.1 i / y.1 i := fun i => div_pos (x.2 i) (y.2 i)
+  have h_sup_pos : 0 < Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i := by
+    obtain ⟨i⟩ := ‹Nonempty n›
+    exact lt_of_lt_of_le (h_pos_ratio i) (Finset.le_sup' (fun j => x.1 j / y.1 j) (Finset.mem_univ i))
+  have h_inf_pos : 0 < Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i := by
+    obtain ⟨i, _, hi⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+    rw [hi]
+    exact h_pos_ratio i
+  constructor
+  · intro h_eq
+    have h_sup_eq_inf : (Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i) =
+        (Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i) := by
+      have := Real.log_injOn_pos
+      apply this (Set.mem_Ioi.mpr h_sup_pos) (Set.mem_Ioi.mpr h_inf_pos)
+      exact h_eq
+    use Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i
+    constructor
+    · exact h_sup_pos
+    · ext i
+      simp only [Pi.smul_apply, smul_eq_mul]
+      have h_le_sup : x.1 i / y.1 i ≤ Finset.univ.sup' Finset.univ_nonempty fun j => x.1 j / y.1 j := by
+        exact Finset.le_sup' (fun j => x.1 j / y.1 j) (Finset.mem_univ i)
+      have h_inf_le : Finset.univ.inf' Finset.univ_nonempty (fun j => x.1 j / y.1 j) ≤ x.1 i / y.1 i := by
+        exact Finset.inf'_le (fun j => x.1 j / y.1 j) (Finset.mem_univ i)
+      have h_ratio_eq : x.1 i / y.1 i = Finset.univ.sup' Finset.univ_nonempty fun j => x.1 j / y.1 j := by
+        apply le_antisymm h_le_sup
+        rw [h_sup_eq_inf]
+        exact h_inf_le
+      have hy_ne : y.1 i ≠ 0 := ne_of_gt (y.2 i)
+      rw [← h_ratio_eq]
+      field_simp [hy_ne]
+  · intro ⟨c, hc_pos, hc_eq⟩
+    have h_ratio : ∀ i, x.1 i / y.1 i = c := by
+      intro i
+      have hxi : x.1 i = c * y.1 i := by
+        have := congrFun hc_eq i
+        simp only [Pi.smul_apply, smul_eq_mul] at this
+        exact this
+      rw [hxi]
+      have hy_ne : y.1 i ≠ 0 := ne_of_gt (y.2 i)
+      field_simp [hy_ne]
+    simp only [h_ratio]
+    simp [Finset.sup'_const, Finset.inf'_const]
 
 /--
 Non-expansiveness of a nonnegative row-allowable matrix for Hilbert's projective distance.
