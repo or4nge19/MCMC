@@ -108,7 +108,79 @@ theorem projectiveDist_symm
 theorem projectiveDist_triangle
     (x y z : PositiveVec n) :
     Matrix.projectiveDist x z ≤ Matrix.projectiveDist x y + Matrix.projectiveDist y z := by
-  sorry
+  unfold projectiveDist
+  -- Let M_xy = sup(x/y), m_xy = inf(x/y), etc.
+  set M_xz := Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / z.1 i with hM_xz
+  set m_xz := Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / z.1 i with hm_xz
+  set M_xy := Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i with hM_xy
+  set m_xy := Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i with hm_xy
+  set M_yz := Finset.univ.sup' Finset.univ_nonempty fun i => y.1 i / z.1 i with hM_yz
+  set m_yz := Finset.univ.inf' Finset.univ_nonempty fun i => y.1 i / z.1 i with hm_yz
+  -- Positivity of all ratios
+  have hpos_xz : ∀ i, 0 < x.1 i / z.1 i := fun i => div_pos (x.2 i) (z.2 i)
+  have hpos_xy : ∀ i, 0 < x.1 i / y.1 i := fun i => div_pos (x.2 i) (y.2 i)
+  have hpos_yz : ∀ i, 0 < y.1 i / z.1 i := fun i => div_pos (y.2 i) (z.2 i)
+  have hM_xz_pos : 0 < M_xz := by
+    obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
+    exact lt_of_lt_of_le (hpos_xz i) (Finset.le_sup' (f := fun i => x.1 i / z.1 i) hi)
+  have hm_xz_pos : 0 < m_xz := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / z.1 i)
+    rw [hm_xz, hj]
+    exact hpos_xz j
+  have hM_xy_pos : 0 < M_xy := by
+    obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
+    exact lt_of_lt_of_le (hpos_xy i) (Finset.le_sup' (f := fun i => x.1 i / y.1 i) hi)
+  have hm_xy_pos : 0 < m_xy := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+    rw [hm_xy, hj]
+    exact hpos_xy j
+  have hM_yz_pos : 0 < M_yz := by
+    obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
+    exact lt_of_lt_of_le (hpos_yz i) (Finset.le_sup' (f := fun i => y.1 i / z.1 i) hi)
+  have hm_yz_pos : 0 < m_yz := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => y.1 i / z.1 i)
+    rw [hm_yz, hj]
+    exact hpos_yz j
+  -- Key: x_i/z_i = (x_i/y_i) * (y_i/z_i)
+  have h_ratio : ∀ i, x.1 i / z.1 i = (x.1 i / y.1 i) * (y.1 i / z.1 i) := by
+    intro i
+    field_simp [ne_of_gt (y.2 i), ne_of_gt (z.2 i)]
+  -- M_xz ≤ M_xy * M_yz
+  have hM_le : M_xz ≤ M_xy * M_yz := by
+    apply Finset.sup'_le
+    intro i _
+    rw [h_ratio i]
+    calc (x.1 i / y.1 i) * (y.1 i / z.1 i) 
+        ≤ M_xy * (y.1 i / z.1 i) := by
+          apply mul_le_mul_of_nonneg_right
+          · exact Finset.le_sup' (f := fun i => x.1 i / y.1 i) (Finset.mem_univ i)
+          · exact le_of_lt (hpos_yz i)
+      _ ≤ M_xy * M_yz := by
+          apply mul_le_mul_of_nonneg_left
+          · exact Finset.le_sup' (f := fun i => y.1 i / z.1 i) (Finset.mem_univ i)
+          · exact le_of_lt hM_xy_pos
+  -- m_xz ≥ m_xy * m_yz
+  have hm_ge : m_xy * m_yz ≤ m_xz := by
+    apply Finset.le_inf'
+    intro i _
+    rw [h_ratio i]
+    calc m_xy * m_yz 
+        ≤ (x.1 i / y.1 i) * m_yz := by
+          apply mul_le_mul_of_nonneg_right
+          · exact Finset.inf'_le (f := fun i => x.1 i / y.1 i) (Finset.mem_univ i)
+          · exact le_of_lt hm_yz_pos
+      _ ≤ (x.1 i / y.1 i) * (y.1 i / z.1 i) := by
+          apply mul_le_mul_of_nonneg_left
+          · exact Finset.inf'_le (f := fun i => y.1 i / z.1 i) (Finset.mem_univ i)
+          · exact le_of_lt (hpos_xy i)
+  -- Now use log monotonicity
+  have h1 : Real.log M_xz ≤ Real.log M_xy + Real.log M_yz := by
+    rw [← Real.log_mul (ne_of_gt hM_xy_pos) (ne_of_gt hM_yz_pos)]
+    exact Real.log_le_log hM_xz_pos hM_le
+  have h2 : Real.log m_xy + Real.log m_yz ≤ Real.log m_xz := by
+    rw [← Real.log_mul (ne_of_gt hm_xy_pos) (ne_of_gt hm_yz_pos)]
+    exact Real.log_le_log (mul_pos hm_xy_pos hm_yz_pos) hm_ge
+  linarith
 
 /--
 The Hilbert projective distance vanishes exactly on positive scalar multiples.
