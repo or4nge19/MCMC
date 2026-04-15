@@ -96,7 +96,24 @@ def IsScrambling (A : Matrix n n ℝ) : Prop :=
 theorem projectiveDist_nonneg
     (x y : PositiveVec n) :
     0 ≤ Matrix.projectiveDist x y := by
-  sorry
+  unfold projectiveDist
+  have hpos : ∀ i, 0 < x.1 i / y.1 i := fun i => div_pos (x.2 i) (y.2 i)
+  let f := fun i => x.1 i / y.1 i
+  have hinf_pos : 0 < Finset.univ.inf' Finset.univ_nonempty f := by
+    obtain ⟨i, _, hi_eq⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty f
+    rw [hi_eq]
+    exact hpos i
+  have hsup_pos : 0 < Finset.univ.sup' Finset.univ_nonempty f := by
+    obtain ⟨i, _, hi_eq⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty f
+    rw [hi_eq]
+    exact hpos i
+  have hinf_le_sup : Finset.univ.inf' Finset.univ_nonempty f ≤ Finset.univ.sup' Finset.univ_nonempty f := by
+    obtain ⟨i, hi, _⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty f
+    exact le_trans (Finset.inf'_le f hi) (Finset.le_sup' f hi)
+  have hlog_le : Real.log (Finset.univ.inf' Finset.univ_nonempty f) ≤
+      Real.log (Finset.univ.sup' Finset.univ_nonempty f) := by
+    exact Real.log_le_log hinf_pos hinf_le_sup
+  linarith
 
 /-- Symmetry of the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_symm
