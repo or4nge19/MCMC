@@ -135,7 +135,23 @@ The Birkhoff coefficient is bounded by `1` for a nonnegative row-allowable matri
 theorem birkhoffContraction_le_one
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) (hA_row : A.IsRowAllowable) :
     Matrix.birkhoffContraction A ≤ 1 := by
-  sorry
+  unfold birkhoffContraction
+  apply csSup_le
+  · exact Set.nonempty_of_mem (Set.mem_union_left _ (Set.mem_singleton 0))
+  · intro t ht
+    rcases ht with h0 | ⟨x, y, hx, hy, hdist_ne_zero, ht_eq⟩
+    · simp only [Set.mem_singleton_iff] at h0
+      linarith
+    · rw [ht_eq]
+      have hdist_pos : 0 < projectiveDist x y := by
+        have h_nonneg := projectiveDist_nonneg x y
+        exact lt_of_le_of_ne h_nonneg (Ne.symm hdist_ne_zero)
+      have hdist_nonneg : 0 ≤ projectiveDist x y := le_of_lt hdist_pos
+      have h := projectiveDist_mulVec_le hA_nonneg hA_row x y
+      simp only [coe_mulVecPositive] at h
+      have h' : projectiveDist ⟨A *ᵥ x.1, hx⟩ ⟨A *ᵥ y.1, hy⟩ ≤ projectiveDist x y := by
+        convert h
+      exact div_le_one_of_le₀ h' hdist_nonneg
 
 /--
 Scrambling implies strict Birkhoff contraction.
