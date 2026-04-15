@@ -78,7 +78,17 @@ The shifted matrix of an ML-matrix is entrywise nonnegative.
 -/
 theorem mlShifted_nonneg {B : Matrix n n ℝ} (hB : IsMLMatrix B) :
     ∀ i j, 0 ≤ mlShifted B i j := by
-  sorry
+  intro i j
+  unfold mlShifted
+  rw [Matrix.add_apply, Matrix.smul_one_eq_diagonal]
+  by_cases hij : i = j
+  · subst hij
+    rw [Matrix.diagonal_apply_eq]
+    have h : -B i i ≤ mlShift B := by
+      apply Finset.le_sup'_of_le (f := fun k => -B k k) (Finset.mem_univ i) (le_refl _)
+    linarith
+  · rw [Matrix.diagonal_apply_ne _ hij, zero_add]
+    exact hB i j hij
 
 /--
 An irreducible ML-matrix admits a strictly positive eigenvector for its dominant real eigenvalue.
