@@ -137,12 +137,23 @@ theorem birkhoffContraction_le_one
     Matrix.birkhoffContraction A ≤ 1 := by
   sorry
 
+
 /--
-Scrambling implies strict Birkhoff contraction.
+Scrambling implies row-allowability.
 -/
-theorem scrambling_implies_birkhoffContraction_lt_one
+theorem IsScrambling.isRowAllowable
+    {A : Matrix n n ℝ} (h_scrambling : A.IsScrambling) :
+    A.IsRowAllowable := by
+  sorry
+
+/--
+Scrambling matrices satisfy the general Birkhoff coefficient bound `≤ 1`.
+
+Strict Hilbert-projective contraction requires stronger hypotheses than scrambling alone.
+-/
+theorem scrambling_implies_birkhoffContraction_le_one
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) (h_scrambling : A.IsScrambling) :
-    Matrix.birkhoffContraction A < 1 := by
+    Matrix.birkhoffContraction A ≤ 1 := by
   sorry
 
 end Matrix
