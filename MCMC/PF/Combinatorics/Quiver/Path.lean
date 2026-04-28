@@ -39,6 +39,8 @@ reasoning about paths in a `Quiver` (directed graph). The key concepts and resul
     - `isStrictlySimple`: predicate for strictly simple (no repeated vertices except possibly endpoints) paths.
   - **Theorems/Lemmas:**
     - `isStrictlySimple_of_shortest`: shortest path between two vertices is strictly simple.
+    - `exists_path_length_le_card_sub_one`: any reachable pair of vertices admits a path of length
+      at most `Fintype.card V - 1`.
     - Related characterizations and implications for path minimality and structure.
 
 ## 6. Induced Subquivers and Embeddings
@@ -843,6 +845,25 @@ lemma length_le_card_minus_one_of_isSimple {n : Type*} [Fintype n] [DecidableEq 
     exact Finset.card_le_univ p.vertexFinset
   rw [h_card_verts] at h_card_le_univ
   exact Nat.le_sub_one_of_lt h_card_le_univ
+
+/-- If there exists a path from `a` to `b` in a finite quiver, then there exists one whose length
+is at most `Fintype.card V - 1`. -/
+theorem exists_path_length_le_card_sub_one [Fintype V] [DecidableEq V] {a b : V}
+    (h : Nonempty (Path a b)) :
+    ∃ p : Path a b, p.length ≤ Fintype.card V - 1 := by
+  rcases h with ⟨p_any⟩
+  let lengths : ℕ → Prop := fun len => ∃ p : Path a b, p.length = len
+  have h_lengths_nonempty : ∃ len, lengths len := ⟨p_any.length, ⟨p_any, rfl⟩⟩
+  classical
+  obtain ⟨p_shortest, hp_shortest⟩ := Nat.find_spec h_lengths_nonempty
+  have h_shortest : ∀ q : Path a b, p_shortest.length ≤ q.length := by
+    intro q
+    rw [hp_shortest]
+    exact Nat.find_min' h_lengths_nonempty ⟨q, rfl⟩
+  refine ⟨p_shortest, ?_⟩
+  simpa using
+    length_le_card_minus_one_of_isSimple p_shortest
+      (isStrictlySimple_of_shortest p_shortest h_shortest)
 
 /-! ### Cycles -/
 
