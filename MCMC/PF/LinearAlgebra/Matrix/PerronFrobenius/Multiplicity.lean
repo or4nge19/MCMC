@@ -39,9 +39,9 @@ The eigenspace is spanned by the unique positive eigenvector.
 -/
 lemma geometric_multiplicity_one_of_irreducible
     (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    let r := perronRoot_alt A
+    let r := perronRoot A
     ∃ v : n → ℝ, (∀ i, 0 < v i) ∧ Module.End.eigenspace (toLin' A) r = Submodule.span ℝ {v} := by
-  let r := perronRoot_alt A
+  let r := perronRoot A
   let f := toLin' A
   obtain ⟨r_ex, v, hr_pos, hv_pos, hv_eig_mat, hr_eq_r⟩ := perron_root_eq_positive_eigenvalue hA_irred hA_nonneg
   rw [← hr_eq_r] at hv_eig_mat hr_pos
@@ -119,9 +119,9 @@ lemma geometric_multiplicity_one_of_irreducible
                 simp [h_real]
           _ = (rB : ℂ) * wc i := by
                 simp [wc, Complex.ofReal_mul]
-      have hrB_eq_perronB : rB = perronRoot_alt B :=
+      have hrB_eq_perronB : rB = perronRoot B :=
         eigenvalue_is_perron_root_of_positive_eigenvector hB_irred hB_nonneg hrB_pos hw_abs_pos hw_abs_eig_B
-      have h_norm_eig : (B *ᵥ fun i => ‖wc i‖) = perronRoot_alt B • (fun i => ‖wc i‖) := by
+      have h_norm_eig : (B *ᵥ fun i => ‖wc i‖) = perronRoot B • (fun i => ‖wc i‖) := by
         have h_eq : (fun i => ‖wc i‖) = w_abs := by
           ext i
           simp [wc, w_abs]
@@ -161,7 +161,7 @@ lemma geometric_multiplicity_one_of_irreducible
         _ = (c * r) • v := by simp [smul_smul]
         _ = (r * c) • v := by simp [mul_comm]
         _ = r • (c • v) := by simp [smul_smul]
-    have : (toLin' A) (c • v) = (perronRoot_alt A) • (c • v) := by
+    have : (toLin' A) (c • v) = (perronRoot A) • (c • v) := by
       simpa [f, r]
         using hc
     exact (Module.End.mem_eigenspace_iff).2 this
@@ -174,10 +174,10 @@ The generalized eigenspace equals the eigenspace.
 -/
 lemma algebraic_multiplicity_one_of_irreducible
     (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    Module.End.maxGenEigenspace (toLin' A) (perronRoot_alt A) =
-    Module.End.eigenspace (toLin' A) (perronRoot_alt A) := by
+    Module.End.maxGenEigenspace (toLin' A) (perronRoot A) =
+    Module.End.eigenspace (toLin' A) (perronRoot A) := by
   classical
-  let r := perronRoot_alt A
+  let r := perronRoot A
   let f := toLin' A
   let g := f - r • LinearMap.id
   have h_ker_sq_eq_ker : LinearMap.ker (g ^ 2) = LinearMap.ker g := by
@@ -194,7 +194,7 @@ lemma algebraic_multiplicity_one_of_irreducible
         exists_positive_eigenvector_of_irreducible hAT_irred
       have hrT_eq_r : rT = r := by
         calc
-          rT = perronRoot_alt Aᵀ :=
+          rT = perronRoot Aᵀ :=
                 eigenvalue_is_perron_root_of_positive_eigenvector
                   hAT_irred (fun i j => hA_nonneg j i) hrT_pos hu_star_pos hu_star_eig_T_mat
           _  = r := (perronRoot_transpose_eq A hA_irred).symm

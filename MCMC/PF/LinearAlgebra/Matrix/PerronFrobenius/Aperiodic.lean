@@ -92,9 +92,10 @@ theorem period_eq_one_of_primitive
       exact Nat.dvd_sub hdiv2 hdiv1
     have hdiff :
         (((Path.nil : Path i0 i0).cons e0).comp (s.comp Pi0)).length - (Pj.comp s).length = 1 := by
-      simp [len_c1, len_c2, Nat.add_assoc]
-      simp +arith
-    grind
+      rw [len_c2, len_c1]
+      simp only [Nat.add_assoc, Nat.add_sub_add_left, Nat.add_sub_cancel]
+    rw [hdiff] at hdiff_div
+    exact hdiff_div
   exact Nat.dvd_one.mp this
 
 /-- Frobenius (forward direction): A primitive matrix is irreducible and aperiodic. -/

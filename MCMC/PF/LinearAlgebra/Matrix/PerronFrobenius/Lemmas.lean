@@ -3,6 +3,7 @@ Copyright (c) 2025 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
+import Mathlib.Data.Matrix.Mul
 import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
 import MCMC.PF.Combinatorics.Quiver.Path
 
@@ -23,6 +24,10 @@ These results connect `Matrix.IsIrreducible` and `Matrix.IsPrimitive` to the qui
   nonnegative nonzero vector.
 - `Matrix.IsPrimitive.of_irreducible_pos_diagonal` upgrades irreducibility together with a
   positive diagonal to primitivity.
+- `Matrix.mulVec_pow_eq_smul_pow_of_mulVec_smul` packages induction for `(A ^ m) *ᵥ v` when
+  `A *ᵥ v = r • v`.
+- `Matrix.mulVec_map_pow_eq_smul_pow_of_mulVec_map_smul` is the same after applying a ring
+  homomorphism entrywise (`Matrix.map`).
 
 -/
 
@@ -287,3 +292,54 @@ theorem IsPrimitive.of_irreducible_pos_diagonal [Fintype n] [Nonempty n] [Decida
     refine ⟨⟨(Path.replicate (k - p_ij.length) p_loop).comp p_ij, ?_⟩⟩
     rw [Path.length_comp, Path.length_replicate, hp_loop_len, mul_one,
       Nat.sub_add_cancel hp_len_le_k]
+
+/-! ### Right eigenvectors and matrix powers -/
+
+section MulVecPow
+
+variable {R : Type*} [CommSemiring R] {n : Type*} [Fintype n] [DecidableEq n]
+  {A : Matrix n n R} {r : R} {v : n → R}
+
+/-- If `A *ᵥ v = r • v`, then `(A ^ m) *ᵥ v = (r ^ m) • v` for every `m : ℕ`. -/
+lemma mulVec_pow_eq_smul_pow_of_mulVec_smul (h : A *ᵥ v = r • v) (m : ℕ) :
+    (A ^ m) *ᵥ v = (r ^ m) • v := by
+  induction m with
+  | zero => simp
+  | succ m ih =>
+    calc
+      (A ^ m.succ) *ᵥ v = (A ^ m * A) *ᵥ v := by simp [pow_succ]
+      _ = A ^ m *ᵥ (A *ᵥ v) := by rw [Matrix.mulVec_mulVec]
+      _ = A ^ m *ᵥ (r • v) := by rw [h]
+      _ = r • (A ^ m *ᵥ v) := by rw [mulVec_smul]
+      _ = r • (r ^ m • v) := by rw [ih]
+      _ = r ^ (m + 1) • v := by simp [pow_succ', smul_smul]
+
+end MulVecPow
+
+section MulVecPowMap
+
+variable {R : Type*} [CommSemiring R] {S : Type*} [CommSemiring S] {n : Type*} [Fintype n]
+  [DecidableEq n] (f : R →+* S) {A : Matrix n n R} {μ : S} {v : n → S}
+
+/-- If `(A.map f) *ᵥ v = μ • v`, then `((A ^ m).map f) *ᵥ v = (μ ^ m) • v` for every `m`. -/
+lemma mulVec_map_pow_eq_smul_pow_of_mulVec_map_smul
+    (h : (A.map f) *ᵥ v = μ • v) (m : ℕ) :
+    ((A ^ m).map f) *ᵥ v = (μ ^ m) • v := by
+  induction m with
+  | zero => simp [pow_zero, Matrix.map_one, one_mulVec, one_smul]
+  | succ m ih =>
+    calc
+      ((A ^ (m + 1)).map f) *ᵥ v = ((A * A ^ m).map f) *ᵥ v := by simp [pow_succ']
+      _ = ((A.map f) * ((A ^ m).map f)) *ᵥ v := by rw [Matrix.map_mul]
+      _ = (A.map f) *ᵥ (((A ^ m).map f) *ᵥ v) := by rw [Matrix.mulVec_mulVec]
+      _ = (A.map f) *ᵥ ((μ ^ m) • v) := by rw [ih]
+      _ = (μ ^ m) • ((A.map f) *ᵥ v) := by rw [mulVec_smul]
+      _ = (μ ^ m) • (μ • v) := by rw [h]
+      _ = ((μ ^ m) * μ) • v := by rw [smul_smul]
+      _ = (μ ^ (m + 1)) • v := by rw [← pow_succ]
+
+end MulVecPowMap
+
+end PerronFrobenius
+
+end Matrix

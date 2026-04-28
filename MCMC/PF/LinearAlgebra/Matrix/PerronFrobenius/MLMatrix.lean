@@ -71,7 +71,7 @@ The dominant real eigenvalue of an ML-matrix, defined by shifting back the Perro
 `mlShifted B`.
 -/
 noncomputable def mlPerronRoot (B : Matrix n n ℝ) : ℝ :=
-  perronRoot_alt (mlShifted B) - mlShift B
+  perronRoot (mlShifted B) - mlShift B
 
 /--
 The Perron-Frobenius existence theorem needed for ML-matrices is already available via

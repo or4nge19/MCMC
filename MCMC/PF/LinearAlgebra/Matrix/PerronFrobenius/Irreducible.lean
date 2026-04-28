@@ -1,15 +1,24 @@
+/-
+Copyright (c) 2025 Matteo Cipollina. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Matteo Cipollina
+-/
 import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
 import Mathlib.Combinatorics.Quiver.Path
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Uniqueness
 
+/-!
+# Irreducible nonnegative matrices (Perron-Frobenius layer)
+
+Quivers, path lifting, `1 + A` irreducibility, and consequences for nonnegative eigenvectors.
+-/
+
 open Quiver.Path
 namespace Matrix
-open Quiver
+open Quiver CollatzWielandt
 
-open CollatzWielandt
-variable {n : Type*} [DecidableEq n]
-variable {A : Matrix n n ℝ}
+variable {n : Type*} [DecidableEq n] {A : Matrix n n ℝ}
 
 /-- If `A` is irreducible then so is `1 + A`. -/
 theorem Irreducible.add_one (h_irred : A.IsIrreducible) : (1 + A).IsIrreducible := by
@@ -472,7 +481,7 @@ theorem pft_primitive
     have w_j₀_eq : w.1 j₀ = d * v0 j₀ := by
       have : d = w.1 j₀ / v0 j₀ := hd_eq
       have v0_ne : v0 j₀ ≠ 0 := ne_of_gt v0_j₀_pos
-      simp_all only [gt_iff_lt, sum_def, ne_eq, Pi.smul_apply, smul_eq_mul, inv_pos, mul_nonneg_iff_of_pos_left,
+      simp_all only [gt_iff_lt, ne_eq, Pi.smul_apply, smul_eq_mul, inv_pos, mul_nonneg_iff_of_pos_left,
         mul_pos_iff_of_pos_left, implies_true, div_pos_iff_of_pos_left, mem_univ, ge_iff_le, mul_eq_zero, inv_eq_zero,
         false_or, isUnit_iff_ne_zero, or_self, not_false_eq_true, IsUnit.div_mul_cancel, s, v0, c, d]
     have h_r'_ge_r : r' ≥ r := by

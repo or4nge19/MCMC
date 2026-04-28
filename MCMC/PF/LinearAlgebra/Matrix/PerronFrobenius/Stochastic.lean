@@ -25,18 +25,18 @@ theorem exists_positive_eigenvector_of_irreducible_stochastic
   have h_ones_eig : A_T *ᵥ (fun _ => 1) = 1 • (fun _ => 1) := by
     simpa using row_sum_eigenvalue hAT_nonneg 1 hAT_row_sum
   have hAT_irred : A_T.IsIrreducible := Matrix.IsIrreducible.transpose hA_irred
-  have r_AT_eq_one : perronRoot_alt A_T = 1 := by
+  have r_AT_eq_one : perronRoot A_T = 1 := by
     have h :=
       eigenvalue_is_perron_root_of_positive_eigenvector
         (A := A_T) (r := 1) (v := fun _ => 1)
         hAT_irred hAT_nonneg (by norm_num) (by intro _; exact Real.zero_lt_one)
     aesop
-  have r_A_eq_one : perronRoot_alt A = 1 := by
+  have r_A_eq_one : perronRoot A = 1 := by
     exact (perronRoot_transpose_eq A hA_irred).trans r_AT_eq_one
   obtain ⟨v_raw, ⟨r, hr_pos, h_eig⟩, v_raw_unique⟩ := pft_irreducible hA_irred
   let v : stdSimplex ℝ n := v_raw
   have h_eig_one : A *ᵥ v.val = v.val := by
-    have r_eq_perron : r = perronRoot_alt A := by
+    have r_eq_perron : r = perronRoot A := by
       apply eigenvalue_is_perron_root_of_positive_eigenvector
       · exact hA_irred
       · exact hA_nonneg
@@ -45,7 +45,7 @@ theorem exists_positive_eigenvector_of_irreducible_stochastic
         have hv_nonneg : ∀ i, 0 ≤ v.val i := v.property.1
         exact eigenvector_is_positive_of_irreducible hA_irred h_eig hv_nonneg v_ne_zero
       · exact h_eig
-    have : A *ᵥ v.val = (perronRoot_alt A) • v.val := by
+    have : A *ᵥ v.val = (perronRoot A) • v.val := by
       aesop
     simpa [r_A_eq_one, one_smul] using this
   refine ⟨v, h_eig_one, ?_⟩

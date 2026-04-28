@@ -94,6 +94,11 @@ lemma period_pos_of_nonempty_cycles (i : V) (h_nonempty : (CycleLengths i).Nonem
     exact hk_ne_zero this
   exact Nat.pos_of_ne_zero hper_ne_zero
 
+/-- If `k ≤ a + (b + c)` and `a + b + c = d`, then `k ≤ d` (reassociate the upper bound). -/
+private lemma le_of_le_add_add_eq (k a b c d : ℕ) (h : k ≤ a + (b + c)) (he : a + b + c = d) :
+    k ≤ d := by
+  rwa [← he, Nat.add_assoc]
+
 /--
 **Theorem: In a strongly connected quiver, the period is the same for all vertices**.
 -/
@@ -121,7 +126,7 @@ theorem period_constant_of_strongly_connected (h_sc : Quiver.IsSStronglyConnecte
       have hle : k ≤ p.length + (k + q.length) := le_trans hle1 hle2
       have : p.length + k + q.length = t' := by
         simp [t', Path.length_comp, hc_len, Nat.add_assoc, Nat.add_comm]
-      have hle' : k ≤ t' := by grind
+      have hle' : k ≤ t' := le_of_le_add_add_eq k p.length k q.length t' hle this
       exact lt_of_lt_of_le hk_pos hle'
     have ht'_mem : t' ∈ CycleLengths i := by
       refine ⟨ht'_pos, ?_⟩
@@ -154,7 +159,7 @@ theorem period_constant_of_strongly_connected (h_sc : Quiver.IsSStronglyConnecte
       have hle : k ≤ q.length + (k + p.length) := le_trans hle1 hle2
       have : q.length + k + p.length = t' := by
         simp [t', Path.length_comp, hc_len, Nat.add_comm, Nat.add_left_comm]
-      have hle' : k ≤ t' := by grind
+      have hle' : k ≤ t' := le_of_le_add_add_eq k q.length k p.length t' hle this
       exact lt_of_lt_of_le hk_pos hle'
     have ht'_mem : t' ∈ CycleLengths j := by
       refine ⟨ht'_pos, ?_⟩

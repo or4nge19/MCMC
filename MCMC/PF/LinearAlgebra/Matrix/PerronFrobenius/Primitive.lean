@@ -1,60 +1,33 @@
+/-
+Copyright (c) 2025 Matteo Cipollina. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Matteo Cipollina
+-/
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.CollatzWielandt
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 import Mathlib.Tactic
 
-namespace Matrix
-open Finset Quiver
-variable {n : Type*} [Fintype n]
+set_option linter.unusedSectionVars false
+
 /-!
-### The Perron-Frobenius Theorem for Primitive Matrices
+# Perron-Frobenius for primitive matrices
 
-This section formalizes Theorem 1.1 from Seneta's "Non-negative Matrices and Markov Chains".
-The proof follows Seneta's logic :
-1. Define the Perron root `r` as the supremum of the Collatz-Wielandt function `r(x)`.
-2. Use the fact that `r(x)` is upper-semicontinuous on a compact set (the standard simplex)
-   to guarantee the supremum is attained by a vector `v`.
-3. Prove that `v` is an eigenvector by a contradiction argument using the primitivity of `A`.
-4. Prove that `v` is strictly positive, again using primitivity.
+Theorem 1.1 in Seneta, *Non-negative Matrices and Markov Chains*: Collatz-Wielandt supremum,
+existence of a simplex maximizer, then primitivity forces a strictly positive eigenvector.
+
 -/
-section PerronFrobenius
-variable {n : Type*} [Fintype n] [Nonempty n]
-variable {A : Matrix n n ℝ}
 
-open LinearMap Set Filter Topology Finset Matrix.CollatzWielandt
+namespace Matrix
+
+open Set Finset MetricSpace Topology Convex Quiver.Path Matrix Matrix.CollatzWielandt IsCompact
+section PerronFrobenius
 open scoped Convex Pointwise
 
-end PerronFrobenius
+variable {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ}
 
-end Matrix
-
-open Set Finset MetricSpace Topology Convex Quiver.Path
-
-namespace Matrix
---variable {n : Type*} --[Fintype n]
-
-open Topology Metric Set Finset
-section PerronFrobenius
-open Finset Set IsCompact Topology Matrix
-
-variable {n : Type*} [Fintype n] {A : Matrix n n ℝ}
-
-lemma ratio_le_max_row_sum_simple [Nonempty n]  (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j)
-    {x : n → ℝ} (_ : ∀ i, 0 ≤ x i) (i : n) (hx_i_pos : 0 < x i) :
-    (A *ᵥ x) i / x i ≤ (∑ j, A i j) * (Finset.univ.sup' (Finset.univ_nonempty) x) / x i := by
-  rw [mulVec_apply, div_le_div_iff_of_pos_right hx_i_pos]
-  calc
-    ∑ j, A i j * x j ≤ ∑ j, A i j * (Finset.univ.sup' Finset.univ_nonempty x) := by
-      apply Finset.sum_le_sum
-      intro j _
-      exact mul_le_mul_of_nonneg_left (le_sup' x (Finset.mem_univ j)) (hA_nonneg i j)
-    _ = (∑ j, A i j) * Finset.univ.sup' Finset.univ_nonempty x := by rw [Finset.sum_mul]
-
-variable [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ}
-
-/-- For an irreducible non-negative matrix, the Collatz-Wielandt value of the vector of all ones
-    is strictly positive. This relies on the fact that an irreducible matrix cannot have a zero row
-    (unless n=1, which is handled). A zero row would imply the sum of its entries is zero, which
-    is the Collatz-Wielandt value for the vector of all ones. -/
+/-- For an irreducible nonnegative matrix, the Collatz-Wielandt value at the all-ones vector is
+  strictly positive: an irreducible nonnegative matrix has no zero row (the `Fintype.card n = 1`
+  case uses a positive diagonal entry). -/
 lemma collatzWielandtFn_of_ones_is_pos
   (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     0 < collatzWielandtFn A (fun _ ↦ 1) := by
@@ -94,21 +67,20 @@ lemma collatzWielandtFn_of_ones_is_pos
       have h_Aij_zero : A i j = 0 := h_zero_row j
       exact lt_irrefl 0 (h_Aij_zero ▸ hj_pos)
 
-/-- The Perron root (the supremum of the Collatz-Wielandt function) is positive for an
-    irreducible, non-negative matrix. This follows by showing the value for the vector of
-    all ones is positive, and that value is a lower bound for the supremum. -/
-lemma perronRoot_alt_pos_of_irreducible
+/-- The Perron root is positive for an irreducible nonnegative matrix: the Collatz-Wielandt value
+  at the all-ones vector is positive and lies below `perronRoot`. -/
+lemma perronRoot_pos_of_irreducible
   (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    0 < CollatzWielandt.perronRoot_alt A := by
+    0 < CollatzWielandt.perronRoot A := by
   let x_ones : n → ℝ := fun _ ↦ 1
-  have h_x_ones_in_set : x_ones ∈ CollatzWielandt.P_set := by
+  have h_x_ones_in_set : x_ones ∈ CollatzWielandt.nonnegNeZero := by
     constructor
     · intro i; exact zero_le_one
     · intro h_zero
       have h_contra : (1 : ℝ) = 0 := by simpa [x_ones] using congr_fun h_zero (Classical.arbitrary n)
       exact one_ne_zero h_contra
-  have r_sup_ge_r_ones : collatzWielandtFn A x_ones ≤ CollatzWielandt.perronRoot_alt A := by
-    dsimp [CollatzWielandt.perronRoot_alt]
+  have r_sup_ge_r_ones : collatzWielandtFn A x_ones ≤ CollatzWielandt.perronRoot A := by
+    dsimp [CollatzWielandt.perronRoot]
     apply le_csSup_of_le
     · exact CollatzWielandt.bddAbove A hA_nonneg
     · exact Set.mem_image_of_mem A.collatzWielandtFn h_x_ones_in_set
@@ -118,7 +90,7 @@ lemma perronRoot_alt_pos_of_irreducible
   exact lt_of_lt_of_le r_ones_pos r_sup_ge_r_ones
 
 /-- For a maximizer `v` of the Collatz-Wielandt function, `A * v = r • v`. -/
-theorem maximizer_is_eigenvector  (hA_prim : IsPrimitive A)
+theorem maximizer_is_eigenvector (hA_prim : IsPrimitive A)
     (hA_nonneg : ∀ i j, 0 ≤ A i j) {v : n → ℝ} (hv_max : IsMaxOn (collatzWielandtFn A) (stdSimplex ℝ n) v)
     (hv_simplex : v ∈ stdSimplex ℝ n) (r : ℝ) (hr_def : r = collatzWielandtFn A v) :
     A *ᵥ v = r • v := by
@@ -128,8 +100,12 @@ theorem maximizer_is_eigenvector  (hA_prim : IsPrimitive A)
     rw [hr_def]; exact CollatzWielandt.le_mulVec hA_nonneg hv_nonneg hv_ne_zero
   by_contra h_ne
   let z := A *ᵥ v - r • v
-  have hz_nonneg : ∀ i, 0 ≤ z i := fun i ↦ by simp [z, sub_nonneg];exact h_fund_ineq i
-  have hz_ne_zero : z ≠ 0 := by intro hz_zero; apply h_ne; ext i; simpa [z, sub_eq_zero] using congr_fun hz_zero i
+  have hz_nonneg : ∀ i, 0 ≤ z i := fun i ↦ by simp [z, sub_nonneg]; exact h_fund_ineq i
+  have hz_ne_zero : z ≠ 0 := by
+    intro hz_zero
+    apply h_ne
+    ext i
+    simpa [z, sub_eq_zero] using congr_fun hz_zero i
   obtain ⟨_, k, hk_gt_zero, hk_pos⟩ := hA_prim
   let y := (A ^ k) *ᵥ v
   have hy_pos : ∀ i, 0 < y i := positive_mul_vec_of_nonneg_vec hk_pos hv_nonneg hv_ne_zero
@@ -209,31 +185,13 @@ theorem maximizer_is_eigenvector  (hA_prim : IsPrimitive A)
     · rfl
   linarith [r_ge_r_y_norm, r_y_norm_eq_r_y, r_lt_r_y]
 
-/-- Short alias for `maximizer_is_eigenvector`. -/
-theorem max_is_eig (hA_prim : IsPrimitive A)
-    (hA_nonneg : ∀ i j, 0 ≤ A i j) {v : n → ℝ} (hv_max : IsMaxOn (collatzWielandtFn A) (stdSimplex ℝ n) v)
-    (hv_simplex : v ∈ stdSimplex ℝ n) (r : ℝ) (hr_def : r = collatzWielandtFn A v) :
-    A *ᵥ v = r • v := by
-  exact maximizer_is_eigenvector hA_prim hA_nonneg hv_max hv_simplex r hr_def
-
 /-- An eigenvector `v` of a primitive matrix `A` corresponding to a positive eigenvalue `r` must be strictly positive. -/
 lemma eigenvector_of_primitive_is_positive {r : ℝ} (hA_prim : IsPrimitive A) (hr_pos : 0 < r)
     {v : n → ℝ} (h_eigen : A *ᵥ v = r • v) (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     ∀ i, 0 < v i := by
   obtain ⟨_, k, hk_gt_zero, hk_pos⟩ := hA_prim
-  have h_Ak_v : (A ^ k) *ᵥ v = (r ^ k) • v := by
-    have h_gen : ∀ m, (A ^ m) *ᵥ v = (r ^ m) • v := by
-      intro m
-      induction m with
-      | zero => simp
-      | succ m' ih =>
-        calc (A ^ (m' + 1)) *ᵥ v
-          _ = A *ᵥ ((A ^ m') *ᵥ v) := by rw [@pow_mulVec_succ]
-          _ = A *ᵥ (r ^ m' • v) := by rw [ih]
-          _ = r ^ m' • (A *ᵥ v) := (mulVecLin A).map_smul _ _
-          _ = r ^ m' • (r • v) := by rw [h_eigen]
-          _ = (r ^ (m' + 1)) • v := by rw [smul_smul, pow_succ]
-    exact h_gen k
+  have h_Ak_v : (A ^ k) *ᵥ v = (r ^ k) • v :=
+    mulVec_pow_eq_smul_pow_of_mulVec_smul h_eigen k
   have h_Ak_v_pos : ∀ i, 0 < ((A ^ k) *ᵥ v) i :=
     positive_mul_vec_of_nonneg_vec hk_pos hv_nonneg hv_ne_zero
   intro i
@@ -271,9 +229,6 @@ lemma perron_root_pos_of_primitive
     0 < collatzWielandtFn A (fun _ => 1) := cw_one_pos
     _ = collatzWielandtFn A ones_norm := cw_scale.symm
     _ ≤ collatzWielandtFn A v := cw_le_max
-
-open Matrix.CollatzWielandt
---variable [Fintype n] [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ}
 
 /-- **Perron-Frobenius theorem for primitive matrices - Existence part**-/
 theorem exists_positive_eigenvector_of_primitive
