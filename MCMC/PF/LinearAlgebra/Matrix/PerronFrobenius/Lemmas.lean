@@ -9,9 +9,7 @@ import MCMC.PF.Combinatorics.Quiver.Path
 /-!
 # Perron-Frobenius support lemmas
 
-This file collects auxiliary lemmas used in the Perron-Frobenius development for irreducible and
-primitive nonnegative real matrices. The results connect `Matrix.IsIrreducible` and
-`Matrix.IsPrimitive` to the quiver `Matrix.toQuiver A`.
+These results connect `Matrix.IsIrreducible` and `Matrix.IsPrimitive` to the quiver `Matrix.toQuiver A`.
 
 ## Main statements
 
@@ -37,7 +35,7 @@ variable {n : Type*}
 
 /-- A path in the submatrix `A.submatrix Subtype.val Subtype.val` lifts to a path in the
 original quiver `toQuiver A`, and all vertices along that lifted path lie in `S`. -/
-private theorem path_in_submatrix_to_original [DecidableEq n] {A : Matrix n n ℝ}
+lemma path_in_submatrix_to_original [DecidableEq n] {A : Matrix n n ℝ}
   (S : Set n) [DecidablePred S]
   {i j : S}
   (p : @Quiver.Path S (letI := Matrix.toQuiver A; inducedQuiver S) i j) :
@@ -52,7 +50,7 @@ private theorem path_in_submatrix_to_original [DecidableEq n] {A : Matrix n n �
 
 /-- If the principal submatrix supported on `S` is irreducible, then any two vertices of `S`
 can be joined by a path in `toQuiver A` whose active vertices all lie in `S`. -/
-theorem path_exists_in_support_of_irreducible [DecidableEq n] {A : Matrix n n ℝ}
+lemma path_exists_in_support_of_irreducible [DecidableEq n] {A : Matrix n n ℝ}
     (S : Set n) [DecidablePred S]
     (hS : IsIrreducible (A.submatrix (Subtype.val : S → n) (Subtype.val : S → n)))
     (i j : n) (hi : i ∈ S) (hj : j ∈ S) :
@@ -71,12 +69,11 @@ theorem path_exists_in_support_of_irreducible [DecidableEq n] {A : Matrix n n �
 
 /-! ### Positivity of matrix-vector products -/
 
-private lemma positive_mul_vec_pos [Fintype n]
+lemma positive_mul_vec_pos [Fintype n]
     {A : Matrix n n ℝ} (hA_pos : ∀ i j, 0 < A i j)
     {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
     ∀ i, 0 < (A.mulVec x) i := by
   intro i
-  --  `A.mulVec x i = ∑ j, A i j * x j`
   simp only [Matrix.mulVec, dotProduct]
   apply Finset.sum_pos'
   · intro j _
@@ -95,7 +92,7 @@ variable {A : Matrix n n ℝ} --[DecidableEq n] [Nonempty n]
 
 /-- A matrix with strictly positive entries sends every nonnegative nonzero vector to a strictly
 positive vector. -/
-theorem positive_mul_vec_of_nonneg_vec [Fintype n] (hA_pos : ∀ i j, 0 < A i j)
+lemma positive_mul_vec_of_nonneg_vec [Fintype n] (hA_pos : ∀ i j, 0 < A i j)
     {v : n → ℝ} (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     ∀ i, 0 < (A *ᵥ v) i := by
   simpa only [Matrix.mulVec] using
@@ -140,7 +137,7 @@ lemma Irreducible.exists_edge_out {A : Matrix n n ℝ}
 
 /-- Let `S = {i | 0 < v i}` and `T = {i | v i = 0}` for a nonnegative vector `v`. If `A` is
 irreducible and both sets are nonempty, then there is a positive edge from `T` to `S`. -/
-theorem exists_connecting_edge_of_irreducible {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
+lemma exists_connecting_edge_of_irreducible {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     {v : n → ℝ} (hv_nonneg : ∀ i, 0 ≤ v i)
     (S T : Set n) (hS_nonempty : S.Nonempty) (hT_nonempty : T.Nonempty)
     (h_partition : ∀ i, i ∈ S ↔ v i > 0)
@@ -185,7 +182,7 @@ lemma eq_zero_of_mulVec_eq_zero_of_pos [Fintype n]
     (by simpa using congrFun h_Av_zero i) (hv_pos j)
 
 /-- A zero matrix is not irreducible if the dimension is greater than `1`. -/
-private lemma not_irreducible_of_zero_matrix {n : Type*} [Fintype n] [Nonempty n]
+lemma not_irreducible_of_zero_matrix {n : Type*} [Fintype n] [Nonempty n]
     (h_card_gt_one : 1 < Fintype.card n) :
     ¬ IsIrreducible (0 : Matrix n n ℝ) := by
   intro h
