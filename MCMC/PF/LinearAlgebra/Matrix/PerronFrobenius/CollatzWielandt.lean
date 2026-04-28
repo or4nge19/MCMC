@@ -30,6 +30,11 @@ noncomputable def collatzWielandtFn (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :
 noncomputable abbrev mulVec_continuousLinearMap (A : Matrix n n ℝ) : (n → ℝ) →L[ℝ] (n → ℝ) :=
   (Matrix.mulVecLin A).toContinuousLinearMap
 
+omit [Nonempty n] in
+@[simp] lemma collatzWielandtFn_zero (A : Matrix n n ℝ) :
+    collatzWielandtFn A (0 : n → ℝ) = 0 := by
+  simp [collatzWielandtFn]
+
 namespace CollatzWielandt
 
 /-! ### Positive supports -/
@@ -64,6 +69,53 @@ lemma collatzWielandtFn_eq_inf' (A : Matrix n n ℝ) {x : n → ℝ}
   dsimp [collatzWielandtFn]
   rw [dif_pos hx]
 
+omit [Nonempty n] in
+private def posSupportNeighborhood (x : n → ℝ) : Set (n → ℝ) :=
+  {y | ∀ i ∈ {i | 0 < x i}.toFinset, 0 < y i}
+
+omit [Nonempty n] in
+private lemma self_mem_posSupportNeighborhood (x : n → ℝ) :
+    x ∈ posSupportNeighborhood x := by
+  intro i hi
+  simpa [Set.mem_toFinset] using hi
+
+omit [Nonempty n] in
+private lemma isOpen_posSupportNeighborhood (x : n → ℝ) :
+    IsOpen (posSupportNeighborhood x) := by
+  have h_eq : posSupportNeighborhood x = ⋂ i ∈ {i | 0 < x i}.toFinset, {y | 0 < y i} := by
+    ext y
+    simp [posSupportNeighborhood]
+  rw [h_eq]
+  apply isOpen_biInter_finset
+  intro i _
+  exact isOpen_lt continuous_const (continuous_apply i)
+
+omit [Nonempty n] in
+private lemma continuousOn_fixedSupportRatios (A : Matrix n n ℝ) {x : n → ℝ}
+    (hx : ({i | 0 < x i}.toFinset).Nonempty) :
+    ContinuousOn (fun y => {i | 0 < x i}.toFinset.inf' hx fun i => (A *ᵥ y) i / y i)
+      (posSupportNeighborhood x) := by
+  apply continuousOn_finset_inf' hx
+  intro i hi
+  apply ContinuousOn.div
+  · exact continuous_apply i |>.comp_continuousOn ((mulVec_continuousLinearMap A).continuous.continuousOn)
+  · exact (continuous_apply i).continuousOn
+  · intro y hy
+    exact (hy i hi).ne'
+
+private lemma collatzWielandtFn_le_fixedSupportRatios (A : Matrix n n ℝ)
+    {x y : n → ℝ} (hx : ({i | 0 < x i}.toFinset).Nonempty)
+    (hy : y ∈ posSupportNeighborhood x ∩ stdSimplex ℝ n) :
+    collatzWielandtFn A y ≤
+      {i | 0 < x i}.toFinset.inf' hx (fun i => (A *ᵥ y) i / y i) := by
+  have hy_supp : {i | 0 < y i}.toFinset.Nonempty :=
+    pos_support_toFinset_nonempty_of_mem_stdSimplex hy.2
+  rw [collatzWielandtFn_eq_inf' A hy_supp]
+  apply finset_inf'_mono_subset
+  intro i hi
+  have : 0 < y i := hy.1 i hi
+  simpa [Set.mem_toFinset] using this
+
 /-- *The Collatz-Wielandt function is upper-semicontinuous*.
 Seneta relies on this fact (p.15, Appendix C) to use the Extreme Value Theorem.
 `r(x)` is a minimum of functions `fᵢ(x) = (Ax)ᵢ / xᵢ`. Each `fᵢ` is continuous where `xᵢ > 0`.
@@ -78,74 +130,31 @@ theorem upperSemicontinuousOn
         collatzWielandtFn A x₀ =
           {i | 0 < x₀ i}.toFinset.inf' supp_x₀ (fun i => (A *ᵥ x₀) i / x₀ i) :=
       collatzWielandtFn_eq_inf' A supp_x₀
-    let U := {y : n → ℝ | ∀ i ∈ {i | 0 < x₀ i}.toFinset, 0 < y i}
-    have x₀_in_U : x₀ ∈ U := by
-      intro i hi
-      simp only [Set.mem_toFinset] at hi
-      exact hi
-    have U_open : IsOpen U := by
-      have h_eq : U = ⋂ i ∈ {i | 0 < x₀ i}.toFinset, {y | 0 < y i} := by
-        ext y
-        simp only [Set.mem_iInter, Set.mem_setOf_eq]
-        rfl
-      rw [h_eq]
-      apply isOpen_biInter_finset
-      intro i _
-      exact isOpen_lt continuous_const (continuous_apply i)
     let f := fun y => {i | 0 < x₀ i}.toFinset.inf' supp_x₀ fun i => (A *ᵥ y) i / y i
-    have f_cont : ContinuousOn f U := by
-      apply continuousOn_finset_inf' supp_x₀
-      intro i hi
-      apply ContinuousOn.div
-      · exact continuous_apply i |>.comp_continuousOn ((mulVec_continuousLinearMap A).continuous.continuousOn)
-      · exact (continuous_apply i).continuousOn
-      · intro y hy
-        simp only at hy
-        exact (hy i hi).ne'
-    have f_ge : ∀ y ∈ U ∩ stdSimplex ℝ n, collatzWielandtFn A y ≤ f y := by
-      intro y hy
-      have y_supp : {i | 0 < y i}.toFinset.Nonempty :=
-        pos_support_toFinset_nonempty_of_mem_stdSimplex hy.2
-      have fn_y :
-          collatzWielandtFn A y =
-            {i | 0 < y i}.toFinset.inf' y_supp fun i => (A *ᵥ y) i / y i :=
-        collatzWielandtFn_eq_inf' A y_supp
-      have supp_subset : {i | 0 < x₀ i}.toFinset ⊆ {i | 0 < y i}.toFinset := by
-        intro i hi
-        have hi' : 0 < x₀ i := by
-          simp only [Set.mem_toFinset] at hi
-          exact hi
-        have : 0 < y i := hy.1 i hi
-        simp only [Set.mem_toFinset]
-        exact this
-      rw [fn_y]
-      apply finset_inf'_mono_subset supp_subset
     rw [fn_eq] at hc
-    have : f x₀ < c := hc
-    have cont_at : ContinuousAt f x₀ := f_cont.continuousAt (IsOpen.mem_nhds U_open x₀_in_U)
+    have cont_at : ContinuousAt f x₀ :=
+      (continuousOn_fixedSupportRatios A supp_x₀).continuousAt
+        ((isOpen_posSupportNeighborhood x₀).mem_nhds (self_mem_posSupportNeighborhood x₀))
     have lt_eventually : ∀ᶠ y in 𝓝 x₀, f y < c :=
       Filter.Tendsto.eventually_lt_const hc cont_at
     rcases eventually_to_open lt_eventually with ⟨V, V_open, x₀_in_V, hV⟩
-    let W := V ∩ U ∩ stdSimplex ℝ n
-    have VU_open : IsOpen (V ∩ U) := IsOpen.inter V_open U_open
-    have VU_mem : x₀ ∈ V ∩ U := ⟨x₀_in_V, x₀_in_U⟩
-    have VU_nhds : V ∩ U ∈ 𝓝 x₀ := VU_open.mem_nhds VU_mem
+    let W := V ∩ posSupportNeighborhood x₀ ∩ stdSimplex ℝ n
+    have VU_open : IsOpen (V ∩ posSupportNeighborhood x₀) :=
+      IsOpen.inter V_open (isOpen_posSupportNeighborhood x₀)
+    have VU_mem : x₀ ∈ V ∩ posSupportNeighborhood x₀ :=
+      ⟨x₀_in_V, self_mem_posSupportNeighborhood x₀⟩
+    have VU_nhds : V ∩ posSupportNeighborhood x₀ ∈ 𝓝 x₀ := VU_open.mem_nhds VU_mem
     have W_nhdsWithin : W ∈ 𝓝[stdSimplex ℝ n] x₀ := by
       rw [mem_nhdsWithin_iff_exists_mem_nhds_inter]
-      exact ⟨V ∩ U, VU_nhds, by simp [W]⟩
-    have h_final : ∀ y ∈ W, collatzWielandtFn A y < c := by
-      intro y hy
+      exact ⟨V ∩ posSupportNeighborhood x₀, VU_nhds, by simp [W]⟩
+    exact Filter.mem_of_superset W_nhdsWithin fun y hy => by
+      show collatzWielandtFn A y < c
       apply lt_of_le_of_lt
-      · apply f_ge y
-        exact ⟨And.right (And.left hy), hy.2⟩
-      · exact hV y (And.left (And.left hy))
-    exact Filter.mem_of_superset W_nhdsWithin (fun y hy => h_final y hy)
+      · exact collatzWielandtFn_le_fixedSupportRatios A supp_x₀ ⟨hy.1.2, hy.2⟩
+      · exact hV y hy.1.1
 
 -- The set of vectors we are optimizing over.
 def P_set := {x : n → ℝ | (∀ i, 0 ≤ x i) ∧ x ≠ 0}
-
-/-- The Collatz-Wielandt value is the supremum of `r_x` over P. -/
-noncomputable def r (A : Matrix n n ℝ) [Fintype n] := ⨆ x ∈ P_set, collatzWielandtFn A x
 
 /-- The Collatz-Wielandt function attains its maximum on the standard simplex.
     [Giaquinta-Modica, Theorem 6.24 (dual), p: 235] -/
@@ -238,32 +247,22 @@ lemma exists_mulVec_eq_zero_on_support_of_nonpos [Fintype n]
   have h_vb_pos : 0 < v b := by simpa [Set.mem_toFinset] using hb_mem
   grind
 
-omit [Nonempty n] in
-lemma le_any_ratio [DecidableEq n] (A : Matrix n n ℝ)
-  {x : n → ℝ} (i : n) (hi_pos : 0 < x i) :
-    collatzWielandtFn A x ≤ (A *ᵥ x) i / x i := by
-  exact le_ratio (A := A) i hi_pos
-
 /-- The set of values from the Collatz-Wielandt function is bounded above by the maximum row sum of A. -/
 lemma bddAbove [DecidableEq n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    BddAbove (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}) := by
+    BddAbove (collatzWielandtFn A '' P_set) := by
   use Finset.univ.sup' Finset.univ_nonempty (fun i ↦ ∑ j, A i j)
   rintro y ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
-  obtain ⟨m, _, h_max_eq⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty x
-  have h_xm_pos : 0 < x m := by
-    obtain ⟨i, hi_pos⟩ : ∃ i, 0 < x i := by
-      obtain ⟨j, hj⟩ := Function.exists_ne_zero_of_ne_zero hx_ne_zero
-      exact ⟨j, lt_of_le_of_ne (hx_nonneg j) hj.symm⟩
-    rw [← h_max_eq]
-    exact lt_of_lt_of_le hi_pos (le_sup' x (Finset.mem_univ i))
+  obtain ⟨m, h_xm_pos, h_xm_max⟩ := exists_pos_maximal_of_nonneg_ne_zero hx_nonneg hx_ne_zero
   have h_le_ratio : collatzWielandtFn A x ≤ (A *ᵥ x) m / x m :=
-    le_any_ratio A m h_xm_pos
+    le_ratio (A := A) m h_xm_pos
   have h_ratio_le : (A *ᵥ x) m / x m ≤ Finset.univ.sup' Finset.univ_nonempty (fun k ↦ ∑ l, A k l) := by
     rw [mulVec_apply, div_le_iff h_xm_pos]
     calc
       ∑ j, A m j * x j
         ≤ ∑ j, A m j * x m := by
-          apply Finset.sum_le_sum; intro j _; exact mul_le_mul_of_nonneg_left (by rw [← h_max_eq]; exact le_sup' x (Finset.mem_univ j)) (hA_nonneg m j)
+          apply Finset.sum_le_sum
+          intro j _
+          exact mul_le_mul_of_nonneg_left (h_xm_max j) (hA_nonneg m j)
       _ = (∑ j, A m j) * x m := by rw [Finset.sum_mul]
       _ ≤ (Finset.univ.sup' Finset.univ_nonempty (fun k ↦ ∑ l, A k l)) * x m := by
           apply mul_le_mul_of_nonneg_right
@@ -285,7 +284,7 @@ lemma set_nonempty :
   exact Set.Nonempty.image _ ⟨xOnes, hxOnes_mem⟩
 
 omit [Nonempty n] in
-lemma smul [DecidableEq n] {c : ℝ} (hc : 0 < c)
+lemma collatzWielandtFn_smul [DecidableEq n] {c : ℝ} (hc : 0 < c)
   {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne : x ≠ 0) :
   collatzWielandtFn A (c • x) = collatzWielandtFn A x := by
   dsimp [collatzWielandtFn]
@@ -301,64 +300,11 @@ lemma smul [DecidableEq n] {c : ℝ} (hc : 0 < c)
   simp only [mulVec_smul, smul_eq_mul, Pi.smul_apply]
   rw [mul_div_mul_left _ _ (ne_of_gt hc)]
 
-/-- The minimum ratio `(Ax)_i / x_i` for a positive vector `x`. -/
-noncomputable def minRatio (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :=
-  ⨅ i, (A.mulVec x i) / x i
-
-/-- The maximum ratio `(Ax)_i / x_i` for a positive vector `x`. -/
-noncomputable def maxRatio (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :=
-  ⨆ i, (A.mulVec x i) / x i
-
-/-- The Collatz-Wielandt formula for the Perron root, defined as a supremum of infima. -/
-noncomputable def perronRoot (A : Matrix n n ℝ) : ℝ :=
-  ⨆ (x : n → ℝ) (_ : ∀ i, 0 < x i), minRatio A x
-
-/-- The Collatz-Wielandt formula for the Perron root, defined as an infimum of suprema. -/
-noncomputable def perronRoot' (A : Matrix n n ℝ) : ℝ :=
-  ⨅ (x : n → ℝ) (_ : ∀ i, 0 < x i), maxRatio A x
-
 /-- The Perron root, as the supremum of the Collatz-Wielandt function (see Seneta). -/
 noncomputable def perronRoot_alt (A : Matrix n n ℝ) : ℝ :=
   sSup (collatzWielandtFn A '' P_set)
 
 omit [Nonempty n] in
-lemma minRatio_le_maxRatio (A : Matrix n n ℝ) (x : n → ℝ) :
-    minRatio A x ≤ maxRatio A x := by
-  cases isEmpty_or_nonempty n
-  · simp [minRatio, maxRatio]
-  · haveI : Nonempty n := inferInstance
-    exact ciInf_le_ciSup (Set.finite_range _).bddBelow (Set.finite_range _).bddAbove
-
-omit [Nonempty n] in
--- Auxiliary lemma: the sets used in sSup and sInf are nonempty
-lemma min_max_sets_nonempty [Nonempty n] (A : Matrix n n ℝ) :
-  ({r | ∃ x : n → ℝ, (∀ i, 0 < x i) ∧ r = minRatio A x}.Nonempty) ∧
-  ({r | ∃ x : n → ℝ, (∀ i, 0 < x i) ∧ r = maxRatio A x}.Nonempty) := by
-  constructor
-  · use minRatio A (fun _ => 1)
-    use fun _ => 1
-    constructor
-    · intro i; exact zero_lt_one
-    · rfl
-  · use maxRatio A (fun _ => 1)
-    use fun _ => 1
-    constructor
-    · intro i; exact zero_lt_one
-    · rfl
-
-omit [Nonempty n] in
--- Auxiliary lemma: for any minimum ratio, there exists a maximum ratio that's greater
-lemma forall_exists_min_le_max [Nonempty n] (A : Matrix n n ℝ) :
-  ∀ r ∈ {r | ∃ x : n → ℝ, (∀ i, 0 < x i) ∧ r = minRatio A x},
-    ∃ s ∈ {s | ∃ y : n → ℝ, (∀ i, 0 < y i) ∧ s = maxRatio A y}, r ≤ s := by
-  intro r hr
-  rcases hr with ⟨x, hx_pos, hr_eq⟩
-  use maxRatio A x
-  constructor
-  · use x
-  · rw [hr_eq]
-    exact minRatio_le_maxRatio A x
-
 theorem eq_eigenvalue_of_positive_eigenvector
   {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n]
   {A : Matrix n n ℝ} {r : ℝ} {v : n → ℝ}
@@ -384,10 +330,6 @@ theorem eq_eigenvalue_of_positive_eigenvector
       show (⨅ _ : {i | 0 < v i}, r) = r
       exact ciInf_const (ι := {i | 0 < v i}) (a := r)
 
-lemma bddAbove_image_P_set [DecidableEq n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    BddAbove (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}) := by
-  simpa [P_set] using bddAbove A hA_nonneg
-
 variable {n : Type*} [Fintype n]
 variable {A : Matrix n n ℝ}
 
@@ -410,7 +352,7 @@ theorem eigenvalue_le_perron_root_of_positive_eigenvector
   have h_le : collatzWielandtFn A v ≤ perronRoot_alt A := by
     dsimp [perronRoot_alt]
     have h_bdd : BddAbove (collatzWielandtFn A '' P_set) :=
-      bddAbove_image_P_set A hA_nonneg
+      bddAbove A hA_nonneg
     apply le_csSup h_bdd
     have hv_in_P : v ∈ P_set := ⟨hv_nonneg, hv_ne_zero⟩
     exact Set.mem_image_of_mem (collatzWielandtFn A) hv_in_P
@@ -456,13 +398,6 @@ lemma le_eigenvalue_of_left_eigenvector [DecidableEq n]
     dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hw_nonneg hw_ne_zero
   exact le_of_mul_le_mul_right h_dot_le h_dot_pos
 
-/-- If v is an eigenvector of A with eigenvalue r (i.e., A *ᵥ v = r • v),
-    this lemma provides the relation in the form needed for rewriting. -/
-lemma mulVec_eq_smul_of_eigenvector {n : Type*} [Fintype n] [DecidableEq n]
-    {A : Matrix n n ℝ} {r : ℝ} {v : n → ℝ} (h_eig : A *ᵥ v = r • v) :
-    r • v = A *ᵥ v := by
-  exact Eq.symm h_eig
-
 /--
 If `u` is a strictly positive left eigenvector of `A` for eigenvalue `r > 0`,
 then the Perron root of `A` is less than or equal to `r`.
@@ -477,21 +412,6 @@ lemma perron_root_le_eigenvalue_of_left_eigenvector [Nonempty n] [DecidableEq n]
   · exact CollatzWielandt.set_nonempty
   · rintro _ ⟨w, ⟨hw_nonneg, hw_ne_zero⟩, rfl⟩
     exact CollatzWielandt.le_eigenvalue_of_left_eigenvector hA_nonneg hr_pos hu_pos h_eig hw_nonneg hw_ne_zero
-
-/--
-An intermediate algebraic result for the Perron-Frobenius theorem.
-If `v` is a right eigenvector of `A` for eigenvalue `r`, then for any vector `w`,
-the dot product `v ⬝ᵥ (A *ᵥ w)` is equal to `r * (v ⬝ᵥ w)`.
--/
-lemma dotProduct_mulVec_eq_eigenvalue_mul_dotProduct
-    {r : ℝ} {v w : n → ℝ} (h_eig : Aᵀ *ᵥ v = r • v) :
-    v ⬝ᵥ (A *ᵥ w) = r * (v ⬝ᵥ w) := by
-  have : v ⬝ᵥ (A *ᵥ w) = v ᵥ* A ⬝ᵥ w := by exact dotProduct_mulVec v A w
-  rw [this]
-  have : v ᵥ* A = Aᵀ *ᵥ v := by exact vecMul_eq_mulVec_transpose A v
-  rw [this]
-  rw [h_eig]
-  exact dotProduct_smul_left r v w
 
 /--
 If `v` is a strictly positive right eigenvector of `A` with eigenvalue `r`, then the vector
@@ -553,21 +473,16 @@ lemma le_of_max_le_row_sum [Nonempty n] [DecidableEq n]
     (hB_nonneg : ∀ i j, 0 ≤ B i j) (h_B_row_sum : ∀ i, ∑ j, B i j = r)
     (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) (h_le_Bx : c • x ≤ B *ᵥ x) :
     c ≤ r := by
-  obtain ⟨k, -, h_k_max⟩ := Finset.exists_mem_eq_sup' (Finset.univ_nonempty) x
-  have h_xk_pos : 0 < x k := by
-    have h_exists_pos : ∃ i, 0 < x i := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
-    obtain ⟨j, hj_pos⟩ := h_exists_pos
-    refine' lt_of_lt_of_le hj_pos _
-    rw [← h_k_max]
-    exact Finset.le_sup' (f := x) (Finset.mem_univ j)
+  obtain ⟨k, h_xk_pos, h_xk_max⟩ := exists_pos_maximal_of_nonneg_ne_zero hx_nonneg hx_ne_zero
   have h_le_k := h_le_Bx k
   simp only [Pi.smul_apply, smul_eq_mul] at h_le_k
   have h_Bx_le : (B *ᵥ x) k ≤ r * x k := by
     calc (B *ᵥ x) k
         = ∑ j, B k j * x j := by simp [mulVec_apply]
       _ ≤ ∑ j, B k j * x k := by
-          apply Finset.sum_le_sum; intro j hj
-          exact mul_le_mul_of_nonneg_left (by { rw [← h_k_max]; exact Finset.le_sup' x hj }) (hB_nonneg k j)
+          apply Finset.sum_le_sum
+          intro j _
+          exact mul_le_mul_of_nonneg_left (h_xk_max j) (hB_nonneg k j)
       _ = (∑ j, B k j) * x k := by rw [Finset.sum_mul]
       _ = r * x k := by rw [h_B_row_sum]
   exact le_of_mul_le_mul_right (le_trans h_le_k h_Bx_le) h_xk_pos
@@ -652,22 +567,6 @@ theorem eq_perron_root_of_positive_eigenvector
       hA_nonneg hr_pos hv_pos h_eig
   exact le_antisymm h₁ h₂
 
-lemma perronRoot'_le_maxRatio_of_min_ge_perronRoot'
-    [Nonempty n] {A : Matrix n n ℝ} {x : n → ℝ}
-    (hr : perronRoot' A ≤ minRatio A x) :
-    perronRoot' A ≤ maxRatio A x :=
-  hr.trans (minRatio_le_maxRatio A x)
-
-/--
-For a function `f` on a non-empty finite type `ι`, the indexed infimum `⨅ i, f i` is equal
-to the infimum over the universal finset.
--/
-lemma ciInf_eq_finset_inf' {α ι : Type*} [Fintype ι] [Nonempty ι] [ConditionallyCompleteLinearOrder α]
-  (f : ι → α) :
-  ⨅ i, f i = Finset.univ.inf' Finset.univ_nonempty f := by
-  -- This is the symmetric version of `Finset.inf'_univ_eq_ciInf`.
-  exact (Finset.inf'_univ_eq_ciInf f).symm
-
 @[simp]
 theorem Finset.sum_def {α M : Type*} [AddCommMonoid M] {s : Finset α} (f : α → M) :
   (∑ i ∈ s, f i) = s.sum f :=
@@ -706,7 +605,7 @@ private lemma le_of_isMaxOn_stdSimplex [DecidableEq n] {v : n → ℝ}
       exact this
   have h_max : collatzWielandtFn A x' ≤ collatzWielandtFn A v := hv_max hx'_in_simplex
   have h_scale : collatzWielandtFn A x = collatzWielandtFn A x' := by
-    have h_smul := CollatzWielandt.smul (A := A) (c := s⁻¹)
+    have h_smul := CollatzWielandt.collatzWielandtFn_smul (A := A) (c := s⁻¹)
       (inv_pos.mpr hs_pos) (x := x) hx_nonneg hx_ne_zero
     rw [← hx'] at h_smul
     exact h_smul.symm
@@ -735,7 +634,7 @@ lemma maximizer_satisfies_le_mulVec
       rintro _ ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
       exact le_of_isMaxOn_stdSimplex (A := A) v_is_max hx_nonneg hx_ne_zero
     ·
-      apply le_csSup (bddAbove_image_P_set A hA_nonneg)
+      apply le_csSup (bddAbove A hA_nonneg)
       exact Set.mem_image_of_mem _ ⟨v_nonneg, v_ne_zero⟩
   have h_le : (perronRoot_alt A) • v ≤ A *ᵥ v := by
     have : (collatzWielandtFn A v) • v ≤ A *ᵥ v :=
