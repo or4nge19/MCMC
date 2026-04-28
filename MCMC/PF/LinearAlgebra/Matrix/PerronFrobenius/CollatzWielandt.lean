@@ -284,8 +284,8 @@ lemma set_nonempty :
       exact one_ne_zero h_contra
   exact Set.Nonempty.image _ ⟨xOnes, hxOnes_mem⟩
 
-omit [Fintype n] [Nonempty n] in
-lemma smul [Fintype n] [Nonempty n] [DecidableEq n] {c : ℝ} (hc : 0 < c)
+omit [Nonempty n] in
+lemma smul [DecidableEq n] {c : ℝ} (hc : 0 < c)
   {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne : x ≠ 0) :
   collatzWielandtFn A (c • x) = collatzWielandtFn A x := by
   dsimp [collatzWielandtFn]
@@ -706,7 +706,8 @@ private lemma le_of_isMaxOn_stdSimplex [DecidableEq n] {v : n → ℝ}
       exact this
   have h_max : collatzWielandtFn A x' ≤ collatzWielandtFn A v := hv_max hx'_in_simplex
   have h_scale : collatzWielandtFn A x = collatzWielandtFn A x' := by
-    have h_smul := smul (A := A) (c := s⁻¹) (inv_pos.mpr hs_pos) (x := x) hx_nonneg hx_ne_zero
+    have h_smul := CollatzWielandt.smul (A := A) (c := s⁻¹)
+      (inv_pos.mpr hs_pos) (x := x) hx_nonneg hx_ne_zero
     rw [← hx'] at h_smul
     exact h_smul.symm
   rwa [h_scale]
