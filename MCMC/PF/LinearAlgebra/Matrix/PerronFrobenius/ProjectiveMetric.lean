@@ -102,7 +102,45 @@ theorem projectiveDist_nonneg
 theorem projectiveDist_symm
     (x y : PositiveVec n) :
     Matrix.projectiveDist x y = Matrix.projectiveDist y x := by
-  sorry
+  unfold projectiveDist
+  have h_inv : ∀ i, y.1 i / x.1 i = (x.1 i / y.1 i)⁻¹ := fun i => by rw [inv_div]
+  simp_rw [h_inv]
+  have hxy : ∀ i, 0 < x.1 i / y.1 i := fun i => div_pos (x.2 i) (y.2 i)
+  have hinf_pos : 0 < Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+    rw [hj]
+    exact hxy j
+  have hsup_pos : 0 < Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+    rw [hj]
+    exact hxy j
+  have hsup_inv : (Finset.univ.sup' Finset.univ_nonempty fun i => (x.1 i / y.1 i)⁻¹) =
+      (Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i)⁻¹ := by
+    apply le_antisymm
+    · apply Finset.sup'_le
+      intro i hi
+      have h1 : Finset.univ.inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i) ≤ x.1 i / y.1 i :=
+        Finset.inf'_le (fun i => x.1 i / y.1 i) hi
+      rw [inv_eq_one_div, inv_eq_one_div]
+      exact one_div_le_one_div_of_le hinf_pos h1
+    · obtain ⟨j, hj_mem, hj_eq⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+      rw [hj_eq]
+      exact Finset.le_sup' (fun i => (x.1 i / y.1 i)⁻¹) hj_mem
+  have hinf_inv : (Finset.univ.inf' Finset.univ_nonempty fun i => (x.1 i / y.1 i)⁻¹) =
+      (Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i)⁻¹ := by
+    apply le_antisymm
+    · obtain ⟨j, hj_mem, hj_eq⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+      rw [hj_eq]
+      exact Finset.inf'_le (fun i => (x.1 i / y.1 i)⁻¹) hj_mem
+    · apply Finset.le_inf'
+      intro i hi
+      have h1 : x.1 i / y.1 i ≤ Finset.univ.sup' Finset.univ_nonempty (fun i => x.1 i / y.1 i) :=
+        Finset.le_sup' (fun i => x.1 i / y.1 i) hi
+      rw [inv_eq_one_div, inv_eq_one_div]
+      exact one_div_le_one_div_of_le (hxy i) h1
+  rw [hsup_inv, hinf_inv]
+  rw [Real.log_inv, Real.log_inv]
+  ring
 
 /-- Triangle inequality for the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_triangle
