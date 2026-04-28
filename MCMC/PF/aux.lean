@@ -831,6 +831,19 @@ lemma diagonal_inv_mulVec_self [DecidableEq n][Fintype n] {d : n → ℝ} (hd : 
   simp [mulVec_diagonal]
   simp_all only [ne_eq, isUnit_iff_ne_zero, not_false_eq_true, IsUnit.inv_mul_cancel]
 
+lemma diagonal_mulVec_diagonal_inv_mulVec [DecidableEq n] [Fintype n]
+    {d x : n → ℝ} (hd : ∀ i, d i ≠ 0) :
+    diagonal d *ᵥ (diagonal (d⁻¹) *ᵥ x) = x := by
+  ext i
+  simp [mulVec_diagonal, hd i]
+
+lemma diagonal_mulVec_mono [DecidableEq n] [Fintype n] {d x y : n → ℝ}
+    (hd_nonneg : ∀ i, 0 ≤ d i) (hxy : x ≤ y) :
+    diagonal d *ᵥ x ≤ diagonal d *ᵥ y := by
+  intro i
+  rw [mulVec_diagonal, mulVec_diagonal]
+  exact mul_le_mul_of_nonneg_left (hxy i) (hd_nonneg i)
+
 end Matrix
 
 variable {α ι : Type*} {f : ι → α} {s : Set ι}
