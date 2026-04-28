@@ -8,7 +8,7 @@ open Finset Quiver Matrix
 variable {n : Type*} [Fintype n]
 
 /-!
-### TThe Collatz-Wielandt function for Matrices
+### The Collatz-Wielandt function for Matrices
 
 -/
 section PerronFrobenius
@@ -26,39 +26,43 @@ noncomputable def collatzWielandtFn (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :
     supp.inf' h fun i => (A *ᵥ x) i / x i
   else 0
 
-/-
-/-- The Collatz-Wielandt function r_x for a positive vector `x`.
-    See p. 30 in Berman & Plemmons.
-    We define it for strictly positive vectors to avoid division by zero. -/
-noncomputable def r_x (A : Matrix n n ℝ) (x : n → ℝ) : ℝ :=
-  ⨅ i, (A.mulVec x i) / (x i)-/
-
-instance : Nonempty n := inferInstance
-
 /-- The matrix-vector multiplication map as a continuous linear map. -/
 noncomputable abbrev mulVec_continuousLinearMap (A : Matrix n n ℝ) : (n → ℝ) →L[ℝ] (n → ℝ) :=
   (Matrix.mulVecLin A).toContinuousLinearMap
 
-omit [Nonempty n] in
-/-- The standard simplex in ℝⁿ is compact (Heine-Borel: closed and bounded in ℝⁿ).
-    [Giaquinta-Modica, Theorem 6.3, cite: 230] -/
-private lemma IsCompact_stdSimplex : IsCompact (stdSimplex ℝ n) := by
-  -- stdSimplex is a closed and bounded subset of ℝⁿ
-  exact _root_.isCompact_stdSimplex n
-
 namespace CollatzWielandt
 
-/-
--- The Collatz-Wielandt function r_x is continuous on the set of strictly positive vectors.
-lemma r_x_continuousOn_pos (A : Matrix n n ℝ) :
-    ContinuousOn (r_x A) {x : n → ℝ | ∀ i, 0 < x i} := by
-  unfold r_x
-  apply continuousOn_iInf
-  intro i
-  apply ContinuousOn.div
-  · exact ((continuous_apply i).comp (mulVec_continuousLinearMap A).continuous).continuousOn
-  · exact (continuous_apply i).continuousOn
-  · exact fun x a ↦ Ne.symm (ne_of_lt (a i))-/
+/-! ### Positive supports -/
+
+/-- A vector in the standard simplex has nonempty positive support. -/
+private lemma pos_support_toFinset_nonempty_of_mem_stdSimplex {x : n → ℝ}
+    (hx : x ∈ stdSimplex ℝ n) :
+    ({i | 0 < x i}.toFinset).Nonempty := by
+  obtain ⟨i, hi_pos⟩ := exists_pos_of_sum_one_of_nonneg hx.2 hx.1
+  exact ⟨i, by simpa using hi_pos⟩
+
+omit [Nonempty n] in
+/-- A nonnegative nonzero vector has nonempty positive support. -/
+private lemma pos_support_toFinset_nonempty_of_nonneg_ne_zero {x : n → ℝ}
+    (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
+    ({i | 0 < x i}.toFinset).Nonempty := by
+  by_contra h_empty
+  apply hx_ne_zero
+  ext i
+  have hi_not_pos : ¬ 0 < x i := by
+    intro hi_pos
+    exact h_empty ⟨i, by simpa using hi_pos⟩
+  exact le_antisymm (not_lt.mp hi_not_pos) (hx_nonneg i)
+
+omit [Nonempty n] in
+/-- On a vector with nonempty positive support, `collatzWielandtFn` is the infimum of its
+associated ratios. -/
+lemma collatzWielandtFn_eq_inf' (A : Matrix n n ℝ) {x : n → ℝ}
+    (hx : ({i | 0 < x i}.toFinset).Nonempty) :
+    collatzWielandtFn A x =
+      ({i | 0 < x i}.toFinset).inf' hx (fun i => (A *ᵥ x) i / x i) := by
+  dsimp [collatzWielandtFn]
+  rw [dif_pos hx]
 
 /-- *The Collatz-Wielandt function is upper-semicontinuous*.
 Seneta relies on this fact (p.15, Appendix C) to use the Extreme Value Theorem.
@@ -67,16 +71,13 @@ The minimum of continuous functions is upper-semicontinuous.
 [Giaquinta-Modica, Definition 6.21, Exercise 6.28, pp: 235, 236] -/
 theorem upperSemicontinuousOn
     (A : Matrix n n ℝ) : UpperSemicontinuousOn (collatzWielandtFn A) (stdSimplex ℝ n) := by
-    have support_nonempty : ∀ x ∈ stdSimplex ℝ n, ({i | 0 < x i}.toFinset).Nonempty := by
-      intro x hx
-      obtain ⟨i, hi_pos⟩ := exists_pos_of_sum_one_of_nonneg hx.2 hx.1
-      have hi_mem : i ∈ ({i | 0 < x i}.toFinset) := by simp [hi_pos]
-      exact ⟨i, hi_mem⟩
     intro x₀ hx₀ c hc
-    have supp_x₀ : {i | 0 < x₀ i}.toFinset.Nonempty := support_nonempty x₀ hx₀
-    have fn_eq : collatzWielandtFn A x₀ = {i | 0 < x₀ i}.toFinset.inf' supp_x₀ (fun i => (A *ᵥ x₀) i / x₀ i) := by
-      unfold collatzWielandtFn
-      rw [dif_pos supp_x₀]
+    have supp_x₀ : {i | 0 < x₀ i}.toFinset.Nonempty :=
+      pos_support_toFinset_nonempty_of_mem_stdSimplex hx₀
+    have fn_eq :
+        collatzWielandtFn A x₀ =
+          {i | 0 < x₀ i}.toFinset.inf' supp_x₀ (fun i => (A *ᵥ x₀) i / x₀ i) :=
+      collatzWielandtFn_eq_inf' A supp_x₀
     let U := {y : n → ℝ | ∀ i ∈ {i | 0 < x₀ i}.toFinset, 0 < y i}
     have x₀_in_U : x₀ ∈ U := by
       intro i hi
@@ -103,10 +104,12 @@ theorem upperSemicontinuousOn
         exact (hy i hi).ne'
     have f_ge : ∀ y ∈ U ∩ stdSimplex ℝ n, collatzWielandtFn A y ≤ f y := by
       intro y hy
-      have y_supp : {i | 0 < y i}.toFinset.Nonempty := support_nonempty y hy.2
-      have fn_y : collatzWielandtFn A y = {i | 0 < y i}.toFinset.inf' y_supp fun i => (A *ᵥ y) i / y i := by
-        unfold collatzWielandtFn
-        rw [dif_pos y_supp]
+      have y_supp : {i | 0 < y i}.toFinset.Nonempty :=
+        pos_support_toFinset_nonempty_of_mem_stdSimplex hy.2
+      have fn_y :
+          collatzWielandtFn A y =
+            {i | 0 < y i}.toFinset.inf' y_supp fun i => (A *ᵥ y) i / y i :=
+        collatzWielandtFn_eq_inf' A y_supp
       have supp_subset : {i | 0 < x₀ i}.toFinset ⊆ {i | 0 < y i}.toFinset := by
         intro i hi
         have hi' : 0 < x₀ i := by
@@ -159,20 +162,16 @@ lemma eq_iInf_of_nonempty
   (v : n → ℝ) (h : {i | 0 < v i}.toFinset.Nonempty) :
   collatzWielandtFn A v =
     ⨅ i : {i | 0 < v i}, (A *ᵥ v) i / v i := by
-  dsimp [collatzWielandtFn]
-  rw [dif_pos h]
+  rw [collatzWielandtFn_eq_inf' A h]
   rw [Finset.inf'_eq_ciInf h]
-  refine Function.Surjective.iInf_congr ?_ (fun b ↦ ?_) ?_
-  intro i
-  · simp_all only [toFinset_setOf]
-    obtain ⟨val, property⟩ := i
-    simp_all only [toFinset_setOf, mem_filter, Finset.mem_univ, true_and]
-    apply Subtype.mk
-    · exact property
-  · simp_all
-    obtain ⟨val, property⟩ := b
-    simp_all only [Subtype.mk.injEq, exists_prop, exists_eq_right]
-  simp
+  let s : Set n := {i | 0 < v i}
+  rw [← Set.toFinite_toFinset s]
+  simpa [s] using
+    ((Set.toFinite s).subtypeEquivToFinset.symm.iInf_congr
+      (f := fun i : {i // i ∈ (Set.toFinite s).toFinset} => (A *ᵥ v) i / v i)
+      (g := fun i : {i // i ∈ s} => (A *ᵥ v) i / v i) <| by
+        rintro ⟨i, hi⟩
+        rfl)
 
 omit [Nonempty n] in
 /-- If r ≤ 0 and r is the infimum of non-negative ratios, then r = 0. -/
@@ -182,10 +181,9 @@ lemma val_eq_zero_of_nonpos [DecidableEq n]
     (r : ℝ) (hr_def : r = collatzWielandtFn A v) (hr_nonpos : r ≤ 0) :
     r = 0 := by
   have r_ge_zero : 0 ≤ r := by
-    rw [hr_def, collatzWielandtFn]
     have hS_finset_nonempty : { j | 0 < v j }.toFinset.Nonempty := by
       rwa [Set.toFinset_nonempty_iff, ← hS_def]
-    rw [dif_pos hS_finset_nonempty]
+    rw [hr_def, collatzWielandtFn_eq_inf' A hS_finset_nonempty]
     apply Finset.le_inf'
     intro j hj
     rw [Set.mem_toFinset] at hj
@@ -194,17 +192,12 @@ lemma val_eq_zero_of_nonpos [DecidableEq n]
 
 omit [Nonempty n] in
 /-- Each ratio is at least the Collatz-Wielandt value -/
-lemma le_ratio [DecidableEq n]
-    (_ : ∀ i j, 0 ≤ A i j) {v : n → ℝ} (_ : ∀ i, 0 ≤ v i)
-    (S : Set n) (hS_def : S = {i | 0 < v i}) (hS_nonempty : S.Nonempty)
-    (i : n) (hi_S : i ∈ S) : collatzWielandtFn A v ≤ (A *ᵥ v) i / v i := by
-  rw [collatzWielandtFn]
-  have hS_finset_nonempty : { j | 0 < v j }.toFinset.Nonempty := by
-    rwa [Set.toFinset_nonempty_iff, ← hS_def]
-  rw [dif_pos hS_finset_nonempty]
+lemma le_ratio [DecidableEq n] {v : n → ℝ} (i : n) (hi_pos : 0 < v i) :
+    collatzWielandtFn A v ≤ (A *ᵥ v) i / v i := by
+  have h_support : {j | 0 < v j}.toFinset.Nonempty := ⟨i, by simpa using hi_pos⟩
+  rw [collatzWielandtFn_eq_inf' A h_support]
   apply Finset.inf'_le
-  rw [Set.mem_toFinset, ← hS_def]
-  exact hi_S
+  simpa using hi_pos
 
 omit [Nonempty n] in
 /-- For any non-negative, non-zero vector `v`, the Collatz-Wielandt value `r` satisfies
@@ -212,15 +205,13 @@ omit [Nonempty n] in
     the Collatz-Wielandt function. -/
 lemma le_mulVec [DecidableEq n]
     (hA_nonneg : ∀ i j, 0 ≤ A i j) {v : n → ℝ} (hv_nonneg : ∀ i, 0 ≤ v i)
-    (hv_ne_zero : v ≠ 0) :
+  (_ : v ≠ 0) :
     (collatzWielandtFn A v) • v ≤ A *ᵥ v := by
   let r := collatzWielandtFn A v
-  have hS_nonempty : ({i | 0 < v i}).Nonempty :=
-    exists_pos_of_ne_zero hv_nonneg hv_ne_zero
   intro i
   by_cases hi_supp : v i > 0
   · have h_le_div : r ≤ (A *ᵥ v) i / v i :=
-      le_ratio hA_nonneg hv_nonneg {i | 0 < v i} rfl hS_nonempty i hi_supp
+      le_ratio (A := A) i hi_supp
     simp only [Pi.smul_apply, smul_eq_mul]
     exact (le_div_iff₀ hi_supp).mp h_le_div
   · have h_vi_zero : v i = 0 := by linarith [hv_nonneg i, not_lt.mp hi_supp]
@@ -236,12 +227,12 @@ lemma exists_mulVec_eq_zero_on_support_of_nonpos [Fintype n]
   (h_r_nonpos : collatzWielandtFn A v ≤ 0) :
   ∃ i ∈ {i | 0 < v i}.toFinset, (A *ᵥ v) i = 0 := by
   have r_nonneg : 0 ≤ collatzWielandtFn A v := by
-    rw [collatzWielandtFn, dif_pos h_supp_nonempty]
+    rw [collatzWielandtFn_eq_inf' A h_supp_nonempty]
     apply Finset.le_inf'
     intro i hi_mem
     exact div_nonneg (mulVec_nonneg hA_nonneg hv_nonneg i) (by exact hv_nonneg i)
   have r_eq_zero : collatzWielandtFn A v = 0 := le_antisymm h_r_nonpos r_nonneg
-  rw [collatzWielandtFn, dif_pos h_supp_nonempty] at r_eq_zero
+  rw [collatzWielandtFn_eq_inf' A h_supp_nonempty] at r_eq_zero
   obtain ⟨b, hb_mem, hb_eq⟩ := Finset.exists_mem_eq_inf' h_supp_nonempty (fun i => (A *ᵥ v) i / v i)
   have h_ratio_zero : (A *ᵥ v) b / v b = 0 := by rw [← hb_eq, r_eq_zero]
   have h_vb_pos : 0 < v b := by simpa [Set.mem_toFinset] using hb_mem
@@ -249,18 +240,9 @@ lemma exists_mulVec_eq_zero_on_support_of_nonpos [Fintype n]
 
 omit [Nonempty n] in
 lemma le_any_ratio [DecidableEq n] (A : Matrix n n ℝ)
-    {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0)
-    (i : n) (hi_pos : 0 < x i) :
+  {x : n → ℝ} (i : n) (hi_pos : 0 < x i) :
     collatzWielandtFn A x ≤ (A *ᵥ x) i / x i := by
-  dsimp [collatzWielandtFn]
-  have h_supp_nonempty : ({k | 0 < x k}.toFinset).Nonempty := by
-    rw [Set.toFinset_nonempty_iff, Set.nonempty_def]
-    obtain ⟨j, hj_ne_zero⟩ := Function.exists_ne_zero_of_ne_zero hx_ne_zero
-    exact ⟨j, lt_of_le_of_ne (hx_nonneg j) hj_ne_zero.symm⟩
-  rw [dif_pos h_supp_nonempty]
-  apply Finset.inf'_le
-  rw [Set.mem_toFinset]
-  exact hi_pos
+  exact le_ratio (A := A) i hi_pos
 
 /-- The set of values from the Collatz-Wielandt function is bounded above by the maximum row sum of A. -/
 lemma bddAbove [DecidableEq n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
@@ -275,7 +257,7 @@ lemma bddAbove [DecidableEq n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ 
     rw [← h_max_eq]
     exact lt_of_lt_of_le hi_pos (le_sup' x (Finset.mem_univ i))
   have h_le_ratio : collatzWielandtFn A x ≤ (A *ᵥ x) m / x m :=
-    le_any_ratio A hx_nonneg hx_ne_zero m h_xm_pos
+    le_any_ratio A m h_xm_pos
   have h_ratio_le : (A *ᵥ x) m / x m ≤ Finset.univ.sup' Finset.univ_nonempty (fun k ↦ ∑ l, A k l) := by
     rw [mulVec_apply, div_le_iff h_xm_pos]
     calc
@@ -291,19 +273,19 @@ lemma bddAbove [DecidableEq n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ 
 
 /-- The set of values from the Collatz-Wielandt function is non-empty. -/
 lemma set_nonempty :
-    (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}).Nonempty := by
-  let P_set := {x : n → ℝ | (∀ i, 0 ≤ x i) ∧ x ≠ 0}
-  let x_ones : n → ℝ := fun _ ↦ 1
-  have h_x_ones_in_set : x_ones ∈ P_set := by
+    (collatzWielandtFn A '' P_set).Nonempty := by
+  let xOnes : n → ℝ := fun _ ↦ 1
+  have hxOnes_mem : xOnes ∈ P_set := by
     constructor
     · intro i; exact zero_le_one
     · intro h_zero
-      have h_contra : (1 : ℝ) = 0 := by simpa [x_ones] using congr_fun h_zero (Classical.arbitrary n)
+      have h_contra : (1 : ℝ) = 0 := by
+        simpa [xOnes] using congr_fun h_zero (Classical.arbitrary n)
       exact one_ne_zero h_contra
-  exact Set.Nonempty.image _ ⟨x_ones, h_x_ones_in_set⟩
+  exact Set.Nonempty.image _ ⟨xOnes, hxOnes_mem⟩
 
 omit [Fintype n] [Nonempty n] in
-lemma smul [Fintype n] [Nonempty n] [DecidableEq n] {c : ℝ} (hc : 0 < c) (_ : ∀ i j, 0 ≤ A i j)
+lemma smul [Fintype n] [Nonempty n] [DecidableEq n] {c : ℝ} (hc : 0 < c)
   {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne : x ≠ 0) :
   collatzWielandtFn A (c • x) = collatzWielandtFn A x := by
   dsimp [collatzWielandtFn]
@@ -382,54 +364,31 @@ theorem eq_eigenvalue_of_positive_eigenvector
   {A : Matrix n n ℝ} {r : ℝ} {v : n → ℝ}
   (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) :
     collatzWielandtFn A v = r := by
-  dsimp [collatzWielandtFn]
   have h_supp_nonempty : ({i | 0 < v i}.toFinset).Nonempty := by
-    let i0 := Classical.arbitrary n
-    simp
-    simp_all only [Finset.filter_true, Finset.univ_nonempty]
-  rw [dif_pos h_supp_nonempty]
-  apply Finset.inf'_eq_of_forall_le_of_exists_le h_supp_nonempty
-  · intro i hi
-    let hi_pos := Set.mem_toFinset.mp hi
-    have : (A *ᵥ v) i = (r • v) i := by rw [h_eig]
-    rw [Pi.smul_apply, smul_eq_mul] at this
-    have : (A *ᵥ v) i / v i = r := by
-      rw [this]; rw [mul_div_cancel_pos_right rfl (hv_pos i)]
-    rw [this]
-  · use h_supp_nonempty.choose
-    use h_supp_nonempty.choose_spec
-    let hi_pos := Set.mem_toFinset.mp h_supp_nonempty.choose_spec
-    have : (A *ᵥ v) h_supp_nonempty.choose = (r • v) h_supp_nonempty.choose := by rw [h_eig]
-    rw [Pi.smul_apply, smul_eq_mul] at this
-    rw [this]; rw [mul_div_cancel_pos_right rfl (hv_pos (Exists.choose h_supp_nonempty))]
+    let i0 : n := Classical.arbitrary n
+    exact ⟨i0, by simpa using hv_pos i0⟩
+  rw [eq_iInf_of_nonempty A v h_supp_nonempty]
+  calc
+    ⨅ i : {i | 0 < v i}, (A *ᵥ v) i / v i = ⨅ _ : {i | 0 < v i}, r := by
+      refine iInf_congr ?_
+      intro i
+      have h_eig_i : (A *ᵥ v) i = r * v i := by
+        simpa [Pi.smul_apply, smul_eq_mul] using congr_fun h_eig i
+      rw [h_eig_i, mul_div_assoc, div_self i.2.ne']
+      simp
+    _ = r := by
+      have h_support_nonempty : ({i | 0 < v i} : Set n).Nonempty := by
+        rcases h_supp_nonempty with ⟨i, hi⟩
+        exact ⟨i, by simpa [Set.mem_toFinset] using hi⟩
+      letI : Nonempty {i | 0 < v i} := Set.Nonempty.to_subtype h_support_nonempty
+      show (⨅ _ : {i | 0 < v i}, r) = r
+      exact ciInf_const (ι := {i | 0 < v i}) (a := r)
 
 lemma bddAbove_image_P_set [DecidableEq n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     BddAbove (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}) := by
-  use Finset.univ.sup' Finset.univ_nonempty (fun i ↦ ∑ j, A i j)
-  rintro _ ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
-  obtain ⟨m, _, h_max_eq⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty x
-  have h_xm_pos : 0 < x m := by
-    obtain ⟨i, hi_pos⟩ : ∃ i, 0 < x i := by
-      obtain ⟨j, hj⟩ := Function.exists_ne_zero_of_ne_zero hx_ne_zero
-      exact ⟨j, lt_of_le_of_ne (hx_nonneg j) hj.symm⟩
-    rw [← h_max_eq]
-    exact lt_of_lt_of_le hi_pos (le_sup' x (Finset.mem_univ i))
-  have h_le_ratio : collatzWielandtFn A x ≤ (A *ᵥ x) m / x m :=
-    CollatzWielandt.le_any_ratio A hx_nonneg hx_ne_zero m h_xm_pos
-  have h_ratio_le : (A *ᵥ x) m / x m ≤ Finset.univ.sup' Finset.univ_nonempty (fun k ↦ ∑ l, A k l) := by
-    rw [mulVec_apply, div_le_iff h_xm_pos]
-    calc
-      ∑ j, A m j * x j
-        ≤ ∑ j, A m j * x m := by
-          apply Finset.sum_le_sum; intro j _; exact mul_le_mul_of_nonneg_left (by rw [← h_max_eq]; exact le_sup' x (Finset.mem_univ j)) (hA_nonneg m j)
-      _ = (∑ j, A m j) * x m := by rw [Finset.sum_mul]
-      _ ≤ (Finset.univ.sup' Finset.univ_nonempty (fun k ↦ ∑ l, A k l)) * x m := by
-          apply mul_le_mul_of_nonneg_right
-          · exact le_sup' (fun k => ∑ l, A k l) (Finset.mem_univ m)
-          · exact le_of_lt h_xm_pos
-  exact le_trans h_le_ratio h_ratio_le
+  simpa [P_set] using bddAbove A hA_nonneg
 
-variable {n : Type*} [Fintype n]--[Nonempty n] --[DecidableEq n]
+variable {n : Type*} [Fintype n]
 variable {A : Matrix n n ℝ}
 
 /-- Any eigenvalue with a strictly positive eigenvector is ≤ the Perron root. -/
@@ -469,27 +428,19 @@ lemma le_eigenvalue_of_left_eigenvector [DecidableEq n]
     {u : n → ℝ} (hu_pos : ∀ i, 0 < u i) (h_eig : u ᵥ* A = r • u)
     {w : n → ℝ} (hw_nonneg : ∀ i, 0 ≤ w i) (hw_ne_zero : w ≠ 0) :
     collatzWielandtFn A w ≤ r := by
-  classical
   have hu_nonneg : ∀ i, 0 ≤ u i := fun i ↦ (hu_pos i).le
-  -- Pointwise inequality (λr w ≤ A·w)
   have h_le_mulVec := CollatzWielandt.le_mulVec hA_nonneg hw_nonneg hw_ne_zero
-  -- Multiply componentwise by u i ≥ 0 and sum to get a dot-product inequality
   have h_intermediate :
       u ⬝ᵥ ((collatzWielandtFn A w) • w) ≤ u ⬝ᵥ (A *ᵥ w) := by
     unfold dotProduct
     apply Finset.sum_le_sum
     intro i _
     have hi := h_le_mulVec i
-    -- hi : ((collatzWielandtFn A w) • w) i ≤ (A *ᵥ w) i
-    -- Rewrite and multiply by u i ≥ 0
     simp [Pi.smul_apply, smul_eq_mul] at hi ⊢
     exact mul_le_mul_of_nonneg_left hi (hu_nonneg i)
-  -- Rewrite both sides using eigenvector relations
   have h_right :
       u ⬝ᵥ (A *ᵥ w) = r * (u ⬝ᵥ w) := by
-    -- u ⬝ (A w) = (uᵀ A) ⬝ w = (r • u) ⬝ w = r * (u ⬝ w)
     have := dotProduct_mulVec u A w
-    -- this : u ⬝ᵥ (A *ᵥ w) = u ᵥ* A ⬝ᵥ w
     calc
       u ⬝ᵥ (A *ᵥ w) = (u ᵥ* A) ⬝ᵥ w := this
       _ = (r • u) ⬝ᵥ w := by simp [h_eig]
@@ -498,11 +449,9 @@ lemma le_eigenvalue_of_left_eigenvector [DecidableEq n]
       u ⬝ᵥ ((collatzWielandtFn A w) • w)
         = (collatzWielandtFn A w) * (u ⬝ᵥ w) := by
     simp [dotProduct_smul, smul_eq_mul]
-  -- Combine
   have h_dot_le :
       (collatzWielandtFn A w) * (u ⬝ᵥ w) ≤ r * (u ⬝ᵥ w) := by
     simpa [h_left, h_right] using h_intermediate
-  -- Since u ⬝ w > 0 we can divide
   have h_dot_pos : 0 < u ⬝ᵥ w :=
     dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hw_nonneg hw_ne_zero
   exact le_of_mul_le_mul_right h_dot_le h_dot_pos
@@ -623,6 +572,15 @@ lemma le_of_max_le_row_sum [Nonempty n] [DecidableEq n]
       _ = r * x k := by rw [h_B_row_sum]
   exact le_of_mul_le_mul_right (le_trans h_le_k h_Bx_le) h_xk_pos
 
+    /-- Positive diagonal similarity preserves entrywise nonnegativity. -/
+    lemma nonneg_similarity_transform [DecidableEq n]
+      {A : Matrix n n ℝ} {v : n → ℝ}
+      (hA_nonneg : ∀ i j, 0 ≤ A i j) (hv_pos : ∀ i, 0 < v i) :
+      ∀ i j, 0 ≤ (Matrix.diagonal (v⁻¹) * A * Matrix.diagonal v) i j := by
+      intro i j
+      rw [mul_diagonal, diagonal_mul]
+      exact mul_nonneg (mul_nonneg (inv_nonneg.mpr (hv_pos i).le) (hA_nonneg i j)) (hv_pos j).le
+
 /--
 For any non-negative vector `w`, its Collatz–Wielandt value is bounded above by a
 positive eigenvalue `r` that has a strictly positive *right* eigenvector `v`.
@@ -636,26 +594,12 @@ theorem le_eigenvalue_of_right_eigenvector [Nonempty n]  [DecidableEq n]
   let D_inv := Matrix.diagonal (v⁻¹)
   let B := D_inv * A * D
   have hB_nonneg : ∀ i j, 0 ≤ B i j := by
-    intro i j
-    unfold B D D_inv
-    simp only [mul_apply]
-    apply Finset.sum_nonneg
-    intro k _
-    simp only [diagonal_apply]
-    by_cases hik : i = k
-    · by_cases hkj : k = j
-      · simp [hik, hkj]
-        subst hkj hik
-        simp_all only [ne_eq, Finset.mem_univ, mul_nonneg_iff_of_pos_right, inv_pos, mul_nonneg_iff_of_pos_left]
-      · simp [hik, hkj]
-    · simp_all only [ne_eq, Finset.mem_univ, Pi.inv_apply, ite_mul, zero_mul, sum_ite_eq, ↓reduceIte, mul_ite, mul_zero]
-      split
-      next h =>
-        subst h
-        simp_all only [mul_nonneg_iff_of_pos_right, inv_pos, mul_nonneg_iff_of_pos_left]
-      next h => simp_all only [le_refl]
+    simpa [B, D, D_inv] using nonneg_similarity_transform hA_nonneg hv_pos
   have h_B_row_sum := row_sum_of_similarity_transformed_matrix hv_pos h_eig
   let x := D_inv *ᵥ w
+  have h_w_eq_Dx : w = D *ᵥ x := by
+    simpa [D, D_inv, x] using
+      (diagonal_mulVec_diagonal_inv_mulVec (d := v) (x := w) fun i => (hv_pos i).ne').symm
   have hx_nonneg : ∀ i, 0 ≤ x i := by
     intro i
     unfold x D_inv
@@ -663,53 +607,20 @@ theorem le_eigenvalue_of_right_eigenvector [Nonempty n]  [DecidableEq n]
     exact mul_nonneg (inv_nonneg.mpr (hv_pos i).le) (hw_nonneg i)
   have hx_ne_zero : x ≠ 0 := by
     contrapose! hw_ne_zero
-    have h_w_eq_Dx : w = D *ᵥ x := by
-      unfold x D D_inv
-      ext i
-      simp only [mulVec_diagonal, mulVec_diagonal]
-      have hv_ne_zero : v i ≠ 0 := (hv_pos i).ne'
-      simp_all only [mul_diagonal, diagonal_mul, Pi.inv_apply, mul_nonneg_iff_of_pos_right, inv_pos,
-        mul_nonneg_iff_of_pos_left, implies_true, ne_eq, isUnit_iff_ne_zero, not_false_eq_true,
-        IsUnit.mul_inv_cancel_left, B, D_inv, D, x]
     rw [h_w_eq_Dx, hw_ne_zero, mulVec_zero]
+  have h_smul_le : (collatzWielandtFn A w) • w ≤ A *ᵥ w :=
+    CollatzWielandt.le_mulVec hA_nonneg hw_nonneg hw_ne_zero
   have h_le_Bx : (collatzWielandtFn A w) • x ≤ B *ᵥ x := by
-    have h_le_mulVec := CollatzWielandt.le_mulVec hA_nonneg hw_nonneg hw_ne_zero
-    have h_w_eq_Dx : w = D *ᵥ x := by
-      unfold x D D_inv
-      ext i
-      simp only [mulVec_diagonal, mulVec_diagonal]
-      have hv_ne_zero : v i ≠ 0 := (hv_pos i).ne'
-      simp_all only [ne_eq, mul_diagonal, diagonal_mul, Pi.inv_apply, mul_nonneg_iff_of_pos_right, inv_pos,
-        mul_nonneg_iff_of_pos_left, implies_true, isUnit_iff_ne_zero, not_false_eq_true, IsUnit.mul_inv_cancel_left,
-        B, D_inv, D, x]
-    have h_smul_le : (collatzWielandtFn A w) • w ≤ A *ᵥ w := h_le_mulVec
-    have h1 : (collatzWielandtFn A w) • x = D_inv *ᵥ ((collatzWielandtFn A w) • w) := by
-      rw [← mulVec_smul, h_w_eq_Dx]
-    have h2 : D_inv *ᵥ (A *ᵥ w) = D_inv *ᵥ (A *ᵥ (D *ᵥ x)) := by
-      rw [h_w_eq_Dx]
-    have h3 : D_inv *ᵥ (A *ᵥ (D *ᵥ x)) = (D_inv * A * D) *ᵥ x := by
-      rw [← mulVec_mulVec, ← mulVec_mulVec]
-    rw [h1]
-    have h_Dinv_nonneg : ∀ i j, 0 ≤ D_inv i j := by
-      intro i j
-      unfold D_inv
-      rw [diagonal_apply]
-      by_cases hij : i = j
-      · simp only [hij, ↓reduceIte, Pi.inv_apply, inv_nonneg]
-        exact le_of_lt (hv_pos j)
-      · simp only [hij, ↓reduceIte, le_refl]
-    intro i
-    have h_comp_le : ((collatzWielandtFn A w) • w) i ≤ (A *ᵥ w) i := h_smul_le i
-    have h_mulVec_mono : (D_inv *ᵥ ((collatzWielandtFn A w) • w)) i ≤ (D_inv *ᵥ (A *ᵥ w)) i := by
-      simp only [mulVec_apply]
-      apply Finset.sum_le_sum
-      intro j _
-      exact mul_le_mul_of_nonneg_left (h_le_mulVec j) (h_Dinv_nonneg i j)
-    calc (D_inv *ᵥ (collatzWielandtFn A w • w)) i
-      ≤ (D_inv *ᵥ (A *ᵥ w)) i := h_mulVec_mono
-      _ = (D_inv *ᵥ (A *ᵥ (D *ᵥ x))) i := by rw [h_w_eq_Dx]
-      _ = ((D_inv * A * D) *ᵥ x) i := by rw [← mulVec_mulVec, ← mulVec_mulVec]
-      _ = (B *ᵥ x) i := rfl
+    calc
+      (collatzWielandtFn A w) • x = D_inv *ᵥ ((collatzWielandtFn A w) • w) := by
+        rw [← mulVec_smul, h_w_eq_Dx]
+      _ ≤ D_inv *ᵥ (A *ᵥ w) := by
+        simpa [D_inv] using
+          diagonal_mulVec_mono (d := v⁻¹) (x := (collatzWielandtFn A w) • w) (y := A *ᵥ w)
+            (fun i => inv_nonneg.mpr (hv_pos i).le) h_smul_le
+      _ = D_inv *ᵥ (A *ᵥ (D *ᵥ x)) := by rw [h_w_eq_Dx]
+      _ = (D_inv * A * D) *ᵥ x := by rw [← mulVec_mulVec, ← mulVec_mulVec]
+      _ = B *ᵥ x := rfl
   exact le_of_max_le_row_sum hB_nonneg h_B_row_sum hx_nonneg hx_ne_zero h_le_Bx
 
 /- Any positive eigenvalue `r` with a strictly positive right eigenvector `v` is an
@@ -733,11 +644,9 @@ theorem eq_perron_root_of_positive_eigenvector
     (hr_pos    : 0 < r)
     (h_eig     : A *ᵥ v = r • v) :
     r = CollatzWielandt.perronRoot_alt (A := A) := by
-  -- 1.  `r ≤ perronRoot_alt A`.
   have h₁ : r ≤ CollatzWielandt.perronRoot_alt (A := A) :=
     CollatzWielandt.eigenvalue_le_perron_root_of_positive_eigenvector
       (A := A) hA_nonneg hr_pos hv_pos h_eig
-  -- 2.  `perronRoot_alt A ≤ r`.
   have h₂ : CollatzWielandt.perronRoot_alt (A := A) ≤ r :=
     CollatzWielandt.eigenvalue_is_ub_of_positive_eigenvector
       hA_nonneg hr_pos hv_pos h_eig
@@ -774,6 +683,34 @@ lemma Finset.sum_pos_of_nonneg_of_exists_pos {α β : Type*}
     0 < ∑ i ∈ s, f i :=
   Finset.sum_pos' h_nonneg h_exists
 
+private lemma le_of_isMaxOn_stdSimplex [DecidableEq n] {v : n → ℝ}
+    (hv_max : IsMaxOn (collatzWielandtFn A) (stdSimplex ℝ n) v)
+    {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
+    collatzWielandtFn A x ≤ collatzWielandtFn A v := by
+  set s : ℝ := ∑ i, x i with hs
+  have hs_pos : 0 < s := by
+    obtain ⟨i, hi⟩ := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
+    have : 0 < ∑ i, x i :=
+      Finset.sum_pos_of_nonneg_of_exists_pos
+        (fun j _ => hx_nonneg j) ⟨i, Finset.mem_univ _, hi⟩
+    simpa [hs] using this
+  set x' : n → ℝ := s⁻¹ • x with hx'
+  have hx'_in_simplex : x' ∈ stdSimplex ℝ n := by
+    constructor
+    · intro i
+      have hs_inv_nonneg : 0 ≤ s⁻¹ := inv_nonneg.mpr hs_pos.le
+      simpa [hx'] using mul_nonneg hs_inv_nonneg (hx_nonneg i)
+    · have : (∑ i, x' i) = 1 := by
+        simp only [hx', Pi.smul_apply, smul_eq_mul, ← Finset.mul_sum, ← hs]
+        field_simp [ne_of_gt hs_pos]
+      exact this
+  have h_max : collatzWielandtFn A x' ≤ collatzWielandtFn A v := hv_max hx'_in_simplex
+  have h_scale : collatzWielandtFn A x = collatzWielandtFn A x' := by
+    have h_smul := smul (A := A) (c := s⁻¹) (inv_pos.mpr hs_pos) (x := x) hx_nonneg hx_ne_zero
+    rw [← hx'] at h_smul
+    exact h_smul.symm
+  rwa [h_scale]
+
 omit [Fintype n] in
 lemma maximizer_satisfies_le_mulVec
     [Fintype n] [Nonempty n] [DecidableEq n]
@@ -792,40 +729,11 @@ lemma maximizer_satisfies_le_mulVec
   have r_eq : (perronRoot_alt A) = collatzWielandtFn A v := by
     dsimp [perronRoot_alt]
     apply le_antisymm
-    · -- `perronRoot_alt A ≤ collatzWielandtFn A v`
+    ·
       apply csSup_le set_nonempty
       rintro _ ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
-      set s : ℝ := ∑ i, x i with hs
-      have s_pos : 0 < s := by
-        obtain ⟨i, hi⟩ := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
-        have : 0 < ∑ i, x i :=
-          Finset.sum_pos_of_nonneg_of_exists_pos
-            (λ j _ ↦ hx_nonneg j)
-            ⟨i, Finset.mem_univ _, hi⟩
-        simpa [hs] using this
-      set x' : n → ℝ := s⁻¹ • x with hx'
-      have hx'_in_simplex : x' ∈ stdSimplex ℝ n := by
-        -- Positivity
-        constructor
-        · intro i
-          have : 0 ≤ s⁻¹ := inv_nonneg.2 s_pos.le
-          have : 0 ≤ s⁻¹ * x i := mul_nonneg this (hx_nonneg i)
-          simpa [hx'] using this
-        -- Sum = 1
-        · have : (∑ i, x' i) = 1 := by
-            simp only [hx', Pi.smul_apply, smul_eq_mul, ← Finset.mul_sum, ← hs]
-            field_simp [ne_of_gt s_pos]
-          exact this
-      -- Maximality of `v`
-      have h_max : collatzWielandtFn A x' ≤ collatzWielandtFn A v :=
-        v_is_max hx'_in_simplex
-      -- Scale invariance
-      have h_scale : collatzWielandtFn A x = collatzWielandtFn A x' := by
-        have h_smul := smul (inv_pos.mpr s_pos) hA_nonneg hx_nonneg hx_ne_zero
-        rw [← hx'] at h_smul
-        exact h_smul.symm
-      rwa [h_scale]
-    · -- `collatzWielandtFn A v ≤ perronRoot_alt A`
+      exact le_of_isMaxOn_stdSimplex (A := A) v_is_max hx_nonneg hx_ne_zero
+    ·
       apply le_csSup (bddAbove_image_P_set A hA_nonneg)
       exact Set.mem_image_of_mem _ ⟨v_nonneg, v_ne_zero⟩
   have h_le : (perronRoot_alt A) • v ≤ A *ᵥ v := by
