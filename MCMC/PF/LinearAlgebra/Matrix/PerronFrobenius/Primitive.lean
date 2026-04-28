@@ -97,18 +97,18 @@ lemma collatzWielandtFn_of_ones_is_pos
 /-- The Perron root (the supremum of the Collatz-Wielandt function) is positive for an
     irreducible, non-negative matrix. This follows by showing the value for the vector of
     all ones is positive, and that value is a lower bound for the supremum. -/
-lemma collatzWielandt_sup_is_pos
+lemma perronRoot_alt_pos_of_irreducible
   (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    0 < sSup (collatzWielandtFn A '' {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}) := by
-  let P_set := {x : n → ℝ | (∀ i, 0 ≤ x i) ∧ x ≠ 0}
+    0 < CollatzWielandt.perronRoot_alt A := by
   let x_ones : n → ℝ := fun _ ↦ 1
-  have h_x_ones_in_set : x_ones ∈ P_set := by
+  have h_x_ones_in_set : x_ones ∈ CollatzWielandt.P_set := by
     constructor
     · intro i; exact zero_le_one
     · intro h_zero
       have h_contra : (1 : ℝ) = 0 := by simpa [x_ones] using congr_fun h_zero (Classical.arbitrary n)
       exact one_ne_zero h_contra
-  have r_sup_ge_r_ones : collatzWielandtFn A x_ones ≤ sSup (collatzWielandtFn A '' P_set) := by
+  have r_sup_ge_r_ones : collatzWielandtFn A x_ones ≤ CollatzWielandt.perronRoot_alt A := by
+    dsimp [CollatzWielandt.perronRoot_alt]
     apply le_csSup_of_le
     · exact CollatzWielandt.bddAbove A hA_nonneg
     · exact Set.mem_image_of_mem A.collatzWielandtFn h_x_ones_in_set
@@ -265,7 +265,7 @@ lemma perron_root_pos_of_primitive
       exact one_ne_zero this
     have h_eq : ones_norm = c • x := by ext; simp [c, x, ones_norm]
     rw [h_eq]
-    exact CollatzWielandt.smul hc_pos hA_nonneg hx_nonneg hx_ne_zero
+    exact CollatzWielandt.collatzWielandtFn_smul hc_pos hx_nonneg hx_ne_zero
   have cw_le_max : collatzWielandtFn A ones_norm ≤ collatzWielandtFn A v := hvM h₁
   calc
     0 < collatzWielandtFn A (fun _ => 1) := cw_one_pos
