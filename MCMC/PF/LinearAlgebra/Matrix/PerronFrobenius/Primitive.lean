@@ -12,8 +12,10 @@ set_option linter.unusedSectionVars false
 /-!
 # Perron-Frobenius for primitive matrices
 
-Theorem 1.1 in Seneta, *Non-negative Matrices and Markov Chains*: Collatz-Wielandt supremum,
+Theorem 1.1 in Seneta, *Non-negative Matrices and Markov Chains*: Collatz–Wielandt supremum,
 existence of a simplex maximizer, then primitivity forces a strictly positive eigenvector.
+Irreducible facts such as `perronRoot_pos_of_irreducible` live in `CollatzWielandt.lean` next to
+`perronRoot`.
 
 -/
 
@@ -24,70 +26,6 @@ section PerronFrobenius
 open scoped Convex Pointwise
 
 variable {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ}
-
-/-- For an irreducible nonnegative matrix, the Collatz-Wielandt value at the all-ones vector is
-  strictly positive: an irreducible nonnegative matrix has no zero row (the `Fintype.card n = 1`
-  case uses a positive diagonal entry). -/
-lemma collatzWielandtFn_of_ones_is_pos
-  (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    0 < collatzWielandtFn A (fun _ ↦ 1) := by
-  let x_ones : n → ℝ := fun _ ↦ 1
-  have h_supp_nonempty : ({i | 0 < x_ones i}.toFinset).Nonempty := by
-    rw [Set.toFinset_nonempty_iff]; exact ⟨Classical.arbitrary n, by simp [x_ones]⟩
-  dsimp [collatzWielandtFn]
-  rw [dif_pos h_supp_nonempty]
-  have h_supp_ones : {i | 0 < x_ones i}.toFinset = Finset.univ := by
-    ext a; simp [x_ones, zero_lt_one]
-  have h_inf_eq : ({i | 0 < x_ones i}.toFinset.inf' h_supp_nonempty fun i ↦ (A *ᵥ x_ones) i / x_ones i) =
-      (Finset.univ.inf' (by rwa [←h_supp_ones]) fun i ↦ (A *ᵥ x_ones) i / x_ones i) := by
-    congr
-  rw [h_inf_eq]
-  apply Finset.inf'_pos Finset.univ_nonempty
-  intro i _
-  simp_rw [mulVec_apply, x_ones, mul_one, div_one]
-  apply sum_pos_of_nonneg_of_ne_zero
-  · intro j _; exact hA_nonneg i j
-  · by_contra h_sum_is_zero
-    have h_zero_row : ∀ j, A i j = 0 := by
-      intro j
-      have h_zero_row_finset : ∀ j ∈ Finset.univ, A i j = 0 :=
-        (sum_eq_zero_iff_of_nonneg (fun j _ => hA_nonneg i j)).mp h_sum_is_zero
-      exact h_zero_row_finset j (Finset.mem_univ j)
-    rcases Nat.eq_one_or_one_lt (Fintype.card n) Fintype.card_ne_zero with h_card_one | h_card_gt_one
-    · have h_i_unique : ∀ j : n, j = i := by
-        intro j
-        apply Fintype.card_le_one_iff.mp
-        linarith [h_card_one]
-      have h_need_self_loop : 0 < A i i := by
-        exact irreducible_one_element_implies_diagonal_pos hA_irred h_card_one i
-      have h_Aii_zero : A i i = 0 := h_zero_row i
-      exact lt_irrefl 0 (h_Aii_zero ▸ h_need_self_loop)
-    · haveI : Nontrivial n := Fintype.one_lt_card_iff_nontrivial.1 h_card_gt_one
-      obtain ⟨j, hj_pos⟩ := Matrix.IsIrreducible.exists_pos (A := A) hA_irred i
-      have h_Aij_zero : A i j = 0 := h_zero_row j
-      exact lt_irrefl 0 (h_Aij_zero ▸ hj_pos)
-
-/-- The Perron root is positive for an irreducible nonnegative matrix: the Collatz-Wielandt value
-  at the all-ones vector is positive and lies below `perronRoot`. -/
-lemma perronRoot_pos_of_irreducible
-  (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    0 < CollatzWielandt.perronRoot A := by
-  let x_ones : n → ℝ := fun _ ↦ 1
-  have h_x_ones_in_set : x_ones ∈ CollatzWielandt.nonnegNeZero := by
-    constructor
-    · intro i; exact zero_le_one
-    · intro h_zero
-      have h_contra : (1 : ℝ) = 0 := by simpa [x_ones] using congr_fun h_zero (Classical.arbitrary n)
-      exact one_ne_zero h_contra
-  have r_sup_ge_r_ones : collatzWielandtFn A x_ones ≤ CollatzWielandt.perronRoot A := by
-    dsimp [CollatzWielandt.perronRoot]
-    apply le_csSup_of_le
-    · exact CollatzWielandt.bddAbove A hA_nonneg
-    · exact Set.mem_image_of_mem A.collatzWielandtFn h_x_ones_in_set
-    · exact Preorder.le_refl (A.collatzWielandtFn x_ones)
-  have r_ones_pos : 0 < collatzWielandtFn A x_ones :=
-    collatzWielandtFn_of_ones_is_pos hA_irred hA_nonneg
-  exact lt_of_lt_of_le r_ones_pos r_sup_ge_r_ones
 
 /-- For a maximizer `v` of the Collatz-Wielandt function, `A * v = r • v`. -/
 theorem maximizer_is_eigenvector (hA_prim : IsPrimitive A)
@@ -142,7 +80,7 @@ theorem maximizer_is_eigenvector (hA_prim : IsPrimitive A)
             = ∑ x, (∑ j, y j)⁻¹ * y x   := by simp [smul_eq_mul]
         _  = (∑ j, y j)⁻¹ * ∑ x, y x      := by simp [Finset.mul_sum]
         _  = (∑ i, y i) * (∑ j, y j)⁻¹   := by rw [mul_comm]
-        _  = 1                           := by field_simp [h_sum_ne_zero]
+        _  = 1                           := mul_inv_cancel₀ h_sum_ne_zero
   have r_ge_r_y_norm : collatzWielandtFn A y_norm ≤ r := by
     rw [hr_def]
     exact hv_max hy_norm_in_simplex
@@ -168,7 +106,8 @@ theorem maximizer_is_eigenvector (hA_prim : IsPrimitive A)
         (A *ᵥ y_norm) i / y_norm i
             = ((∑ j, y j)⁻¹ * (A *ᵥ y) i) / ((∑ j, y j)⁻¹ * y i) := by
               simp [y_norm, y_norm_factor, mulVec_smul]
-        _ = (A *ᵥ y) i / y i := by field_simp [ne0]
+        _ = (A *ᵥ y) i / y i := by
+              exact mul_div_mul_eq_div (inv_ne_zero ne0) (hy_pos i).ne'
     dsimp [collatzWielandtFn, y_norm, y_norm_factor]
     split_ifs with h₁ h₂
     · simp
@@ -205,11 +144,8 @@ lemma perron_root_pos_of_primitive
   0 < collatzWielandtFn A v := by
   -- lower-bound sup by the CW-value at the all-ones vector (up to scale)
   let ones_norm : n → ℝ := fun _ => (Fintype.card n : ℝ)⁻¹
-  have ones_norm_mem_simplex : ones_norm ∈ stdSimplex ℝ n := by
-    refine ⟨fun i => inv_nonneg.mpr (Nat.cast_nonneg _), ?_⟩
-    rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-    simp_all only [ne_eq, Nat.cast_eq_zero, Fintype.card_ne_zero, not_false_eq_true, mul_inv_cancel₀]
-  have h₁ : ones_norm ∈ stdSimplex ℝ n := ones_norm_mem_simplex
+  have h₁ : ones_norm ∈ stdSimplex ℝ n := by
+    simpa [ones_norm] using ones_norm_mem_simplex
   have cw_one_pos : 0 < collatzWielandtFn A (fun _ => 1) :=
     collatzWielandtFn_of_ones_is_pos (Matrix.IsPrimitive.isIrreducible (A := A) hA_prim) hA_nonneg
   have cw_scale : collatzWielandtFn A ones_norm = collatzWielandtFn A (fun _ => 1) := by
@@ -235,14 +171,8 @@ theorem exists_positive_eigenvector_of_primitive
   (hA_prim : IsPrimitive A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
   ∃ (r : ℝ) (v : n → ℝ), r > 0 ∧ (∀ i, v i > 0) ∧ A *ᵥ v = r • v := by
   -- 1) We get maximizer v on the simplex
-  haveI : Nonempty (stdSimplex ℝ n) := by
-    let uniform : n → ℝ := fun _ => (Fintype.card n : ℝ)⁻¹
-    use uniform
-    constructor
-    · intro i
-      exact inv_nonneg.mpr (Nat.cast_nonneg _)
-    · rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-      exact mul_inv_cancel₀ (Nat.cast_ne_zero.mpr Fintype.card_ne_zero)
+  haveI : Nonempty (stdSimplex ℝ n) :=
+    ⟨⟨_, ones_norm_mem_simplex⟩⟩
   obtain ⟨v, hvS, hvM⟩ := CollatzWielandt.exists_maximizer (A := A)
   let r := collatzWielandtFn A v
   -- 2) We show r>0

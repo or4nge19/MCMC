@@ -12,6 +12,18 @@ open Matrix Classical Complex
 
 variable {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℝ}
 
+/-- If `x : n → ℂ` is nonzero, then `fun i ↦ ‖x i‖` is nonzero as a dependent function. -/
+lemma normFun_complex_ne_zero_of_ne_zero {x : n → ℂ} (hx : x ≠ 0) : (fun i ↦ ‖x i‖) ≠ 0 := by
+  contrapose! hx
+  ext i
+  exact norm_eq_zero.mp (congr_fun hx i)
+
+/-- Reconstruct `z : ℂ` from its phase `z / ‖z‖` and its modulus `‖z‖` (as a real coercion). -/
+lemma eq_mul_div_ofReal_norm_complex (z : ℂ) (hz : ‖z‖ ≠ 0) :
+    z = (z / (↑‖z‖ : ℂ)) * (↑‖z‖ : ℂ) := by
+  have hn : (↑‖z‖ : ℂ) ≠ 0 := ofReal_ne_zero.mpr hz
+  exact (div_mul_cancel₀ z hn).symm
+
 /-- If a property `P` holds for at least one vertex `i₀` and propagates along the edges
 of an irreducible matrix's graph (`P i ∧ A i j > 0 → P j`), then `P` holds for all vertices. -/
 lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n → Prop)
@@ -30,9 +42,8 @@ lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n →
     rcases hT_nonempty with ⟨i, hi_T⟩
     have hPi : P i := by
       have : i ∈ S := by
-        have : i ∈ (Set.univ : Set n) := Set.mem_univ i
-        simp only [Set.mem_univ] at this
-        simp_all only [Set.mem_setOf_eq, Set.mem_univ, S, T]
+        rw [h_eq]
+        exact Set.mem_univ i
       simpa [S] using this
     exact hi_T hPi
   obtain ⟨i, hi_S, j, hj_not_S, hAij_pos⟩ :=
@@ -103,8 +114,7 @@ lemma aligned_of_all_nonneg_re_im
   have hs_ne_zero : s ≠ 0 := by
     intro hs
     have h_norms_zero : ∑ j, ‖z j‖ = 0 := by
-      simp_all only [Complex.norm_mul, norm_real, Real.norm_eq_abs, ne_eq, mul_eq_zero, ofReal_eq_zero,
-        not_or, norm_zero, z, s]
+      rw [← h_z_sum, hs, norm_zero]
     have h_all_zero : ∀ k, ‖z k‖ = 0 := by
       intro k
       exact eq_zero_of_sum_eq_zero
@@ -144,14 +154,11 @@ lemma eq_zero_of_dotProduct_eq_zero_of_nonneg_of_pos
     (h_dot : v ⬝ᵥ w = 0) :
     v = 0 := by
   rw [dotProduct] at h_dot
-  have h_terms_nonneg : ∀ i, 0 ≤ v i * w i := by
-    intro i
-    exact mul_nonneg (hv_nonneg i) (hw_pos i).le
-  rw [Finset.sum_eq_zero_iff_of_nonneg (fun i _ => h_terms_nonneg i)] at h_dot
   funext i
-  have hi_zero : v i * w i = 0 := h_dot i (Finset.mem_univ i)
-  rw [mul_eq_zero] at hi_zero
-  exact hi_zero.resolve_right (hw_pos i).ne'
+  have hi := forall_eq_zero_of_finset_sum_eq_zero_of_nonneg
+    (fun j => mul_nonneg (hv_nonneg j) (hw_pos j).le) h_dot i
+  rw [mul_eq_zero] at hi
+  exact hi.resolve_right (hw_pos i).ne'
 
 /--
 If a scalar `μ` is in the spectrum of a complex matrix `A`, then there exists a non-zero
@@ -223,22 +230,14 @@ lemma eigenvalue_ne_zero_of_irreducible
   have h_eig_zero : A *ᵥ (fun i => ‖x i‖) = 0 := by
     simpa [zero_smul] using h_eig_zero_smul
   have h_x_abs_nonneg : ∀ i, 0 ≤ ‖x i‖ := fun i => norm_nonneg _
-  have h_x_abs_ne_zero : (fun i => ‖x i‖) ≠ 0 := by
-    contrapose! hx_ne_zero
-    ext i
-    exact norm_eq_zero.mp (congr_fun hx_ne_zero i)
+  have h_x_abs_ne_zero : (fun i => ‖x i‖) ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
   have h_x_abs_pos : ∀ i, 0 < ‖x i‖ :=
     eigenvector_is_positive_of_irreducible hA_irred h_eig_zero_smul h_x_abs_nonneg h_x_abs_ne_zero
   obtain ⟨i, j, hAij_pos⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
-  have h_sum : (A *ᵥ (fun k => ‖x k‖)) i = 0 := by rw [h_eig_zero]; rfl
-  rw [mulVec_apply] at h_sum
-  have h_sum_pos : 0 < ∑ k, A i k * ‖x k‖ := by
-    apply sum_pos_of_mem
-    · intro k _
-      exact mul_nonneg (hA_irred.nonneg i k) (h_x_abs_nonneg k)
-    · exact Finset.mem_univ j
-    · exact mul_pos hAij_pos (h_x_abs_pos j)
-  exact h_sum_pos.ne' h_sum
+  have h_Axi : (A *ᵥ fun k => ‖x k‖) i = 0 := by rw [h_eig_zero]; rfl
+  have h_pos : 0 < (A *ᵥ fun k => ‖x k‖) i :=
+    mulVec_pos_of_exists_pos_mul_pos i j (fun k => hA_irred.nonneg i k) h_x_abs_pos hAij_pos
+  exact h_pos.ne' h_Axi
 
 theorem eigenvalue_is_perron_root_of_positive_eigenvector
     {r : ℝ} {v : n → ℝ}
@@ -299,12 +298,8 @@ theorem perronRoot_transpose_eq
       _             = (u ᵥ* A) ⬝ᵥ v := by
                         simpa using dotProduct_mulVec u A v
       _             = r' * (u ⬝ᵥ v) := h2
-  have hr_eq_r' : r = r' := by
-    subst hr_eq_perron hr'_eq_perron
-    simp_all only [ne_eq, dotProduct_smul, smul_eq_mul, smul_dotProduct, mul_eq_mul_right_iff]
-    cases h_eq with
-    | inl h => simp_all only
-    | inr h_1 => simp_all only [lt_self_iff_false]
+  have hr_eq_r' : r = r' :=
+    (mul_left_inj' (ne_of_gt h_dot_pos)).mp h_eq
   calc
     perronRoot A   = r   := by symm; simpa using hr_eq_perron
     _                  = r'  := hr_eq_r'
@@ -404,10 +399,7 @@ theorem eigenvalue_abs_le_perron_root
   have hx_eig : B *ᵥ x = μ • x := by rwa [toLin'_apply] at hx_eig_lin
   let x_abs := fun i => ‖x i‖
   have hx_abs_nonneg : ∀ i, 0 ≤ x_abs i := fun i => norm_nonneg _
-  have hx_abs_ne_zero : x_abs ≠ 0 := by
-    contrapose! hx_ne_zero
-    ext i
-    exact norm_eq_zero.mp (congr_fun hx_ne_zero i)
+  have hx_abs_ne_zero : x_abs ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
   have h_subinv : (‖μ‖ : ℝ) • x_abs ≤ A *ᵥ x_abs :=
     eigenvalue_abs_subinvariant hA_nonneg hx_eig
   have h_le_collatz : (‖μ‖ : ℝ) ≤ collatzWielandtFn A x_abs :=
@@ -532,19 +524,7 @@ lemma mulVec_x_abs_pos_of_irreducible {A : Matrix n n ℝ} (hA_irred : A.IsIrred
     0 < (A *ᵥ x_abs) i := by
   have h_x_abs_pos : ∀ k, 0 < x_abs k :=
     eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig h_x_abs_nonneg hx_abs_ne_zero
-  have h_r_pos : 0 < perronRoot A := by
-    obtain ⟨i₀, j₀, hAij_pos⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
-    have h_sum_pos : 0 < ∑ k, A i₀ k * x_abs k := by
-      apply sum_pos_of_mem
-      · intro k _
-        exact mul_nonneg (hA_irred.nonneg i₀ k) (h_x_abs_pos k).le
-      · exact Finset.mem_univ j₀
-      · exact mul_pos hAij_pos (h_x_abs_pos j₀)
-    have h_eq : (A *ᵥ x_abs) i₀ = (perronRoot A) * x_abs i₀ := by
-      simpa [Pi.smul_apply, smul_eq_mul] using congrFun h_x_abs_eig i₀
-    have : 0 < (perronRoot A) * x_abs i₀ := by
-      exact lt_of_lt_of_eq h_sum_pos h_eq
-    exact pos_of_mul_pos_left this (h_x_abs_pos i₀).le
+  have h_r_pos : 0 < perronRoot A := perronRoot_pos_of_irreducible hA_irred hA_irred.nonneg
   have h_eq_i : (A *ᵥ x_abs) i = (perronRoot A) * x_abs i := by
     simpa [Pi.smul_apply, smul_eq_mul] using congrFun h_x_abs_eig i
   have : 0 < (perronRoot A) * x_abs i :=
@@ -562,8 +542,7 @@ lemma sum_s_ne_zero_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrreduci
     (hx_ne_zero : x ≠ 0) (i : n) :
     (∑ j, (A i j : ℂ) * x j) ≠ 0 := by
   let x_abs := fun i => ‖x i‖
-  have hx_abs_ne_zero : x_abs ≠ 0 := by
-    contrapose! hx_ne_zero; ext i; exact norm_eq_zero.mp (congr_fun hx_ne_zero i)
+  have hx_abs_ne_zero : x_abs ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
   intro hs_zero
   have h_norm_s_zero : ‖∑ j, (A i j : ℂ) * x j‖ = 0 := by rw [hs_zero]; exact norm_zero
   have h_sum_norm_zero : ∑ j, ‖(A i j : ℂ) * x j‖ = 0 := h_triangle_eq i ▸ h_norm_s_zero
@@ -594,8 +573,7 @@ lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrre
     ∀ k l m, 0 < A k l → 0 < A k m → x l / ↑‖x l‖ = x m / ↑‖x m‖ := by
   let x_abs := fun i => ‖x i‖
   have hx_abs_nonneg : ∀ i, 0 ≤ x_abs i := fun i => norm_nonneg _
-  have hx_abs_ne_zero : x_abs ≠ 0 := by
-    contrapose! hx_ne_zero; ext i; exact norm_eq_zero.mp (congr_fun hx_ne_zero i)
+  have hx_abs_ne_zero : x_abs ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
   have h_x_abs_pos : ∀ k, 0 < x_abs k :=
     eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig hx_abs_nonneg hx_abs_ne_zero
   intro k l m hAkl_pos hAkm_pos
@@ -632,8 +610,7 @@ lemma reference_phase_norm_one {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     ‖c‖ = 1 := by
   let x_abs := fun i => ‖x i‖
   have hx_abs_nonneg : ∀ i, 0 ≤ x_abs i := fun i => norm_nonneg _
-  have hx_abs_ne_zero : x_abs ≠ 0 := by
-    contrapose! hx_ne_zero; ext i; exact norm_eq_zero.mp (congr_fun hx_ne_zero i)
+  have hx_abs_ne_zero : x_abs ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
   have h_x_abs_pos : ∀ k, 0 < x_abs k :=
     eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig hx_abs_nonneg hx_abs_ne_zero
   let j₀ := Classical.arbitrary n
@@ -673,6 +650,18 @@ lemma IsIrreducible.exists_pos_entry_in_row {A : Matrix n n ℝ} (hA_irred : A.I
   have hic_pos : 0 < A i c := e
   exact (h_row_zero c).symm.not_lt hic_pos
 
+/-! ### Norm sums (triangle-equality layer)
+
+Small lemmas packaging `Finset.sum_eq_zero_iff_of_nonneg` for sums of complex norms. -/
+
+lemma norm_eq_zero_of_finset_sum_norm_eq_zero {ι : Type*} {s : Finset ι} (v : ι → ℂ)
+    (h : ∑ i ∈ s, ‖v i‖ = 0) (i : ι) (hi : i ∈ s) : ‖v i‖ = 0 :=
+  (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => norm_nonneg (v j))).1 h i hi
+
+lemma norm_eq_zero_of_fintype_sum_norm_eq_zero {ι : Type*} [Fintype ι] (v : ι → ℂ)
+    (h : ∑ i, ‖v i‖ = 0) (i : ι) : ‖v i‖ = 0 :=
+  norm_eq_zero_of_finset_sum_norm_eq_zero v h i (Finset.mem_univ i)
+
 /-- If a complex number `z` is a positive real multiple of `w ≠ 0`, then `z` and `w` have the same
   phase: `z / ‖z‖ = w / ‖w‖` (with `‖z‖` coerced to `ℂ` on the left-hand side). -/
 lemma phase_eq_of_positive_real_multiple {z w : ℂ} {c : ℝ}
@@ -699,14 +688,7 @@ lemma aligned_term_of_triangle_eq {ι : Type*} {s : Finset ι} {v : ι → ℂ}
     intro h_sum_zero
     have h_norm_sum : ‖sum‖ = 0 := by rw [h_sum_zero, norm_zero]
     have h_sum_norms : ∑ i ∈ s, ‖v i‖ = 0 := by rw [← h_sum, h_norm_sum]
-    have h_all_zero : ∀ i ∈ s, ‖v i‖ = 0 := by
-      intro i hi
-      have h_single_nonneg : 0 ≤ ‖v i‖ := norm_nonneg (v i)
-      have h_sum_ge_single : ‖v i‖ ≤ ∑ j ∈ s, ‖v j‖ :=
-        Finset.single_le_sum (fun _ _ => norm_nonneg _) hi
-      rw [h_sum_norms] at h_sum_ge_single
-      exact le_antisymm h_sum_ge_single h_single_nonneg
-    have h_vj_zero : ‖v j‖ = 0 := h_all_zero j h_j
+    have h_vj_zero : ‖v j‖ = 0 := norm_eq_zero_of_finset_sum_norm_eq_zero v h_sum_norms j h_j
     exact h_vj_ne_zero (norm_eq_zero.mp h_vj_zero)
   have h_aligned := Complex.aligned_of_triangle_eq rfl h_sum h_sum_ne_zero j h_j h_vj_ne_zero
   exact h_aligned
@@ -727,11 +709,7 @@ lemma Complex.triangle_eq_sum_with_common_phase {ι : Type*} [Fintype ι]
     intro h_sum_zero
     have h_norms_sum : ∑ i, ‖v i‖ = 0 := by
       rw [← h_triangle_eq, h_sum_zero, norm_zero]
-    have h_all_zero : ∀ i, ‖v i‖ = 0 := by
-      intro i
-      have h_nonneg : ∀ i ∈ Finset.univ, 0 ≤ ‖v i‖ := fun i _ => norm_nonneg (v i)
-      exact (Finset.sum_eq_zero_iff_of_nonneg h_nonneg).mp h_norms_sum i (Finset.mem_univ i)
-    have h_vj_zero : ‖v j‖ = 0 := h_all_zero j
+    have h_vj_zero : ‖v j‖ = 0 := norm_eq_zero_of_fintype_sum_norm_eq_zero v h_norms_sum j
     exact hj_ne_zero (norm_eq_zero.mp h_vj_zero)
   have h_sum_phase : (∑ i, v i) / ↑‖∑ i, v i‖ = c := by
     have h_j_aligned := h_aligned j hj_ne_zero
@@ -741,7 +719,8 @@ lemma Complex.triangle_eq_sum_with_common_phase {ι : Type*} [Fintype ι]
     exact id (Eq.symm h_j_sum_aligned)
   calc ∑ i, v i
     = ‖∑ i, v i‖ * ((∑ i, v i) / ↑‖∑ i, v i‖) := by
-        field_simp [h_sum_ne_zero]
+        rw [← mul_comm]
+        exact eq_mul_div_ofReal_norm_complex (∑ i, v i) (norm_ne_zero_iff.mpr h_sum_ne_zero)
     _ = ‖∑ i, v i‖ * c := by rw [h_sum_phase]
     _ = (∑ i, ‖v i‖ : ℂ) * c := by rw [h_triangle_eq]; rw [@ofReal_sum]
 
@@ -820,8 +799,7 @@ lemma eigenvalue_norm_eq_perron_root_of_triangle_eq
     ‖μ‖ = perronRoot A := by
   let x_abs := fun i => ‖x i‖
   have hx_abs_nonneg : ∀ i, 0 ≤ x_abs i := fun i => norm_nonneg _
-  have hx_abs_ne_zero : x_abs ≠ 0 := by
-    contrapose! hx_ne_zero; ext i; exact norm_eq_zero.mp (congr_fun hx_ne_zero i)
+  have hx_abs_ne_zero : x_abs ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
   have hx_abs_pos : ∀ i, 0 < x_abs i :=
     eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig hx_abs_nonneg hx_abs_ne_zero
   have h_mu_norm_pos : 0 < ‖μ‖ := by
@@ -867,21 +845,10 @@ lemma eigenvector_norm_pos_of_primitive_and_norm_eq_perron_root
     {x : n → ℂ} (hx_ne_zero : x ≠ 0) (_ : (A.map (algebraMap ℝ ℂ)) *ᵥ x = μ • x)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot A) • (fun i => ‖x i‖)) :
     ∀ i, 0 < ‖x i‖ := by
-  have h_x_abs_ne_zero : (fun j => ‖x j‖) ≠ 0 := by
-    contrapose! hx_ne_zero
-    ext j
-    exact norm_eq_zero.mp (congr_fun hx_ne_zero j)
+  have h_x_abs_ne_zero : (fun j => ‖x j‖) ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
   have h_x_abs_nonneg : ∀ j, 0 ≤ ‖x j‖ := fun j => norm_nonneg _
-  have h_r_pos : 0 < perronRoot A := by
-    obtain ⟨r', v, hr'_pos, hv_pos, h_eig'⟩ := exists_positive_eigenvector_of_primitive hA_prim hA_nonneg
-    have : r' = perronRoot A := by
-      apply eigenvalue_is_perron_root_of_positive_eigenvector
-      · exact Matrix.IsPrimitive.isIrreducible (A := A) hA_prim
-      · exact hA_nonneg
-      · exact hr'_pos
-      · exact hv_pos
-      · exact h_eig'
-    rwa [← this]
+  have h_r_pos : 0 < perronRoot A :=
+    perronRoot_pos_of_irreducible (Matrix.IsPrimitive.isIrreducible hA_prim) hA_nonneg
   exact eigenvector_of_primitive_is_positive hA_prim h_r_pos h_x_abs_eig h_x_abs_nonneg h_x_abs_ne_zero
 
 omit [Fintype n] [Nonempty n] [DecidableEq n] in
@@ -920,8 +887,7 @@ lemma triangle_equality_for_primitive_power
     ‖∑ l, ((A ^ k) m l : ℂ) * x l‖ = ∑ l, ‖((A ^ k) m l : ℂ) * x l‖ := by
   have h_left : ‖∑ l, ((A ^ k) m l : ℂ) * x l‖ = (perronRoot A) ^ k * ‖x m‖ := by
     have h_eq : ‖∑ l, ((A ^ k) m l : ℂ) * x l‖ = ‖(((A ^ k).map (algebraMap ℝ ℂ)) *ᵥ x) m‖ := by
-      simp_all only [coe_algebraMap]
-      rfl
+      simp [Matrix.mulVec, dotProduct, Matrix.map_apply]
     rw [h_eq]
     exact norm_matrix_power_vec_eq_perron_power_norm hx_eig h_norm_eq_r k m
   have h_right : ∑ l, ‖((A ^ k) m l : ℂ) * x l‖ = (perronRoot A) ^ k * ‖x m‖ :=
@@ -990,7 +956,8 @@ lemma eigenvector_phase_aligned_of_primitive
   funext j
   have hnorm_ne_zero : ‖x j‖ ≠ 0 := (hx_abs_pos j).ne'
   calc
-    x j = (x j / ‖x j‖) * ‖x j‖ := by field_simp [hnorm_ne_zero]
+    x j = (x j / ‖x j‖) * ‖x j‖ := by
+      simpa using eq_mul_div_ofReal_norm_complex (x j) hnorm_ne_zero
     _ = c * ‖x j‖ := by rw [h_same_phase j]
 
 omit [Nonempty n] [DecidableEq n] in

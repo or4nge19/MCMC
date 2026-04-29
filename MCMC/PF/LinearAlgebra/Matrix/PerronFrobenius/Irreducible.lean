@@ -24,13 +24,7 @@ variable {n : Type*} [DecidableEq n] {A : Matrix n n ℝ}
 theorem Irreducible.add_one (h_irred : A.IsIrreducible) : (1 + A).IsIrreducible := by
   let B := (1 : Matrix n n ℝ) + A
   constructor
-  · intro i j
-    by_cases h : i = j
-    · subst h
-      simpa [B] using by
-        have : (0 : ℝ) ≤ A i i := h_irred.1 i i
-        linarith
-    · simpa [B, h] using h_irred.1 i j
+  · exact fun i j => Matrix.one_add_apply_nonneg h_irred.nonneg i j
   · intro i j
     -- Work in the quiver of `A` to extract a positive-length path.
     letI : Quiver n := toQuiver A
@@ -40,8 +34,7 @@ theorem Irreducible.add_one (h_irred : A.IsIrreducible) : (1 + A).IsIrreducible 
       intro u v huv
       by_cases h_eq : u = v
       · subst h_eq
-        have : (0 : ℝ) < 1 + A u u := by linarith
-        simpa [B] using this
+        simpa [B] using Matrix.one_add_diag_pos (fun i => h_irred.nonneg i i) u
       · simpa [B, h_eq] using huv
     -- Lift paths from `toQuiver A` to `toQuiver B`, preserving length.
     let pA' : @Quiver.Path n (toQuiver A) i j := pA
@@ -90,8 +83,8 @@ lemma eigenvector_no_zero_entries_of_irreducible [Fintype n]
     have hv_zero : v = 0 := by
       funext i
       have : i ∈ T := by
-        have : i ∈ (Set.univ : Set n) := by trivial
-        simp_all [ne_eq, Set.mem_univ, T, S]
+        rw [h_univ]
+        exact Set.mem_univ i
       simpa [T] using this
     exact hv_ne_zero hv_zero
   obtain ⟨j, hj_T, i, hi_not_T, h_Aji_pos⟩ :=
@@ -105,27 +98,10 @@ lemma eigenvector_no_zero_entries_of_irreducible [Fintype n]
   have vj_zero : v j = 0 := by
     have : j ∈ T := hj_T
     simpa [T] using this
-  have h_Av_j_zero : (A *ᵥ v) j = 0 := by
-    have h_rvj_zero : (r • v) j = 0 := by
-      simp [Pi.smul_apply, vj_zero]
-    have h_comp := congrArg (fun f : n → ℝ => f j) h_eig
-    simpa [h_rvj_zero] using h_comp
-  have h_terms_nonneg : ∀ k, 0 ≤ A j k * v k :=
-    fun k => mul_nonneg (hA_irred.1 _ _) (hv_nonneg k)
-  have h_Aji_vi_zero : A j i * v i = 0 := by
-    by_cases h_eq : A j i * v i = 0
-    · exact h_eq
-    · have h_pos : 0 < A j i * v i := by
-        have h_nonneg_i := h_terms_nonneg i
-        exact lt_of_le_of_ne h_nonneg_i (Ne.symm h_eq)
-      have h_sum_pos : 0 < ∑ k : n, A j k * v k := by
-        have h_mem : i ∈ (Finset.univ : Finset n) := by simp
-        have h_nonneg_fun : ∀ k ∈ (Finset.univ : Finset n), 0 ≤ A j k * v k :=
-          fun k _ => h_terms_nonneg k
-        exact sum_pos_of_mem h_nonneg_fun i h_mem h_pos
-      have : (∑ k : n, A j k * v k) = 0 := by
-        simpa [mulVec, dotProduct] using h_Av_j_zero
-      exact (lt_irrefl (0 : ℝ) (by simp [this] at h_sum_pos)).elim
+  have h_Av_j_zero : (A *ᵥ v) j = 0 :=
+    mulVec_apply_eq_zero_of_eigenvector_apply_eq_zero j h_eig vj_zero
+  have h_Aji_vi_zero : A j i * v i = 0 :=
+    mul_eq_zero_of_mulVec_eq_zero_of_row_nonneg j i (fun l => hA_irred.1 j l) hv_nonneg h_Av_j_zero
   have h_Aji_zero : A j i = 0 :=
     (mul_eq_zero.mp h_Aji_vi_zero).resolve_right vi_pos.ne'
   have : (0 : ℝ) < 0 := by
@@ -148,23 +124,9 @@ theorem exists_positive_eigenvector_of_irreducible [Nonempty n]
   -- 1.  We add the identity: `B := 1 + A`.
   let B : Matrix n n ℝ := 1 + A
   -- 1a.  Non-negativity of `B`.
-  have hB_nonneg : ∀ i j, 0 ≤ B i j := by
-    intro i j
-    by_cases h_eq : i = j
-    · subst h_eq
-      have : (0 : ℝ) ≤ 1 + A i i := by
-        have hAi : 0 ≤ A i i := hA_irred.1 i i
-        linarith
-      simpa [B] using this
-    · have : 0 ≤ A i j := hA_irred.1 i j
-      simpa [B, h_eq] using this
+  have hB_nonneg : ∀ i j, 0 ≤ B i j := fun i j => Matrix.one_add_apply_nonneg hA_irred.nonneg i j
   -- 1b.  Positive diagonal entries of `B`.
-  have hB_diag_pos : ∀ i, 0 < B i i := by
-    intro i
-    have : (0 : ℝ) < 1 + A i i := by
-      have hAi : 0 ≤ A i i := hA_irred.1 i i
-      linarith
-    simpa [B] using this
+  have hB_diag_pos : ∀ i, 0 < B i i := fun i => Matrix.one_add_diag_pos (fun j => hA_irred.nonneg j j) i
   -- 1c.  `B` is irreducible.
   have hB_irred : (1 + A).IsIrreducible := Irreducible.add_one (A := A) hA_irred
   -- 1d.  `B` is primitive.
@@ -191,19 +153,8 @@ theorem exists_positive_eigenvector_of_irreducible [Nonempty n]
     exact ⟨i₀, j, e⟩
   rcases h_pos_entry with ⟨i₀, j₀, hA_pos⟩
   -- 4b.  The `i₀`-component of `A * v` is positive.
-  have hAv_i₀_pos : 0 < (A *ᵥ v) i₀ := by
-    have hvj₀_pos : 0 < v j₀ := hv_pos j₀
-    have h_nonneg :
-        ∀ k ∈ (Finset.univ : Finset n), 0 ≤ A i₀ k * v k := by
-      intro k _
-      exact mul_nonneg (hA_irred.1 _ _) (le_of_lt (hv_pos k))
-    have h_sum_pos :
-        0 < ∑ k, A i₀ k * v k := by
-      have h_mem : j₀ ∈ (Finset.univ : Finset n) := by simp
-      have h_pos_term : 0 < A i₀ j₀ * v j₀ := by
-        exact mul_pos hA_pos hvj₀_pos
-      exact sum_pos_of_mem h_nonneg j₀ h_mem h_pos_term
-    simpa [mulVec_apply] using h_sum_pos
+  have hAv_i₀_pos : 0 < (A *ᵥ v) i₀ :=
+    mulVec_pos_of_exists_pos_mul_pos i₀ j₀ (fun k => hA_irred.1 i₀ k) hv_pos hA_pos
   -- 4c.  We use the `i₀`-component of the eigen-equation for `B`.
   have h_comp_eq :
       (v i₀) + (A *ᵥ v) i₀ = rB * v i₀ := by
@@ -247,8 +198,8 @@ lemma eigenvector_is_positive_of_irreducible [Nonempty n] {r : ℝ}
     have : (0 : ℝ) < 0 := by
       have : 0 < v i₀ := by
         have : i₀ ∈ S := by
-          have : i₀ ∈ (Set.univ : Set n) := by trivial
-          simp_all only [ne_eq, Set.mem_setOf_eq, gt_iff_lt, implies_true, Set.mem_univ, S, T]
+          rw [h_univ]
+          exact Set.mem_univ i₀
         simpa [S] using this
       have : v i₀ = 0 := by
         have : 0 ≤ v i₀ := hv_nonneg i₀
@@ -262,19 +213,10 @@ lemma eigenvector_is_positive_of_irreducible [Nonempty n] {r : ℝ}
   have vj_zero : v j = 0 := by
     have : j ∈ T := hjT
     simpa [T] using this
-  have h_Av_j_zero : (A *ᵥ v) j = 0 := by
-    have hrvj : (r • v) j = 0 := by simp [vj_zero]
-    have h_eq := congrArg (fun f : n → ℝ => f j) h_eig
-    simpa [hrvj] using h_eq
-  have h_nonneg : ∀ k ∈ (Finset.univ : Finset n), 0 ≤ A j k * v k := by
-    intro k _
-    exact mul_nonneg (hA_irred.1 j k) (hv_nonneg k)
-  have h_Aji_vi_zero : A j i * v i = 0 := by
-    have h_sum_zero : (∑ k, A j k * v k) = 0 := by
-      simpa [mulVec_apply] using h_Av_j_zero
-    have h_all_zero :=
-      (Finset.sum_eq_zero_iff_of_nonneg h_nonneg).1 h_sum_zero
-    exact h_all_zero i (Finset.mem_univ i)
+  have h_Av_j_zero : (A *ᵥ v) j = 0 :=
+    mulVec_apply_eq_zero_of_eigenvector_apply_eq_zero j h_eig vj_zero
+  have h_Aji_vi_zero : A j i * v i = 0 :=
+    mul_eq_zero_of_mulVec_eq_zero_of_row_nonneg j i (fun l => hA_irred.1 j l) hv_nonneg h_Av_j_zero
   have vi_pos : 0 < v i := by simpa [S] using hiS
   have h_Aji_zero : A j i = 0 :=
     (mul_eq_zero.mp h_Aji_vi_zero).resolve_right vi_pos.ne'
@@ -302,25 +244,12 @@ theorem uniqueness_of_positive_eigenvector_gen
   -- 2.  z := v − c•w  (still an eigenvector)
   let z : n → ℝ := v - c • w
   have hz_eig : A *ᵥ z = r • z := by
-    calc
-      A *ᵥ z
-          = A *ᵥ v - A *ᵥ (c • w) := by
-              simp only [mulVec_sub, z]
-      _   = r • v - c • (r • w) := by
-              simp only [hv_eig, mulVec_smul, hw_eig]
-      _   = r • (v - c • w) := by
-              rw [smul_sub, smul_comm, ← smul_assoc]
-      _   = r • z := by
-              simp only [z]
+    dsimp [z]
+    exact mulVec_sub_smul_eq_smul_sub_of_mulVec_smul hv_eig hw_eig
   -- 3.  z ≥ 0
-  have hz_nonneg : ∀ i, 0 ≤ z i := by
-    intro i
-    have h_le : c ≤ v i / w i :=
-      Finset.inf'_le _ (Finset.mem_univ _)
-    have h_mul : c * w i ≤ v i := by
-      exact (le_div_iff₀ (hw_pos i)).mp h_le
-    have : 0 ≤ v i - c * w i := sub_nonneg.mpr h_mul
-    simpa [z, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] using this
+  have hz_nonneg : ∀ i, 0 ≤ z i := fun i => by
+    simp only [z, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, sub_nonneg]
+    exact (le_div_iff₀ (hw_pos i)).mp (Finset.inf'_le _ (Finset.mem_univ i))
   -- 4.  analyse `z`
   by_cases hz_zero : z = 0
   · -- 4a. (`z = 0`)  ⇒  `v = c • w`
@@ -340,19 +269,12 @@ theorem uniqueness_of_positive_eigenvector_gen
         (fun i : n => v i / w i)
     -- at the attaining index we must have `z i₀ = 0`, contradiction
     have hzi₀_zero : z i₀ = 0 := by
-      have hv_eq : v i₀ = c * w i₀ := by
-        have hw_ne : w i₀ ≠ 0 := (ne_of_gt (hw_pos i₀))
-        have h_div : v i₀ / w i₀ = c := by
-          simpa using h_inf_eq.symm
-        have : v i₀ = (v i₀ / w i₀) * w i₀ := by
-          field_simp [hw_ne]
-        simpa [h_div] using this
+      have hv_eq : v i₀ = c * w i₀ :=
+        eq_mul_of_eq_div (ne_of_gt (hw_pos i₀)) h_inf_eq
       simp only [Pi.sub_apply, hv_eq, Pi.smul_apply, smul_eq_mul, sub_self, z]
-    have : 0 < z i₀ := hz_pos i₀
-    have : (0 : ℝ) < 0 := by
-      simp only [hzi₀_zero, lt_self_iff_false, z] at this
-    simp_all only [div_pos_iff_of_pos_left, Pi.sub_apply, Pi.smul_apply,
-      smul_eq_mul, sub_nonneg, sub_pos, mem_univ, lt_self_iff_false, z, c]
+    have hlt := hz_pos i₀
+    rw [hzi₀_zero] at hlt
+    exact False.elim (lt_irrefl (0 : ℝ) hlt)
 
 
 /-- **Perron–Frobenius, primitive case (existence, positvity and uniqueness)** -/
@@ -381,7 +303,7 @@ theorem pft_primitive
         _ = s⁻¹ * ∑ i, v_raw i   := by
               rw [Finset.mul_sum]
         _ = s⁻¹ * s               := by simp [s]
-        _ = 1                     := by field_simp [hs_ne]
+        _ = 1                     := inv_mul_cancel₀ hs_ne
   have hv0_simplex : v0 ∈ stdSimplex ℝ n := ⟨hv0_nonneg, h_sum_v0⟩
   have hv0_pos : ∀ i, 0 < v0 i := by
     intro i
@@ -419,27 +341,16 @@ theorem pft_primitive
       have h_le : c ≤ v0 j / w.1 j :=
         Finset.inf'_le _ (Finset.mem_univ j)
       exact (le_div_iff₀ (hw_pos j)).mp h_le
-    have h_sum :
-        c * (A *ᵥ w.1) i₀ ≤ (A *ᵥ v0) i₀ := by
-      dsimp [Matrix.mulVec, dotProduct]
-      rw [Finset.mul_sum]
-      apply Finset.sum_le_sum
-      intro j _
-      have h_le : c * w.1 j ≤ v0 j := v0_ge_cw j
-      have hA : 0 ≤ A i₀ j := hA_nonneg i₀ j
-      have h := mul_le_mul_of_nonneg_left h_le hA
-      rwa [mul_left_comm]
+    have h_sum : c * (A *ᵥ w.1) i₀ ≤ (A *ᵥ v0) i₀ :=
+      mulVec_smul_le_mulVec_of_forall_smul_le i₀ (fun j => hA_nonneg i₀ j) c v0_ge_cw
     have hv0_i₀ : (A *ᵥ v0) i₀ = r * v0 i₀ := by
       rw [hv0_eig]
       simp only [Pi.smul_apply, smul_eq_mul]
     have hw_i₀  : (A *ᵥ w.1) i₀ = r' * w.1 i₀ := by
       rw [hw_eig]
       simp only [Pi.smul_apply, smul_eq_mul]
-    have v0_i₀_eq : v0 i₀ = c * w.1 i₀ := by
-      have : c = v0 i₀ / w.1 i₀ := hc_eq
-      have w_ne : w.1 i₀ ≠ 0 := ne_of_gt w_i₀_pos
-      field_simp [this, w_ne]
-      simp [*]
+    have v0_i₀_eq : v0 i₀ = c * w.1 i₀ :=
+      eq_mul_of_eq_div (ne_of_gt w_i₀_pos) hc_eq
     have h_r_ge_r' : r ≥ r' := by
       have h_pos : 0 < c * w.1 i₀ := mul_pos hc_pos w_i₀_pos
       have h1 : c * r' * w.1 i₀ ≤ r * v0 i₀ := by
@@ -468,22 +379,10 @@ theorem pft_primitive
       have h_le : d ≤ w.1 j / v0 j :=
         Finset.inf'_le _ (Finset.mem_univ j)
       exact (le_div_iff₀ (hv0_pos j)).mp h_le
-    have h_sum2 :
-        d * (A *ᵥ v0) j₀ ≤ (A *ᵥ w.1) j₀ := by
-      dsimp only [mulVec, dotProduct]
-      rw [Finset.mul_sum]
-      apply Finset.sum_le_sum
-      intro j _
-      have h_le : d * v0 j ≤ w.1 j := w_ge_dv0 j
-      have hA : 0 ≤ A j₀ j := hA_nonneg j₀ j
-      have h := mul_le_mul_of_nonneg_left h_le hA
-      rwa [mul_left_comm]
-    have w_j₀_eq : w.1 j₀ = d * v0 j₀ := by
-      have : d = w.1 j₀ / v0 j₀ := hd_eq
-      have v0_ne : v0 j₀ ≠ 0 := ne_of_gt v0_j₀_pos
-      simp_all only [gt_iff_lt, ne_eq, Pi.smul_apply, smul_eq_mul, inv_pos, mul_nonneg_iff_of_pos_left,
-        mul_pos_iff_of_pos_left, implies_true, div_pos_iff_of_pos_left, mem_univ, ge_iff_le, mul_eq_zero, inv_eq_zero,
-        false_or, isUnit_iff_ne_zero, or_self, not_false_eq_true, IsUnit.div_mul_cancel, s, v0, c, d]
+    have h_sum2 : d * (A *ᵥ v0) j₀ ≤ (A *ᵥ w.1) j₀ :=
+      mulVec_smul_le_mulVec_of_forall_smul_le j₀ (fun j => hA_nonneg j₀ j) d w_ge_dv0
+    have w_j₀_eq : w.1 j₀ = d * v0 j₀ :=
+      eq_mul_of_eq_div (ne_of_gt v0_j₀_pos) hd_eq
     have h_r'_ge_r : r' ≥ r := by
       have h_pos : 0 < d * v0 j₀ := mul_pos hd_pos v0_j₀_pos
       have h1 : d * r * v0 j₀ ≤ r' * w.1 j₀ := by
@@ -547,18 +446,8 @@ theorem pft_irreducible {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
   {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) :
     ∃! (v : stdSimplex ℝ n), ∃ (r : ℝ), r > 0 ∧ A *ᵥ v.val = r • v.val := by
   let B : Matrix n n ℝ := 1 + A
-  have hB_nonneg : ∀ i j, 0 ≤ B i j := by
-    intro i j; by_cases h : i = j
-    · subst h
-      have : (0 : ℝ) ≤ 1 + A i i := by
-        have := hA_irred.1 i i; linarith
-      simpa [B] using this
-    · simpa [B, h] using hA_irred.1 i j
-  have hB_diag_pos : ∀ i, 0 < B i i := by
-    intro i
-    have : (0 : ℝ) < 1 + A i i := by
-      have := hA_irred.1 i i; linarith
-    simpa [B] using this
+  have hB_nonneg : ∀ i j, 0 ≤ B i j := fun i j => Matrix.one_add_apply_nonneg hA_irred.nonneg i j
+  have hB_diag_pos : ∀ i, 0 < B i i := fun i => Matrix.one_add_diag_pos (fun j => hA_irred.nonneg j j) i
   have hB_irred : B.IsIrreducible := by
     simpa [B] using (Irreducible.add_one (A := A) hA_irred)
   have hB_prim : B.IsPrimitive :=
@@ -577,14 +466,8 @@ theorem pft_irreducible {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
   rcases (Irreducible.exists_pos_entry (A := A) hA_irred) with
     ⟨i₀, j₀, hA_pos⟩
   have hr_pos : 0 < r := by
-    have hAv_pos : 0 < (A *ᵥ v.val) i₀ := by
-      have h_nonneg : ∀ k ∈ Finset.univ, 0 ≤ A i₀ k * v.val k :=
-        fun k _ ↦ mul_nonneg (hA_irred.1 _ _) (le_of_lt (v_pos k))
-      have h_term : 0 < A i₀ j₀ * v.val j₀ :=
-        mul_pos hA_pos (v_pos _)
-      have : 0 < ∑ k, A i₀ k * v.val k :=
-        sum_pos_of_mem h_nonneg j₀ (Finset.mem_univ _) h_term
-      simpa [mulVec_apply] using this
+    have hAv_pos : 0 < (A *ᵥ v.val) i₀ :=
+      mulVec_pos_of_exists_pos_mul_pos i₀ j₀ (fun k => hA_irred.1 i₀ k) v_pos hA_pos
     have : 0 < r * v.val i₀ := by
       simpa [Pi.smul_apply, smul_eq_mul, h_eig_A] using hAv_pos
     exact (mul_pos_iff_of_pos_right (v_pos _)).1 this
@@ -615,8 +498,7 @@ theorem pft_irreducible {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
         _ = r' := by ring
     have h_eig_A'_r : A *ᵥ v'.val = r • v'.val := by
       subst hr_eq
-      simp_all only [add_apply, one_apply_eq, gt_iff_lt, exists_prop, forall_exists_index, and_imp, Subtype.forall,
-        sub_pos, implies_true, B, r]
+      exact h_eig_A'
     obtain ⟨c, hc_pos, hcv⟩ :=
       uniqueness_of_positive_eigenvector_gen
         hA_irred hr_pos v_pos' v'_pos h_eig_A h_eig_A'_r

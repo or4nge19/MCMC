@@ -26,6 +26,9 @@ We use column vectors `A *ᵥ x` (Seneta’s row-vector formulation is equivalen
   on the standard simplex.
 * `Matrix.CollatzWielandt.exists_maximizer`: a maximizer on the simplex exists (USC + compactness).
 * `Matrix.CollatzWielandt.le_mulVec`: `collatzWielandtFn A v • v ≤ A *ᵥ v` for nonnegative `v ≠ 0`.
+* `Matrix.collatzWielandtFn_of_ones_is_pos` / `Matrix.perronRoot_pos_of_irreducible`: for irreducible
+  nonnegative `A`, the Collatz–Wielandt value at the all-ones vector and hence `perronRoot A` are
+  strictly positive.
 
 ## References
 
@@ -180,6 +183,13 @@ theorem upperSemicontinuousOn
 /-- Nonnegative vectors that are not identically zero (Seneta’s cone punctured at `0`). -/
 def nonnegNeZero : Set (n → ℝ) := {x | (∀ i, 0 ≤ x i) ∧ x ≠ 0}
 
+omit [Fintype n] in
+/-- The constant all-ones vector lies in `nonnegNeZero`. -/
+lemma nonnegNeZero_mem_const_one : (fun _ : n => (1 : ℝ)) ∈ nonnegNeZero := by
+  refine ⟨fun _ => zero_le_one, ?_⟩
+  intro h
+  exact one_ne_zero (congr_fun h (Classical.arbitrary n))
+
 /-- The Collatz-Wielandt function attains its maximum on the standard simplex.
     [Giaquinta-Modica, Theorem 6.24 (dual), p: 235] -/
 theorem exists_maximizer (A : Matrix n n ℝ) :
@@ -283,31 +293,16 @@ lemma bddAbove [DecidableEq n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ 
     le_ratio (A := A) m h_xm_pos
   have h_ratio_le : (A *ᵥ x) m / x m ≤ Finset.univ.sup' Finset.univ_nonempty (fun k ↦ ∑ l, A k l) := by
     rw [mulVec_apply, div_le_iff h_xm_pos]
-    calc
-      ∑ j, A m j * x j
-        ≤ ∑ j, A m j * x m := by
-          apply Finset.sum_le_sum
-          intro j _
-          exact mul_le_mul_of_nonneg_left (h_xm_max j) (hA_nonneg m j)
-      _ = (∑ j, A m j) * x m := by rw [Finset.sum_mul]
-      _ ≤ (Finset.univ.sup' Finset.univ_nonempty (fun k ↦ ∑ l, A k l)) * x m := by
-          apply mul_le_mul_of_nonneg_right
-          · exact le_sup' (fun k => ∑ l, A k l) (Finset.mem_univ m)
-          · exact le_of_lt h_xm_pos
+    refine le_trans (sum_mul_le_sum_mul_const_of_forall_le (fun j => A m j) x m
+      (fun j => hA_nonneg m j) h_xm_max) ?_
+    apply mul_le_mul_of_nonneg_right _ (le_of_lt h_xm_pos)
+    exact le_sup' (fun k => ∑ l, A k l) (Finset.mem_univ m)
   exact le_trans h_le_ratio h_ratio_le
 
 /-- The set of values from the Collatz-Wielandt function is non-empty. -/
 lemma set_nonempty :
     (collatzWielandtFn A '' nonnegNeZero).Nonempty := by
-  let xOnes : n → ℝ := fun _ ↦ 1
-  have hxOnes_mem : xOnes ∈ nonnegNeZero := by
-    constructor
-    · intro i; exact zero_le_one
-    · intro h_zero
-      have h_contra : (1 : ℝ) = 0 := by
-        simpa [xOnes] using congr_fun h_zero (Classical.arbitrary n)
-      exact one_ne_zero h_contra
-  exact Set.Nonempty.image _ ⟨xOnes, hxOnes_mem⟩
+  exact Set.Nonempty.image _ ⟨_, nonnegNeZero_mem_const_one⟩
 
 omit [Nonempty n] in
 lemma collatzWielandtFn_smul [DecidableEq n] {c : ℝ} (hc : 0 < c)
@@ -502,14 +497,12 @@ lemma le_of_max_le_row_sum [DecidableEq n]
   have h_le_k := h_le_Bx k
   simp only [Pi.smul_apply, smul_eq_mul] at h_le_k
   have h_Bx_le : (B *ᵥ x) k ≤ r * x k := by
-    calc (B *ᵥ x) k
-        = ∑ j, B k j * x j := by simp [mulVec_apply]
-      _ ≤ ∑ j, B k j * x k := by
-          apply Finset.sum_le_sum
-          intro j _
-          exact mul_le_mul_of_nonneg_left (h_xk_max j) (hB_nonneg k j)
-      _ = (∑ j, B k j) * x k := by rw [Finset.sum_mul]
-      _ = r * x k := by rw [h_B_row_sum]
+    rw [mulVec_apply]
+    calc
+      ∑ j, B k j * x j
+          ≤ (∑ j, B k j) * x k :=
+        sum_mul_le_sum_mul_const_of_forall_le (fun j => B k j) x k (fun j => hB_nonneg k j) h_xk_max
+      _ = r * x k := by rw [h_B_row_sum k]
   exact le_of_mul_le_mul_right (le_trans h_le_k h_Bx_le) h_xk_pos
 
 omit [Nonempty n] in
@@ -610,7 +603,7 @@ private lemma le_of_isMaxOn_stdSimplex [DecidableEq n] {v : n → ℝ}
       simpa [hx'] using mul_nonneg hs_inv_nonneg (hx_nonneg i)
     · have : (∑ i, x' i) = 1 := by
         simp only [hx', Pi.smul_apply, smul_eq_mul, ← Finset.mul_sum, ← hs]
-        field_simp [ne_of_gt hs_pos]
+        exact inv_mul_cancel₀ (ne_of_gt hs_pos)
       exact this
   have h_max : collatzWielandtFn A x' ≤ collatzWielandtFn A v := hv_max hx'_in_simplex
   have h_scale : collatzWielandtFn A x = collatzWielandtFn A x' := by
@@ -687,3 +680,62 @@ theorem le_of_subinvariant [DecidableEq n]
   intro j hj
   have hw_j_pos : 0 < w j := by simpa [S] using hj
   exact (le_div_iff₀ hw_j_pos).mpr (h_sub j)
+
+end CollatzWielandt
+
+/-- For an irreducible nonnegative matrix, the Collatz–Wielandt value at the all-ones vector is
+strictly positive: an irreducible nonnegative matrix has no zero row (the `Fintype.card n = 1`
+case uses a positive diagonal entry). -/
+lemma collatzWielandtFn_of_ones_is_pos [DecidableEq n]
+    (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    0 < collatzWielandtFn A (fun _ ↦ 1) := by
+  let x_ones : n → ℝ := fun _ ↦ 1
+  have h_supp_nonempty : ({i | 0 < x_ones i}.toFinset).Nonempty := by
+    rw [Set.toFinset_nonempty_iff]; exact ⟨Classical.arbitrary n, by simp [x_ones]⟩
+  dsimp [collatzWielandtFn]
+  rw [dif_pos h_supp_nonempty]
+  have h_supp_ones : {i | 0 < x_ones i}.toFinset = Finset.univ := by
+    ext a; simp [x_ones, zero_lt_one]
+  have h_inf_eq : ({i | 0 < x_ones i}.toFinset.inf' h_supp_nonempty fun i ↦ (A *ᵥ x_ones) i / x_ones i) =
+      (Finset.univ.inf' (by rwa [← h_supp_ones]) fun i ↦ (A *ᵥ x_ones) i / x_ones i) := by
+    congr
+  rw [h_inf_eq]
+  apply Finset.inf'_pos Finset.univ_nonempty
+  intro i _
+  simp_rw [mulVec_apply, x_ones, mul_one, div_one]
+  apply sum_pos_of_nonneg_of_ne_zero
+  · intro j _; exact hA_nonneg i j
+  · by_contra h_sum_is_zero
+    have h_zero_row : ∀ j, A i j = 0 := fun j =>
+      forall_eq_zero_of_finset_sum_eq_zero_of_nonneg (fun k => hA_nonneg i k) h_sum_is_zero j
+    rcases Nat.eq_one_or_one_lt (Fintype.card n) Fintype.card_ne_zero with h_card_one | h_card_gt_one
+    · have h_i_unique : ∀ j : n, j = i := by
+        intro j
+        apply Fintype.card_le_one_iff.mp
+        linarith [h_card_one]
+      have h_need_self_loop : 0 < A i i := by
+        exact irreducible_one_element_implies_diagonal_pos hA_irred h_card_one i
+      have h_Aii_zero : A i i = 0 := h_zero_row i
+      exact lt_irrefl 0 (h_Aii_zero ▸ h_need_self_loop)
+    · haveI : Nontrivial n := Fintype.one_lt_card_iff_nontrivial.1 h_card_gt_one
+      obtain ⟨j, hj_pos⟩ := Matrix.IsIrreducible.exists_pos (A := A) hA_irred i
+      have h_Aij_zero : A i j = 0 := h_zero_row j
+      exact lt_irrefl 0 (h_Aij_zero ▸ hj_pos)
+
+/-- The Perron root is positive for an irreducible nonnegative matrix: the Collatz–Wielandt value at
+the all-ones vector is positive and lies below `perronRoot`. -/
+lemma perronRoot_pos_of_irreducible [DecidableEq n]
+    (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    0 < CollatzWielandt.perronRoot A := by
+  let x_ones : n → ℝ := fun _ ↦ 1
+  have h_x_ones_in_set : x_ones ∈ CollatzWielandt.nonnegNeZero := by
+    simpa [x_ones] using CollatzWielandt.nonnegNeZero_mem_const_one
+  have r_sup_ge_r_ones : collatzWielandtFn A x_ones ≤ CollatzWielandt.perronRoot A := by
+    dsimp [CollatzWielandt.perronRoot]
+    apply le_csSup_of_le
+    · exact CollatzWielandt.bddAbove A hA_nonneg
+    · exact Set.mem_image_of_mem (collatzWielandtFn A) h_x_ones_in_set
+    · exact Preorder.le_refl (collatzWielandtFn A x_ones)
+  have r_ones_pos : 0 < collatzWielandtFn A x_ones :=
+    collatzWielandtFn_of_ones_is_pos hA_irred hA_nonneg
+  exact lt_of_lt_of_le r_ones_pos r_sup_ge_r_ones

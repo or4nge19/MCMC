@@ -9,6 +9,9 @@ open Filter Set Finset Matrix Topology Convex
 
 Small results on the standard simplex, topology, matrices, and finsets shared by `MCMC.PF`.
 Prefer Mathlib statements when they already exist; this file keeps only what downstream modules use.
+
+Includes `eq_mul_of_eq_div` (solve `a = c * b` from `c = a / b`) and `mul_div_mul_eq_div` (cancel a
+common nonzero factor in a field fraction).
 -/
 
 /-!
@@ -326,6 +329,15 @@ This is standard in Mathlib and often available via `simp`.
 lemma mulVec_apply {n : Type*} [Fintype n] {A : Matrix n n ℝ} {v : n → ℝ} (i : n) :
   (A *ᵥ v) i = ∑ j, A i j * v j :=
 rfl
+
+/-- If `c = a / b` with `b ≠ 0`, then `a = c * b`. -/
+lemma eq_mul_of_eq_div {a b c : ℝ} (hb : b ≠ 0) (h : c = a / b) : a = c * b := by
+  rw [h, div_mul_cancel₀ a hb]
+
+/-- Cancel a common nonzero factor from numerator and denominator in a field. -/
+lemma mul_div_mul_eq_div {R : Type*} [Field R] {a b c : R} (hc : c ≠ 0) (hb : b ≠ 0) :
+    (c * a) / (c * b) = a / b := by
+  field_simp [hc, hb]
 
 /--
 An element of a set is less than or equal to the supremum of that set,
