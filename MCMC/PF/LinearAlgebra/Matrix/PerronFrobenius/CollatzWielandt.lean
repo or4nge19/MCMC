@@ -690,24 +690,7 @@ lemma collatzWielandtFn_of_ones_is_pos [DecidableEq n]
   apply Finset.inf'_pos Finset.univ_nonempty
   intro i _
   simp_rw [mulVec_apply, x_ones, mul_one, div_one]
-  apply sum_pos_of_nonneg_of_ne_zero
-  · intro j _; exact hA_nonneg i j
-  · by_contra h_sum_is_zero
-    have h_zero_row : ∀ j, A i j = 0 := fun j =>
-      forall_eq_zero_of_finset_sum_eq_zero_of_nonneg (fun k => hA_nonneg i k) h_sum_is_zero j
-    rcases Nat.eq_one_or_one_lt (Fintype.card n) Fintype.card_ne_zero with h_card_one | h_card_gt_one
-    · have h_i_unique : ∀ j : n, j = i := by
-        intro j
-        apply Fintype.card_le_one_iff.mp
-        linarith [h_card_one]
-      have h_need_self_loop : 0 < A i i := by
-        exact irreducible_one_element_implies_diagonal_pos hA_irred h_card_one i
-      have h_Aii_zero : A i i = 0 := h_zero_row i
-      exact lt_irrefl 0 (h_Aii_zero ▸ h_need_self_loop)
-    · haveI : Nontrivial n := Fintype.one_lt_card_iff_nontrivial.1 h_card_gt_one
-      obtain ⟨j, hj_pos⟩ := Matrix.IsIrreducible.exists_pos (A := A) hA_irred i
-      have h_Aij_zero : A i j = 0 := h_zero_row j
-      exact lt_irrefl 0 (h_Aij_zero ▸ hj_pos)
+  exact row_sum_pos_of_irreducible_nonneg hA_irred hA_nonneg i
 
 /-- The Perron root is positive for an irreducible nonnegative matrix: the Collatz–Wielandt value at
 the all-ones vector is positive and lies below `perronRoot`. -/
