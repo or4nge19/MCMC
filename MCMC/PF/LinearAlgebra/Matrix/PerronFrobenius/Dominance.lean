@@ -519,7 +519,24 @@ theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg :
 agrees with the norm of the Perron root. -/
 theorem spectralRadius_eq_nnnorm_perronRoot (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     spectralRadius ℝ A = ‖(perronRoot A : ℝ)‖₊ := by
-  sorry
+  have h_in_spec : perronRoot A ∈ spectrum ℝ A := perron_root_is_eigenvalue hA_irred hA_nonneg
+  have h_dom : ∀ μ ∈ spectrum ℝ A, |μ| ≤ perronRoot A :=
+    (perron_root_is_spectral_radius hA_irred hA_nonneg).2
+  have h_r_nonneg : 0 ≤ perronRoot A := perronRoot_nonneg hA_nonneg
+  have h_nnnorm_dom : ∀ μ ∈ spectrum ℝ A, ‖μ‖₊ ≤ ‖(perronRoot A : ℝ)‖₊ := by
+    intro μ hμ
+    have h_abs_nonneg : 0 ≤ |μ| := abs_nonneg μ
+    rw [← Real.toNNReal_eq_nnnorm_of_nonneg h_r_nonneg]
+    rw [← Real.nnnorm_abs, ← Real.toNNReal_eq_nnnorm_of_nonneg h_abs_nonneg]
+    exact Real.toNNReal_le_toNNReal (h_dom μ hμ)
+  apply le_antisymm
+  · -- Upper bound: spectralRadius ≤ ‖perronRoot A‖₊
+    apply iSup₂_le
+    intro μ hμ
+    exact ENNReal.coe_le_coe.mpr (h_nnnorm_dom μ hμ)
+  · -- Lower bound: ‖perronRoot A‖₊ ≤ spectralRadius
+    apply le_iSup₂_of_le (perronRoot A) h_in_spec
+    exact le_refl _
 
 /-- The spectral radius of an irreducible nonnegative matrix is the Perron root as a real number. -/
 theorem spectralRadius_toReal_eq_perronRoot (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
