@@ -70,8 +70,8 @@ variable {n : Type*}
 
 /-- A path in the submatrix `A.submatrix Subtype.val Subtype.val` lifts to a path in the
 original quiver `toQuiver A`, and all vertices along that lifted path lie in `S`. -/
-lemma path_in_submatrix_to_original [DecidableEq n] {A : Matrix n n ℝ}
-  (S : Set n) [DecidablePred S]
+lemma path_in_submatrix_to_original {A : Matrix n n ℝ}
+  (S : Set n)
   {i j : S}
   (p : @Quiver.Path S (letI := Matrix.toQuiver A; inducedQuiver S) i j) :
   letI : Quiver n := Matrix.toQuiver A
@@ -85,8 +85,8 @@ lemma path_in_submatrix_to_original [DecidableEq n] {A : Matrix n n ℝ}
 
 /-- If the principal submatrix supported on `S` is irreducible, then any two vertices of `S`
 can be joined by a path in `toQuiver A` whose active vertices all lie in `S`. -/
-lemma path_exists_in_support_of_irreducible [DecidableEq n] {A : Matrix n n ℝ}
-    (S : Set n) [DecidablePred S]
+lemma path_exists_in_support_of_irreducible {A : Matrix n n ℝ}
+    (S : Set n)
     (hS : IsIrreducible (A.submatrix (Subtype.val : S → n) (Subtype.val : S → n)))
     (i j : n) (hi : i ∈ S) (hj : j ∈ S) :
   letI : Quiver n := Matrix.toQuiver A
@@ -223,7 +223,7 @@ lemma pos_of_nonneg_of_not_mem_zero_set {v : n → ℝ}
   exact lt_of_le_of_ne (hv_nonneg i) (Ne.symm hvi_ne_zero)
 
 /-- The positive support of a nonnegative nonzero vector is nonempty. -/
-lemma pos_support_nonempty_of_nonneg_ne_zero [Fintype n] {v : n → ℝ}
+lemma pos_support_nonempty_of_nonneg_ne_zero {v : n → ℝ}
     (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     ({i | 0 < v i} : Set n).Nonempty := by
   by_contra h_empty
@@ -291,7 +291,7 @@ lemma eq_zero_of_mulVec_eq_zero_of_pos [Fintype n]
     (by simpa using congrFun h_Av_zero i) (hv_pos j)
 
 /-- A zero matrix is not irreducible if the dimension is greater than `1`. -/
-lemma not_irreducible_of_zero_matrix {n : Type*} [Fintype n] [Nonempty n]
+lemma not_irreducible_of_zero_matrix {n : Type*} [Fintype n]
     (h_card_gt_one : 1 < Fintype.card n) :
     ¬ IsIrreducible (0 : Matrix n n ℝ) := by
   intro h
@@ -319,7 +319,7 @@ lemma irreducible_one_element_implies_diagonal_pos [Fintype n]
 
 /-- Every row sum of an irreducible nonnegative matrix is strictly positive
 (no zero row). -/
-lemma row_sum_pos_of_irreducible_nonneg [Fintype n] [Nonempty n] [DecidableEq n]
+lemma row_sum_pos_of_irreducible_nonneg [Fintype n] [Nonempty n]
     {A : Matrix n n ℝ} (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) (i : n) :
     0 < ∑ j, A i j := by
   rw [lt_iff_le_and_ne]
@@ -338,7 +338,7 @@ lemma row_sum_pos_of_irreducible_nonneg [Fintype n] [Nonempty n] [DecidableEq n]
     exact lt_irrefl (0 : ℝ) <| (h_zero_row j).symm ▸ hj_pos
 
 /-- An irreducible matrix cannot send a nonnegative nonzero vector to `0`. -/
-theorem irreducible_mulVec_ne_zero [DecidableEq n] [Fintype n]
+theorem irreducible_mulVec_ne_zero [Fintype n]
     (hA_irred : IsIrreducible A)
     {v : n → ℝ} (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     A *ᵥ v ≠ 0 := by
@@ -491,3 +491,5 @@ end ShiftAndMap
 end PerronFrobenius
 
 end Matrix
+
+#lint
