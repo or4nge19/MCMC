@@ -69,17 +69,37 @@ def IsStronglyErgodic (H : ℕ → Matrix n n ℝ) : Prop :=
   ∃ v : n → ℝ, ∀ p i,
     Tendsto (fun r : ℕ => (Matrix.forwardProd H p r) i) atTop (nhds v)
 
+omit [Nonempty n] in
 /-- Forward products preserve entrywise nonnegativity. -/
-theorem forwardProd_nonneg
-    {H : ℕ → Matrix n n ℝ} (hH_nonneg : ∀ k i j, 0 ≤ H k i j) :
+theorem forwardProd_nonneg {R : Type*} [Semiring R] [PartialOrder R] [IsOrderedRing R]
+    {H : ℕ → Matrix n n R} (hH_nonneg : ∀ k i j, 0 ≤ H k i j) :
     ∀ p r i j, 0 ≤ Matrix.forwardProd H p r i j := by
-  sorry
+  intro p r
+  induction r with
+  | zero =>
+      intro i j
+      by_cases h : i = j
+      · subst h
+        simp [Matrix.one_apply_eq]
+      · simp [h]
+  | succ r ih =>
+      intro i j
+      rw [Matrix.forwardProd_succ, Matrix.mul_apply]
+      exact Finset.sum_nonneg fun k _ =>
+        mul_nonneg (ih i k) (hH_nonneg (p + r + 1) k j)
 
+omit [Nonempty n] in
 /-- Forward products of stochastic matrices remain stochastic. -/
 theorem forwardProd_isStochastic
     {H : ℕ → Matrix n n ℝ} (hH_stoch : ∀ k, MCMC.Finite.IsStochastic (H k)) :
     ∀ p r, MCMC.Finite.IsStochastic (Matrix.forwardProd H p r) := by
-  sorry
+  intro p r
+  induction r with
+  | zero =>
+      simpa using (MCMC.Finite.isStochastic_one : MCMC.Finite.IsStochastic (1 : Matrix n n ℝ))
+  | succ r ih =>
+      simpa [Matrix.forwardProd_succ] using
+        MCMC.Finite.isStochastic_mul ih (hH_stoch (p + r + 1))
 
 /--
 Ratio weak ergodicity is detected by decay of Birkhoff's contraction coefficient.
@@ -92,12 +112,15 @@ theorem weaklyErgodicRatio_iff_tendsto_birkhoffContraction_zero
         atTop (nhds (0 : ℝ)) := by
   sorry
 
+omit [Nonempty n] in
 /-- Strong ergodicity implies weak ergodicity. -/
 theorem stronglyErgodic_implies_weaklyErgodic
     {H : ℕ → Matrix n n ℝ} :
     Matrix.IsStronglyErgodic H → Matrix.IsWeaklyErgodic H := by
-  sorry
+  rintro ⟨v, hv⟩ p i j
+  simpa using (hv p i).sub (hv p j)
 
+omit [Nonempty n] in
 /--
 If every row of every forward product converges to the same strictly positive limit vector, then
 Seneta's ratio-form weak ergodicity holds.
@@ -106,7 +129,17 @@ theorem weaklyErgodicRatio_of_tendsto_rows_to_positive
     {H : ℕ → Matrix n n ℝ} {v : PositiveVec n}
     (hH : ∀ p i, Tendsto (fun r : ℕ => (Matrix.forwardProd H p r) i) atTop (nhds v.1)) :
     Matrix.IsWeaklyErgodicRatio H := by
-  sorry
+  intro p i j s
+  have hi :
+      Tendsto (fun r : ℕ => (Matrix.forwardProd H p r) i s) atTop (nhds (v.1 s)) :=
+    tendsto_pi_nhds.mp (hH p i) s
+  have hj :
+      Tendsto (fun r : ℕ => (Matrix.forwardProd H p r) j s) atTop (nhds (v.1 s)) :=
+    tendsto_pi_nhds.mp (hH p j) s
+  constructor
+  · exact hj.eventually <|
+      (isOpen_lt continuous_const continuous_id).mem_nhds (v.2 s)
+  · simpa [div_self (v.2 s).ne'] using hi.div hj (v.2 s).ne'
 
 end Ergodicity
 

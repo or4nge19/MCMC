@@ -73,13 +73,12 @@ theorem uniqueness_of_positive_eigenvector (hA_prim : IsPrimitive A) (hr_pos : 0
     intro i _
     exact div_pos (hv_pos i) (hw_pos i)
   let z := v - c • w
-  have hz_nonneg : ∀ i, 0 ≤ z i := by
-    intro i
+  have hz_nonneg : ∀ i, 0 ≤ z i := fun i => by
     simp only [z, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, sub_nonneg]
-    have hc_le_ratio : c ≤ v i / w i := Finset.inf'_le _ (Finset.mem_univ i)
-    exact (le_div_iff₀ (hw_pos i)).mp hc_le_ratio
+    exact (le_div_iff₀ (hw_pos i)).mp (Finset.inf'_le _ (Finset.mem_univ i))
   have hz_eig : A *ᵥ z = r • z := by
-    dsimp [z]; simp only [mulVec_sub]; simp only [mulVec_smul]; simp only [ hv_eig]; simp only [hw_eig]; simp only [smul_sub]; rw [smul_comm]
+    dsimp [z]
+    exact mulVec_sub_smul_eq_smul_sub_of_mulVec_smul hv_eig hw_eig
   by_cases h_z_is_zero : z = 0
   · use c, hc_pos
     ext i
@@ -88,8 +87,7 @@ theorem uniqueness_of_positive_eigenvector (hA_prim : IsPrimitive A) (hr_pos : 0
       obtain ⟨i₀, _, hi₀_eq_inf⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => v i / w i)
       use i₀
       simp only [z, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, sub_eq_zero]
-      rw [← div_eq_iff (hw_pos i₀).ne']
-      rw [← hi₀_eq_inf]
+      exact eq_mul_of_eq_div (ne_of_gt (hw_pos i₀)) hi₀_eq_inf
     obtain ⟨i₀, hi₀_zero⟩ := hz_has_zero
     have h_contra := eigenvector_no_zero_entries_of_primitive hA_prim hr_pos hz_eig hz_nonneg h_z_is_zero i₀ hi₀_zero
     exact h_contra.elim

@@ -39,9 +39,9 @@ The eigenspace is spanned by the unique positive eigenvector.
 -/
 lemma geometric_multiplicity_one_of_irreducible
     (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    let r := perronRoot_alt A
+    let r := perronRoot A
     ∃ v : n → ℝ, (∀ i, 0 < v i) ∧ Module.End.eigenspace (toLin' A) r = Submodule.span ℝ {v} := by
-  let r := perronRoot_alt A
+  let r := perronRoot A
   let f := toLin' A
   obtain ⟨r_ex, v, hr_pos, hv_pos, hv_eig_mat, hr_eq_r⟩ := perron_root_eq_positive_eigenvalue hA_irred hA_nonneg
   rw [← hr_eq_r] at hv_eig_mat hr_pos
@@ -84,44 +84,24 @@ lemma geometric_multiplicity_one_of_irreducible
       obtain ⟨c_abs, hc_abs_pos, hc_abs_eq⟩ :=
         uniqueness_of_positive_eigenvector_gen hA_irred hr_pos hw_abs_pos hv_pos hw_abs_eig hv_eig_f
       let B := 1 + A
-      have hB_nonneg : ∀ i j, 0 ≤ B i j := by
-         intro i j; by_cases h : i = j
-         · subst h; have := hA_nonneg i i; simp [B]; linarith
-         · simp [B, h, hA_nonneg i j]
+      have hB_nonneg : ∀ i j, 0 ≤ B i j :=
+        fun i j => Matrix.one_add_apply_nonneg hA_nonneg i j
       have hB_irred := Matrix.Irreducible.add_one (A := A) hA_irred
-      have hB_diag_pos : ∀ i, 0 < B i i := by
-        intro i; have := hA_nonneg i i; simp [B]; linarith
+      have hB_diag_pos : ∀ i, 0 < B i i :=
+        fun i => Matrix.one_add_diag_pos (fun j => hA_nonneg j j) i
       have hB_prim : IsPrimitive B := IsPrimitive.of_irreducible_pos_diagonal B hB_nonneg hB_irred hB_diag_pos
       let rB := r + 1
       have hrB_pos : 0 < rB := by linarith [hr_pos]
       have hBw_eig : toLin' B w = rB • w := by
-        simp [B, LinearMap.add_apply, toLin'_one, add_smul, one_smul, rB]; abel_nf; aesop
+        simpa [B, f, rB] using toLin'_one_add_eigenvector hw_eig
       have hw_abs_eig_B : toLin' B w_abs = rB • w_abs := by
-        simp [B, LinearMap.add_apply, toLin'_one, add_smul, one_smul, rB]; abel_nf; aesop
+        simpa [B, f, rB] using toLin'_one_add_eigenvector hw_abs_eig
       let wc : n → ℂ := fun i => (w i : ℂ)
       have hwc_eig_B : (B.map (algebraMap ℝ ℂ)) *ᵥ wc = (rB : ℂ) • wc := by
-        ext i
-        have h_real : ∑ j, B i j * w j = rB * w i := by
-          have := congrArg (fun v : n → ℝ => v i)
-            (by simpa [toLin'_apply, Pi.smul_apply] using hBw_eig)
-          simpa [Matrix.mulVec, dotProduct] using this
-        calc
-          ((B.map (algebraMap ℝ ℂ)) *ᵥ wc) i
-              = ∑ j, (algebraMap ℝ ℂ (B i j)) * wc j := by
-                simp [Matrix.mulVec, dotProduct]
-          _ = ∑ j, (B i j : ℂ) * (w j : ℂ) := by
-                simp [wc]
-          _ = ∑ j, Complex.ofReal (B i j * w j) := by
-                simp [Complex.ofReal_mul]
-          _ = Complex.ofReal (∑ j, B i j * w j) := by
-                simp
-          _ = Complex.ofReal (rB * w i) := by
-                simp [h_real]
-          _ = (rB : ℂ) * wc i := by
-                simp [wc, Complex.ofReal_mul]
-      have hrB_eq_perronB : rB = perronRoot_alt B :=
+        simpa [wc] using mulVec_map_complex_of_real_eigenvector hBw_eig
+      have hrB_eq_perronB : rB = perronRoot B :=
         eigenvalue_is_perron_root_of_positive_eigenvector hB_irred hB_nonneg hrB_pos hw_abs_pos hw_abs_eig_B
-      have h_norm_eig : (B *ᵥ fun i => ‖wc i‖) = perronRoot_alt B • (fun i => ‖wc i‖) := by
+      have h_norm_eig : (B *ᵥ fun i => ‖wc i‖) = perronRoot B • (fun i => ‖wc i‖) := by
         have h_eq : (fun i => ‖wc i‖) = w_abs := by
           ext i
           simp [wc, w_abs]
@@ -134,7 +114,7 @@ lemma geometric_multiplicity_one_of_irreducible
         hwc_eig_B
         h_norm_eig
         h_norm_pos
-      let i := Classical.arbitrary n
+      obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
       have hc_eq_i := congr_fun hc_eq i
       simp only [wc] at hc_eq_i
       have hc_real : c.im = 0 := by
@@ -161,7 +141,7 @@ lemma geometric_multiplicity_one_of_irreducible
         _ = (c * r) • v := by simp [smul_smul]
         _ = (r * c) • v := by simp [mul_comm]
         _ = r • (c • v) := by simp [smul_smul]
-    have : (toLin' A) (c • v) = (perronRoot_alt A) • (c • v) := by
+    have : (toLin' A) (c • v) = (perronRoot A) • (c • v) := by
       simpa [f, r]
         using hc
     exact (Module.End.mem_eigenspace_iff).2 this
@@ -174,10 +154,9 @@ The generalized eigenspace equals the eigenspace.
 -/
 lemma algebraic_multiplicity_one_of_irreducible
     (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    Module.End.maxGenEigenspace (toLin' A) (perronRoot_alt A) =
-    Module.End.eigenspace (toLin' A) (perronRoot_alt A) := by
-  classical
-  let r := perronRoot_alt A
+    Module.End.maxGenEigenspace (toLin' A) (perronRoot A) =
+    Module.End.eigenspace (toLin' A) (perronRoot A) := by
+  let r := perronRoot A
   let f := toLin' A
   let g := f - r • LinearMap.id
   have h_ker_sq_eq_ker : LinearMap.ker (g ^ 2) = LinearMap.ker g := by
@@ -194,7 +173,7 @@ lemma algebraic_multiplicity_one_of_irreducible
         exists_positive_eigenvector_of_irreducible hAT_irred
       have hrT_eq_r : rT = r := by
         calc
-          rT = perronRoot_alt Aᵀ :=
+          rT = perronRoot Aᵀ :=
                 eigenvalue_is_perron_root_of_positive_eigenvector
                   hAT_irred (fun i j => hA_nonneg j i) hrT_pos hu_star_pos hu_star_eig_T_mat
           _  = r := (perronRoot_transpose_eq A hA_irred).symm
@@ -228,11 +207,7 @@ lemma algebraic_multiplicity_one_of_irreducible
             simpa [hc_eq] using h_dot_u
           simpa [dotProduct_smul, smul_eq_mul, mul_comm] using this
         exact mul_eq_zero.mp hc_mul
-      have hv_ne_zero : v ≠ 0 := by
-        intro h
-        have : 0 < v (Classical.arbitrary n) := hv_pos _
-        have : False := by simp [h] at this
-        exact this.elim
+      have hv_ne_zero : v ≠ 0 := Pi.ne_zero_of_pos hv_pos
       have h_dot_pos : 0 < u_star ⬝ᵥ v :=
         dotProduct_pos_of_pos_of_nonneg_ne_zero hu_star_pos
           (fun i => (hv_pos i).le) hv_ne_zero
