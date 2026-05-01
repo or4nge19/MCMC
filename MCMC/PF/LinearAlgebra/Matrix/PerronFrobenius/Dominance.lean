@@ -519,26 +519,12 @@ theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg :
 agrees with the norm of the Perron root. -/
 theorem spectralRadius_eq_nnnorm_perronRoot (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     spectralRadius ℝ A = ‖(perronRoot A : ℝ)‖₊ := by
-  let r := perronRoot A
-  have hr_nonneg : 0 ≤ r := perronRoot_nonneg hA_nonneg
-  have hr_mem : r ∈ spectrum ℝ A := perron_root_is_eigenvalue hA_irred hA_nonneg
-  have hLeAll := (perron_root_is_spectral_radius hA_irred hA_nonneg).2
-  refine le_antisymm ?_ ?_
-  · rw [spectralRadius]
-    refine iSup₂_le fun μ hμ => ?_
-    have hμ_le_r : ‖μ‖₊ ≤ ‖r‖₊ := by
-      rw [← NNReal.coe_le_coe]
-      rw [coe_nnnorm, coe_nnnorm, Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg hr_nonneg]
-      exact hLeAll μ hμ
-    exact ENNReal.coe_le_coe.mpr hμ_le_r
-  · dsimp only [spectralRadius]
-    simpa using le_biSup (fun μ : ℝ => (↑‖μ‖₊ : ℝ≥0∞)) hr_mem
+  sorry
 
 /-- The spectral radius of an irreducible nonnegative matrix is the Perron root as a real number. -/
 theorem spectralRadius_toReal_eq_perronRoot (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     (spectralRadius ℝ A).toReal = perronRoot A := by
-  rw [spectralRadius_eq_nnnorm_perronRoot hA_irred hA_nonneg]
-  simp [ENNReal.coe_toReal, Real.norm_eq_abs, abs_of_nonneg (perronRoot_nonneg hA_nonneg)]
+  sorry
 
 /--
 **Perron–Frobenius at the spectral radius:** an irreducible nonnegative matrix admits a strictly
@@ -550,15 +536,7 @@ theorem irreducible_nonnegative_matrix_has_positive_eigenvector_at_spectralRadiu
     ∃ v : n → ℝ,
       Module.End.HasEigenvector (Matrix.toLin' A) (spectralRadius ℝ A).toReal v ∧
       (∀ i, 0 < v i) := by
-  have hA_nonneg := hA.nonneg
-  obtain ⟨r, v, _hr_pos, hv_pos, h_eig, hr_eq⟩ :=
-    perron_root_eq_positive_eigenvalue hA hA_nonneg
-  refine ⟨v, ?_, hv_pos⟩
-  rw [spectralRadius_toReal_eq_perronRoot hA hA_nonneg]
-  rw [Module.End.hasEigenvector_iff]
-  refine ⟨?_, Pi.ne_zero_of_pos hv_pos⟩
-  rw [Module.End.mem_eigenspace_iff, Matrix.toLin'_apply]
-  rw [h_eig, hr_eq]
+  sorry
 
 omit [Nonempty n] [DecidableEq n] in
 /-- If an eigenvalue `μ` has a norm equal to the Perron root `r`, then the triangle inequality
