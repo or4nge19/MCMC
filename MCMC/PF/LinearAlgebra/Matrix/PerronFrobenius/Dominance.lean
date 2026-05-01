@@ -1,3 +1,4 @@
+import Mathlib.Analysis.Normed.Algebra.Spectrum
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Irreducible
 import MCMC.PF.Analysis.CstarAlgebra.Classes
 
@@ -7,6 +8,7 @@ open CollatzWielandt
 
 open Quiver
 open Matrix Complex
+open scoped ENNReal
 
 variable {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℝ}
 
@@ -110,6 +112,26 @@ lemma norm_eigenvector_is_eigenvector_of_triangle_eq
     _   = ‖lam‖ * ‖x i‖ := by rw [norm_mul]
     _   = ((‖lam‖ : ℝ) • fun i => ‖x i‖) i := by simp [smul_eq_mul]
 
+/-! ### Norm sums
+
+`Finset`/`Fintype` vanishing for sums of complex norms, and a consequence of global
+triangle equality. -/
+
+lemma norm_eq_zero_of_finset_sum_norm_eq_zero {ι : Type*} {s : Finset ι} (v : ι → ℂ)
+    (h : ∑ i ∈ s, ‖v i‖ = 0) (i : ι) (hi : i ∈ s) : ‖v i‖ = 0 :=
+  (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => norm_nonneg (v j))).1 h i hi
+
+lemma norm_eq_zero_of_fintype_sum_norm_eq_zero {ι : Type*} [Fintype ι] (v : ι → ℂ)
+    (h : ∑ i, ‖v i‖ = 0) (i : ι) : ‖v i‖ = 0 :=
+  norm_eq_zero_of_finset_sum_norm_eq_zero v h i (Finset.mem_univ i)
+
+/-- Triangle equality and one nonzero term imply the complex sum is nonzero. -/
+lemma Fintype.sum_ne_zero_of_triangle_norm_exists_nonzero {ι : Type*} [Fintype ι] {v : ι → ℂ}
+    (hτ : ‖∑ i, v i‖ = ∑ i, ‖v i‖) {j : ι} (hj : v j ≠ 0) : ∑ i, v i ≠ 0 := by
+  intro hsum0
+  have h_norms : ∑ i, ‖v i‖ = 0 := by rw [← hτ, hsum0, norm_zero]
+  exact hj <| norm_eq_zero.mp (norm_eq_zero_of_fintype_sum_norm_eq_zero v h_norms j)
+
 omit [DecidableEq n] in
 /--
 If equality holds in the triangle inequality for `∑ z_j`, then all non-zero `z_j`
@@ -128,17 +150,8 @@ lemma aligned_of_all_nonneg_re_im
     simpa [z, s] using h_sum_eq
   intro j hz_ne_zero
   have hs_ne_zero : s ≠ 0 := by
-    intro hs
-    have h_norms_zero : ∑ j, ‖z j‖ = 0 := by
-      rw [← h_z_sum, hs, norm_zero]
-    have h_all_zero : ∀ k, ‖z k‖ = 0 := by
-      intro k
-      exact eq_zero_of_sum_eq_zero
-              (fun k => ‖z k‖) (fun _ => norm_nonneg _) h_norms_zero k
-    have h_zj_zero : z j = 0 := by
-      apply norm_eq_zero.mp
-      simpa using h_all_zero j
-    exact hz_ne_zero h_zj_zero
+    simpa [s] using Fintype.sum_ne_zero_of_triangle_norm_exists_nonzero
+      (show ‖∑ j : n, z j‖ = ∑ j : n, ‖z j‖ by simpa [z, s] using h_z_sum) hz_ne_zero
   have h_align :=
     Complex.each_term_is_nonneg_real_multiple_of_sum_of_triangle_eq
       (s := Finset.univ)
@@ -148,10 +161,8 @@ lemma aligned_of_all_nonneg_re_im
       (by simpa [s] using h_z_sum)
       hs_ne_zero
   rcases h_align j (by simp) with ⟨c, hc_nonneg, hcz⟩
-  have hcz' : z j = (c : ℂ) * s := hcz
-  have hcz_smul : z j = c • s := by simpa [smul_eq_mul] using hcz'
   refine ⟨c, hc_nonneg, ?_⟩
-  simpa [z, s] using hcz_smul
+  simpa [z, s, smul_eq_mul] using hcz
 
 omit [DecidableEq n] in
 /-- For a non-negative matrix A, if the row sums are all equal to λ, then λ is an eigenvalue
@@ -197,7 +208,7 @@ theorem exists_eigenvector_of_mem_spectrum
 variable [Nonempty n]
 
 omit [Nonempty n] in
-private lemma sum_component_norms_eq_perron_power_norm
+lemma sum_component_norms_eq_perron_power_norm
     {A : Matrix n n ℝ} {x : n → ℂ}
     (h_x_abs_eig : A *ᵥ (fun i ↦ ‖x i‖) = (perronRoot A) • (fun i ↦ ‖x i‖))
     (k : ℕ) (m : n) (hAk_pos : ∀ i j, 0 < (A ^ k) i j) :
@@ -504,6 +515,51 @@ theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg :
     have h_bound := eigenvalue_abs_le_perron_root hA_irred hA_nonneg hμ_complex
     rwa [Complex.norm_ofReal] at h_bound
 
+/-- For an irreducible nonnegative real matrix, the spectral radius as an extended nonnegative real
+agrees with the norm of the Perron root. -/
+theorem spectralRadius_eq_nnnorm_perronRoot (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    spectralRadius ℝ A = ‖(perronRoot A : ℝ)‖₊ := by
+  let r := perronRoot A
+  have hr_nonneg : 0 ≤ r := perronRoot_nonneg hA_nonneg
+  have hr_mem : r ∈ spectrum ℝ A := perron_root_is_eigenvalue hA_irred hA_nonneg
+  have hLeAll := (perron_root_is_spectral_radius hA_irred hA_nonneg).2
+  refine le_antisymm ?_ ?_
+  · rw [spectralRadius]
+    refine iSup₂_le fun μ hμ => ?_
+    have hμ_le_r : ‖μ‖₊ ≤ ‖r‖₊ := by
+      rw [← NNReal.coe_le_coe]
+      rw [coe_nnnorm, coe_nnnorm, Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg hr_nonneg]
+      exact hLeAll μ hμ
+    exact ENNReal.coe_le_coe.mpr hμ_le_r
+  · dsimp only [spectralRadius]
+    simpa using le_biSup (fun μ : ℝ => (↑‖μ‖₊ : ℝ≥0∞)) hr_mem
+
+/-- The spectral radius of an irreducible nonnegative matrix is the Perron root as a real number. -/
+theorem spectralRadius_toReal_eq_perronRoot (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    (spectralRadius ℝ A).toReal = perronRoot A := by
+  rw [spectralRadius_eq_nnnorm_perronRoot hA_irred hA_nonneg]
+  simp [ENNReal.coe_toReal, Real.norm_eq_abs, abs_of_nonneg (perronRoot_nonneg hA_nonneg)]
+
+/--
+**Perron–Frobenius at the spectral radius:** an irreducible nonnegative matrix admits a strictly
+positive right eigenvector for `(spectralRadius ℝ A).toReal`, the common value of the spectral radius
+and the Perron root. (From https://lean-lang.org/eval/problems/irreducible_nonnegative_matrix_has_positive_eigenvector_at_spectralRadius/)
+-/
+theorem irreducible_nonnegative_matrix_has_positive_eigenvector_at_spectralRadius
+    (A : Matrix n n ℝ) (hA : A.IsIrreducible) :
+    ∃ v : n → ℝ,
+      Module.End.HasEigenvector (Matrix.toLin' A) (spectralRadius ℝ A).toReal v ∧
+      (∀ i, 0 < v i) := by
+  have hA_nonneg := hA.nonneg
+  obtain ⟨r, v, _hr_pos, hv_pos, h_eig, hr_eq⟩ :=
+    perron_root_eq_positive_eigenvalue hA hA_nonneg
+  refine ⟨v, ?_, hv_pos⟩
+  rw [spectralRadius_toReal_eq_perronRoot hA hA_nonneg]
+  rw [Module.End.hasEigenvector_iff]
+  refine ⟨?_, Pi.ne_zero_of_pos hv_pos⟩
+  rw [Module.End.mem_eigenspace_iff, Matrix.toLin'_apply]
+  simpa [← hr_eq] using h_eig
+
 omit [Nonempty n] [DecidableEq n] in
 /-- If an eigenvalue `μ` has a norm equal to the Perron root `r`, then the triangle inequality
 for the eigenvector equation holds with equality. -/
@@ -569,12 +625,21 @@ lemma sum_s_ne_zero_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrreduci
       h_x_abs_eig hx_abs_ne_zero i
   exact h_pos.ne' h_Ax_abs_i_zero
 
- omit [Fintype n] [Nonempty n] [DecidableEq n] in
+omit [Fintype n] [Nonempty n] [DecidableEq n] in
 /-- If `A i j > 0` and `x j ≠ 0`, then the term `(A i j : ℂ) * x j` is non-zero. -/
 lemma term_ne_zero_of_pos_entry {A : Matrix n n ℝ} {x : n → ℂ}
     {i j : n} (hAij_pos : 0 < A i j) (hxj_ne_zero : x j ≠ 0) :
     (A i j : ℂ) * x j ≠ 0 :=
   mul_ne_zero (ofReal_ne_zero.mpr hAij_pos.ne') hxj_ne_zero
+
+omit [DecidableEq n] in
+/-- From an irreducible Perron eigenvector equation on `‖x‖`, every component `‖x k‖` is positive. -/
+lemma norm_entries_pos_of_irreducible_abs_perron_eigenvector {x : n → ℂ}
+    (hA_irred : A.IsIrreducible)
+    (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot A) • (fun i => ‖x i‖))
+    (hx_ne_zero : x ≠ 0) : ∀ k, 0 < ‖x k‖ :=
+  eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig (fun _ => norm_nonneg _)
+    (normFun_complex_ne_zero_of_ne_zero hx_ne_zero)
 
 /-- For any row `k` of an irreducible matrix with triangle equality,
 all `x l` where `A k l > 0` have the same phase. -/
@@ -584,35 +649,22 @@ lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrre
     (h_triangle_eq : ∀ i, ‖∑ j, (A i j : ℂ) * x j‖ = ∑ j, ‖(A i j : ℂ) * x j‖)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot A) • (fun i => ‖x i‖)) :
     ∀ k l m, 0 < A k l → 0 < A k m → x l / ↑‖x l‖ = x m / ↑‖x m‖ := by
-  let x_abs := fun i => ‖x i‖
-  have hx_abs_nonneg : ∀ i, 0 ≤ x_abs i := fun i => norm_nonneg _
-  have hx_abs_ne_zero : x_abs ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
-  have h_x_abs_pos : ∀ k, 0 < x_abs k :=
-    eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig hx_abs_nonneg hx_abs_ne_zero
   intro k l m hAkl_pos hAkm_pos
   let z l' := (A k l' : ℂ) * x l'
   let s := ∑ l', z l'
   have hs_ne_zero : s ≠ 0 :=
     sum_s_ne_zero_of_triangle_eq hA_irred hA_nonneg h_triangle_eq h_x_abs_eig hx_ne_zero k
-  have h_aligned_with_sum : ∀ l', z l' ≠ 0 → z l' / ↑‖z l'‖ = s / ↑‖s‖ := by
-    intro l' hz
-    have h := Complex.aligned_of_triangle_eq rfl (h_triangle_eq k) hs_ne_zero l' (by simp) hz
-    exact h
-  have h_zl_ne_zero : z l ≠ 0 := by
-    apply term_ne_zero_of_pos_entry hAkl_pos
-    exact norm_pos_iff.mp (h_x_abs_pos l)
-  have h_zm_ne_zero : z m ≠ 0 := by
-    apply term_ne_zero_of_pos_entry hAkm_pos
-    exact norm_pos_iff.mp (h_x_abs_pos m)
-  have h_align_l := h_aligned_with_sum l h_zl_ne_zero
-  have h_align_m := h_aligned_with_sum m h_zm_ne_zero
-  have h_xl_aligned : x l / ↑‖x l‖ = z l / ↑‖z l‖ := by
-    have h_xl_ne_zero : x l ≠ 0 := norm_pos_iff.mp (h_x_abs_pos l)
-    apply (Complex.aligned_of_mul_of_real_pos hAkl_pos rfl h_xl_ne_zero).symm
-  have h_xm_aligned : x m / ↑‖x m‖ = z m / ↑‖z m‖ := by
-    have h_xm_ne_zero : x m ≠ 0 := norm_pos_iff.mp (h_x_abs_pos m)
-    apply (Complex.aligned_of_mul_of_real_pos hAkm_pos rfl h_xm_ne_zero).symm
-  rw [h_xl_aligned, h_xm_aligned, h_align_l, h_align_m]
+  have hx_pos := norm_entries_pos_of_irreducible_abs_perron_eigenvector hA_irred h_x_abs_eig hx_ne_zero
+  have h_sum_term (l' : n) (hl' : z l' ≠ 0) : z l' / ↑‖z l'‖ = s / ↑‖s‖ :=
+    Complex.aligned_of_triangle_eq rfl (h_triangle_eq k) hs_ne_zero l' (by simp) hl'
+  have h_zl_ne_zero : z l ≠ 0 := term_ne_zero_of_pos_entry hAkl_pos (norm_pos_iff.mp (hx_pos l))
+  have h_zm_ne_zero : z m ≠ 0 := term_ne_zero_of_pos_entry hAkm_pos (norm_pos_iff.mp (hx_pos m))
+  have hxl_nz : x l ≠ 0 := norm_pos_iff.mp (hx_pos l)
+  have hxm_nz : x m ≠ 0 := norm_pos_iff.mp (hx_pos m)
+  calc
+    x l / ↑‖x l‖ = z l / ↑‖z l‖ := (Complex.aligned_of_mul_of_real_pos hAkl_pos rfl hxl_nz).symm
+    _ = z m / ↑‖z m‖ := (h_sum_term l h_zl_ne_zero).trans (h_sum_term m h_zm_ne_zero).symm
+    _ = x m / ↑‖x m‖ := Complex.aligned_of_mul_of_real_pos hAkm_pos rfl hxm_nz
 
 omit [DecidableEq n] in
 /-- The reference phase has norm 1. -/
@@ -621,13 +673,9 @@ lemma reference_phase_norm_one {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot A) • (fun i => ‖x i‖))
     (j₀ : n) :
     ‖x j₀ / ↑‖x j₀‖‖ = 1 := by
-  let x_abs := fun i => ‖x i‖
-  have hx_abs_nonneg : ∀ i, 0 ≤ x_abs i := fun i => norm_nonneg _
-  have hx_abs_ne_zero : x_abs ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
-  have h_x_abs_pos : ∀ k, 0 < x_abs k :=
-    eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig hx_abs_nonneg hx_abs_ne_zero
+  have h_pos := norm_entries_pos_of_irreducible_abs_perron_eigenvector hA_irred h_x_abs_eig hx_ne_zero j₀
   simp_rw [norm_div, Complex.norm_ofReal, abs_of_nonneg (norm_nonneg _)]
-  exact div_self (h_x_abs_pos j₀).ne'
+  exact div_self h_pos.ne'
 
 /--
 All non-zero entries in the same row have aligned phases when triangle equality holds.
@@ -659,20 +707,10 @@ lemma IsIrreducible.exists_pos_entry_in_row {A : Matrix n n ℝ} (hA_irred : A.I
   have hic_pos : 0 < A i c := e
   exact (h_row_zero c).symm.not_lt hic_pos
 
-/-! ### Norm sums (triangle-equality layer)
+/-! ### Triangle equality and phases
 
-Small lemmas packaging `Finset.sum_eq_zero_iff_of_nonneg` for sums of complex norms. -/
+Further lemmas building on norm-sum layer (`aligned_term_of_triangle_eq`, etc.). -/
 
-lemma norm_eq_zero_of_finset_sum_norm_eq_zero {ι : Type*} {s : Finset ι} (v : ι → ℂ)
-    (h : ∑ i ∈ s, ‖v i‖ = 0) (i : ι) (hi : i ∈ s) : ‖v i‖ = 0 :=
-  (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => norm_nonneg (v j))).1 h i hi
-
-lemma norm_eq_zero_of_fintype_sum_norm_eq_zero {ι : Type*} [Fintype ι] (v : ι → ℂ)
-    (h : ∑ i, ‖v i‖ = 0) (i : ι) : ‖v i‖ = 0 :=
-  norm_eq_zero_of_finset_sum_norm_eq_zero v h i (Finset.mem_univ i)
-
-/-- If a complex number `z` is a positive real multiple of `w ≠ 0`, then `z` and `w` have the same
-  phase: `z / ‖z‖ = w / ‖w‖` (with `‖z‖` coerced to `ℂ` on the left-hand side). -/
 lemma phase_eq_of_positive_real_multiple {z w : ℂ} {c : ℝ}
     (h_c_pos : 0 < c) (h_eq : z = (c : ℂ) * w) (h_w_ne_zero : w ≠ 0) :
     z / ↑‖z‖ = w / ↑‖w‖ := by
@@ -702,6 +740,20 @@ lemma aligned_term_of_triangle_eq {ι : Type*} {s : Finset ι} {v : ι → ℂ}
   have h_aligned := Complex.aligned_of_triangle_eq rfl h_sum h_sum_ne_zero j h_j h_vj_ne_zero
   exact h_aligned
 
+/-- Nonzero terms in a global triangle equality share the phase of the total sum. -/
+lemma Complex.phase_eq_of_fintype_triangle_eq {ι : Type*} [Fintype ι] {v : ι → ℂ}
+    (hτ : ‖∑ i, v i‖ = ∑ i, ‖v i‖) {i j : ι} (hi : v i ≠ 0) (hj : v j ≠ 0) :
+    v i / ↑‖v i‖ = v j / ↑‖v j‖ :=
+    (aligned_term_of_triangle_eq hτ (Finset.mem_univ i) hi).trans
+    (aligned_term_of_triangle_eq hτ (Finset.mem_univ j) hj).symm
+
+/-- Common phase alignment identifies `(∑ i, v i) / ‖∑ i, v i‖` with the shared phase `c`. -/
+lemma Complex.norm_div_norm_eq_of_triangle_aligned {ι : Type*} [Fintype ι] {v : ι → ℂ} {c : ℂ}
+    (hτ : ‖∑ i, v i‖ = ∑ i, ‖v i‖)
+    (h_alg : ∀ i, v i ≠ 0 → v i / ↑‖v i‖ = c) {j : ι} (hj : v j ≠ 0) :
+    (∑ i, v i) / ↑‖∑ i, v i‖ = c :=
+  (aligned_term_of_triangle_eq hτ (Finset.mem_univ j) hj).symm.trans (h_alg j hj)
+
 /-- When triangle equality holds for a sum and all non-zero terms have the same phase factor,
     then the sum equals the sum of magnitudes times that common phase factor.
     This is a key property for proving eigenvalue relationships in the complex case. -/
@@ -714,24 +766,13 @@ lemma Complex.triangle_eq_sum_with_common_phase {ι : Type*} [Fintype ι]
   · simp only [h_all_zero, Finset.sum_const_zero, norm_zero, ofReal_zero, zero_mul]
   push_neg at h_all_zero
   rcases h_all_zero with ⟨j, hj_ne_zero⟩
-  have h_sum_ne_zero : ∑ i, v i ≠ 0 := by
-    intro h_sum_zero
-    have h_norms_sum : ∑ i, ‖v i‖ = 0 := by
-      rw [← h_triangle_eq, h_sum_zero, norm_zero]
-    have h_vj_zero : ‖v j‖ = 0 := norm_eq_zero_of_fintype_sum_norm_eq_zero v h_norms_sum j
-    exact hj_ne_zero (norm_eq_zero.mp h_vj_zero)
-  have h_sum_phase : (∑ i, v i) / ↑‖∑ i, v i‖ = c := by
-    have h_j_aligned := h_aligned j hj_ne_zero
-    have h_j_sum_aligned : v j / ↑‖v j‖ = (∑ i, v i) / ↑‖∑ i, v i‖ := by
-      apply Complex.aligned_of_triangle_eq rfl h_triangle_eq h_sum_ne_zero j (by simp) hj_ne_zero
-    rw [h_j_aligned] at h_j_sum_aligned
-    exact id (Eq.symm h_j_sum_aligned)
+  have hsum_ne := Fintype.sum_ne_zero_of_triangle_norm_exists_nonzero h_triangle_eq hj_ne_zero
+  have h_phase := Complex.norm_div_norm_eq_of_triangle_aligned h_triangle_eq h_aligned hj_ne_zero
   calc ∑ i, v i
-    = ‖∑ i, v i‖ * ((∑ i, v i) / ↑‖∑ i, v i‖) := by
-        rw [← mul_comm]
-        exact eq_mul_div_ofReal_norm_complex (∑ i, v i) (norm_ne_zero_iff.mpr h_sum_ne_zero)
-    _ = ‖∑ i, v i‖ * c := by rw [h_sum_phase]
-    _ = (∑ i, ‖v i‖ : ℂ) * c := by rw [h_triangle_eq]; rw [@ofReal_sum]
+      = ‖∑ i, v i‖ * ((∑ i, v i) / ↑‖∑ i, v i‖) := by
+          rw [← mul_comm]; exact eq_mul_div_ofReal_norm_complex _ (norm_ne_zero_iff.mpr hsum_ne)
+      _ = ‖∑ i, v i‖ * c := by rw [h_phase]
+      _ = (∑ i, ‖v i‖ : ℂ) * c := by rw [h_triangle_eq, ofReal_sum]
 
 omit [Fintype n] [Nonempty n] [DecidableEq n] in
 /-- Multiplication by a positive real scalar preserves the phase of a complex term. -/
@@ -935,23 +976,14 @@ lemma entries_share_phase_of_primitive
   obtain ⟨k, _hk_pos, hAk_pos⟩ := hA_prim.2
   intro i j
   obtain ⟨m⟩ := inferInstanceAs (Nonempty n)
-  have tri := triangle_equality_for_primitive_power
-              hA_prim hx_eig h_x_abs_eig h_norm_eq_r m k hAk_pos
-  have align_i :=
-    aligned_term_of_triangle_eq tri (Finset.mem_univ i)
-      (term_ne_zero_of_pos_entry (hAk_pos m i) (norm_pos_iff.mp (hx_abs_pos i)))
-  have align_j :=
-    aligned_term_of_triangle_eq tri (Finset.mem_univ j)
-      (term_ne_zero_of_pos_entry (hAk_pos m j) (norm_pos_iff.mp (hx_abs_pos j)))
-  have phase_i := component_phase_alignment (hAk_pos m i) (hx_abs_pos i)
-  have phase_j := component_phase_alignment (hAk_pos m j) (hx_abs_pos j)
-  trans ((A ^ k) m i : ℂ) * x i / ‖((A ^ k) m i : ℂ) * x i‖
-  · exact phase_i
-  trans (∑ l, ((A ^ k) m l : ℂ) * x l) / ‖∑ l, ((A ^ k) m l : ℂ) * x l‖
-  · exact align_i
-  trans ((A ^ k) m j : ℂ) * x j / ‖((A ^ k) m j : ℂ) * x j‖
-  · exact align_j.symm
-  · exact phase_j.symm
+  let v l := ((A ^ k) m l : ℂ) * x l
+  have hτ := triangle_equality_for_primitive_power hA_prim hx_eig h_x_abs_eig h_norm_eq_r m k hAk_pos
+  have hi := term_ne_zero_of_pos_entry (hAk_pos m i) (norm_pos_iff.mp (hx_abs_pos i))
+  have hj := term_ne_zero_of_pos_entry (hAk_pos m j) (norm_pos_iff.mp (hx_abs_pos j))
+  calc
+    x i / ‖x i‖ = v i / ‖v i‖ := component_phase_alignment (hAk_pos m i) (hx_abs_pos i)
+    _ = v j / ‖v j‖ := Complex.phase_eq_of_fintype_triangle_eq hτ hi hj
+    _ = x j / ‖x j‖ := (component_phase_alignment (hAk_pos m j) (hx_abs_pos j)).symm
 
 lemma eigenvector_phase_aligned_of_primitive
     {A : Matrix n n ℝ} (hA_prim : IsPrimitive A) (_ : ∀ i j, 0 ≤ A i j)
