@@ -171,36 +171,14 @@ lemma geometric_multiplicity_one_of_irreducible
 
 open scoped Matrix InnerProductSpace
 
-/-- An irreducible nonnegative matrix has a strictly positive left Perron eigenvector. -/
-lemma exists_positive_left_perron_eigenvector
-    (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    ∃ u : n → ℝ, (∀ i, 0 < u i) ∧ toLin' Aᵀ u = perronRoot A • u := by
-  have hAT_irred := Matrix.IsIrreducible.transpose hA_irred
-  obtain ⟨rT, u, hrT_pos, hu_pos, hu_eig_T_mat⟩ :=
-    exists_positive_eigenvector_of_irreducible hAT_irred
-  have hrT_eq_r : rT = perronRoot A := by
-    calc
-      rT = perronRoot Aᵀ :=
-        eigenvalue_is_perron_root_of_positive_eigenvector
-          hAT_irred (fun i j => hA_nonneg j i) hrT_pos hu_pos hu_eig_T_mat
-      _ = perronRoot A := (perronRoot_transpose_eq A hA_irred).symm
-  exact ⟨u, hu_pos, by simpa [hrT_eq_r, toLin'_apply] using hu_eig_T_mat⟩
-
 omit [Nonempty n] in
 /-- A left `r`-eigenvector annihilates the image of `A - rI` under the dot product. -/
 lemma dotProduct_sub_perron_id_apply_eq_zero
-    {r : ℝ} {u w : n → ℝ} (hu : toLin' Aᵀ u = r • u) :
+    {r : ℝ} {u w : n → ℝ} (hu : u ᵥ* A = r • u) :
     u ⬝ᵥ ((toLin' A - r • (LinearMap.id : (n → ℝ) →ₗ[ℝ] n → ℝ)) w) = 0 := by
-  let f := toLin' A
-  change u ⬝ᵥ (f w - r • w) = 0
-  calc
-    u ⬝ᵥ (f w - r • w) = u ⬝ᵥ (f w) - u ⬝ᵥ (r • w) := by
-      simp [dotProduct_sub]
-    _ = (toLin' Aᵀ u) ⬝ᵥ w - r * (u ⬝ᵥ w) := by
-      have h₁ : u ⬝ᵥ (f w) = (toLin' Aᵀ u) ⬝ᵥ w := by
-        simpa [f, toLin'_apply] using dotProduct_mulVec_comm u w A
-      simp [h₁, dotProduct_smul, smul_eq_mul]
-    _ = 0 := by simp [hu, smul_eq_mul]
+  change u ⬝ᵥ (A *ᵥ w - r • w) = 0
+  rw [dotProduct_sub, dotProduct_mulVec, hu, dotProduct_smul_left,
+    dotProduct_smul, smul_eq_mul, sub_self]
 
 /-- For an irreducible nonnegative matrix, the kernel of `(A - rI)^2` is already
 the Perron eigenspace. -/

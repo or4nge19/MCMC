@@ -280,6 +280,21 @@ theorem eigenvalue_is_perron_root_of_positive_eigenvector
     exact ⟨v, ⟨hv_nonneg, hv_ne_zero⟩, rfl⟩
   exact le_antisymm h_le h_ge
 
+/-- Positive right and left eigenvectors for a matrix have the same eigenvalue. -/
+lemma eigenvalue_eq_of_positive_right_left_eigenvectors
+    {A : Matrix n n ℝ} {r s : ℝ} {v u : n → ℝ}
+    (hv_pos : ∀ i, 0 < v i) (hu_pos : ∀ i, 0 < u i)
+    (hv_eig : A *ᵥ v = r • v) (hu_left_eig : u ᵥ* A = s • u) :
+    r = s := by
+  have h_dot_pos : 0 < u ⬝ᵥ v :=
+    dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos (fun i => (hv_pos i).le)
+      (Pi.ne_zero_of_pos hv_pos)
+  apply (mul_left_inj' h_dot_pos.ne').mp
+  calc
+    r * (u ⬝ᵥ v) = u ⬝ᵥ (A *ᵥ v) := by simp [hv_eig, dotProduct_smul, smul_eq_mul]
+    _ = (u ᵥ* A) ⬝ᵥ v := by simpa using dotProduct_mulVec u A v
+    _ = s * (u ⬝ᵥ v) := by simp [hu_left_eig, smul_dotProduct, smul_eq_mul]
+
 theorem perronRoot_transpose_eq
     (A : Matrix n n ℝ) (hA_irred : A.IsIrreducible) :
     perronRoot A = perronRoot Aᵀ := by
@@ -298,26 +313,35 @@ theorem perronRoot_transpose_eq
   have hu_eig_left : u ᵥ* A = r' • u := by
     have : Aᵀ *ᵥ u = r' • u := hu_eig_T
     simpa [vecMul_eq_mulVec_transpose] using this
-  have hv_nonneg : ∀ i, 0 ≤ v i := fun i ↦ (hv_pos i).le
-  have hv_ne_zero : v ≠ 0 := Pi.ne_zero_of_pos hv_pos
-  have h_dot_pos : 0 < u ⬝ᵥ v :=
-    dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hv_nonneg hv_ne_zero
-  have h1 : u ⬝ᵥ (A *ᵥ v) = r * (u ⬝ᵥ v) := by
-    simp only [hv_eig, dotProduct_smul, smul_eq_mul]
-  have h2 : (u ᵥ* A) ⬝ᵥ v = r' * (u ⬝ᵥ v) := by
-    simp only [hu_eig_left, smul_dotProduct, smul_eq_mul]
-  have h_eq : r * (u ⬝ᵥ v) = r' * (u ⬝ᵥ v) := by
-    calc
-      r * (u ⬝ᵥ v) = u ⬝ᵥ (A *ᵥ v) := (h1.symm)
-      _             = (u ᵥ* A) ⬝ᵥ v := by
-                        simpa using dotProduct_mulVec u A v
-      _             = r' * (u ⬝ᵥ v) := h2
   have hr_eq_r' : r = r' :=
-    (mul_left_inj' (ne_of_gt h_dot_pos)).mp h_eq
+    eigenvalue_eq_of_positive_right_left_eigenvectors hv_pos hu_pos hv_eig hu_eig_left
   calc
     perronRoot A   = r   := by symm; simpa using hr_eq_perron
     _                  = r'  := hr_eq_r'
     _                  = perronRoot Aᵀ := hr'_eq_perron
+
+/-- An irreducible nonnegative matrix has a positive left Perron eigenvector. -/
+lemma exists_positive_left_perron_eigenvector
+    (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    ∃ u : n → ℝ, (∀ i, 0 < u i) ∧ u ᵥ* A = perronRoot A • u := by
+  have hAT_irred : Aᵀ.IsIrreducible := Matrix.IsIrreducible.transpose hA_irred
+  obtain ⟨r, u, hr_pos, hu_pos, hu_eig⟩ := exists_positive_eigenvector_of_irreducible hAT_irred
+  have hr_eq : r = perronRoot A := by
+    calc
+      r = perronRoot Aᵀ :=
+        eigenvalue_is_perron_root_of_positive_eigenvector
+          hAT_irred (fun i j => hA_nonneg j i) hr_pos hu_pos hu_eig
+      _ = perronRoot A := (perronRoot_transpose_eq A hA_irred).symm
+  exact ⟨u, hu_pos, by simpa [hr_eq, vecMul_eq_mulVec_transpose] using hu_eig⟩
+
+omit [Nonempty n] [DecidableEq n] in
+/-- A positive left Perron eigenvector annihilates `A *ᵥ y - r • y` in the dot product. -/
+lemma dotProduct_left_perron_sub_eq_zero
+    {A : Matrix n n ℝ} {u y : n → ℝ}
+    (hu_left_eig : u ᵥ* A = perronRoot A • u) :
+    u ⬝ᵥ (A *ᵥ y - perronRoot A • y) = 0 := by
+  rw [dotProduct_sub, dotProduct_mulVec, hu_left_eig, dotProduct_smul_left,
+    dotProduct_smul, smul_eq_mul, sub_self]
 
 /--
 If for a non-negative, irreducible matrix `A`, there exists
@@ -332,26 +356,13 @@ lemma perron_root_le_of_subinvariant
     (hy_ne_zero : y ≠ 0)
     (h_subinv : A *ᵥ y ≤ s • y) :
     perronRoot A ≤ s := by
-  let A_T := Aᵀ
-  have hAT_irred : A_T.IsIrreducible := Matrix.IsIrreducible.transpose hA_irred
-  have hAT_nonneg : ∀ i j, 0 ≤ A_T i j := by simp [A_T]; exact fun i j ↦ hA_nonneg j i
-  obtain ⟨r, u, hr_pos, hu_pos, hu_eig⟩ :=
-    exists_positive_eigenvector_of_irreducible hAT_irred
-  have h_r_eq_perron : r = perronRoot A := by
-    calc
-      r = perronRoot Aᵀ := eigenvalue_is_perron_root_of_positive_eigenvector
-        hAT_irred hAT_nonneg hr_pos hu_pos hu_eig
-      _ = perronRoot A  := by rw [← perronRoot_transpose_eq A hA_irred]
-  have h_u_left_eig : u ᵥ* A = r • u := by
-    rwa [vecMul_eq_mulVec_transpose]
+  obtain ⟨u, hu_pos, hu_left_eig⟩ :=
+    exists_positive_left_perron_eigenvector hA_irred hA_nonneg
   have h_dot_le : u ⬝ᵥ (A *ᵥ y) ≤ u ⬝ᵥ (s • y) :=
     dotProduct_le_dotProduct_of_nonneg_left' (fun i => (hu_pos i).le) h_subinv
-  rw [dotProduct_mulVec, h_u_left_eig, dotProduct_smul_left, dotProduct_smul] at h_dot_le
+  rw [dotProduct_mulVec, hu_left_eig, dotProduct_smul_left, dotProduct_smul] at h_dot_le
   have h_dot_pos : 0 < u ⬝ᵥ y := dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hy_nonneg hy_ne_zero
-  have h_r_le_s : r ≤ s := by
-    have h_mul_le : r * (u ⬝ᵥ y) ≤ s * (u ⬝ᵥ y) := h_dot_le
-    exact le_of_mul_le_mul_right h_mul_le h_dot_pos
-  rwa [h_r_eq_perron] at h_r_le_s
+  exact le_of_mul_le_mul_right h_dot_le h_dot_pos
 
 /-- If equality holds in the subinvariance inequality `r • v ≤ A *ᵥ v` for the Perron root `r`,
     then `v` must be an eigenvector. -/
@@ -370,22 +381,13 @@ lemma subinvariant_equality_implies_eigenvector
   by_cases hz_zero : z = 0
   · simp only [sub_eq_zero, z] at hz_zero
     exact hz_zero
-  · obtain ⟨r_T, u, hr_T_pos, hu_pos, hu_eig⟩ :=
-      exists_positive_eigenvector_of_irreducible (Matrix.IsIrreducible.transpose hA_irred)
-    have h_u_left_eig : u ᵥ* A = r_T • u := by
-      rwa [vecMul_eq_mulVec_transpose]
-    have h_rT_eq_r : r_T = r := by
-      calc
-        r_T = perronRoot Aᵀ :=
-          eigenvalue_is_perron_root_of_positive_eigenvector
-            (Matrix.IsIrreducible.transpose hA_irred)
-            (fun i j ↦ hA_nonneg j i) hr_T_pos hu_pos hu_eig
-        _   = perronRoot A   := (perronRoot_transpose_eq A hA_irred).symm
-        _   = r                 := rfl
+  · obtain ⟨u, hu_pos, hu_left_eig⟩ :=
+      exists_positive_left_perron_eigenvector hA_irred hA_nonneg
     have h_dot_z : u ⬝ᵥ z = 0 := by
-      rw [dotProduct_sub, dotProduct_mulVec, h_u_left_eig, h_rT_eq_r, dotProduct_smul_left, dotProduct_smul, smul_eq_mul, sub_self]
-    have h_z_is_zero' := eq_zero_of_dotProduct_eq_zero_of_nonneg_of_pos hz_nonneg hu_pos (by rwa [dotProduct_comm])
-    contradiction
+      simpa [z, r] using dotProduct_left_perron_sub_eq_zero (u := u) (y := v) hu_left_eig
+    have h_z_eq_zero : z = 0 :=
+      eq_zero_of_dotProduct_eq_zero_of_nonneg_of_pos hz_nonneg hu_pos (by rwa [dotProduct_comm])
+    exact (hz_zero h_z_eq_zero).elim
 
 /--
 The value of the Collatz-Wielandt function for any non-negative, non-zero vector

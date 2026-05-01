@@ -385,30 +385,14 @@ lemma le_eigenvalue_of_left_eigenvector [DecidableEq n]
     {u : n → ℝ} (hu_pos : ∀ i, 0 < u i) (h_eig : u ᵥ* A = r • u)
     {w : n → ℝ} (hw_nonneg : ∀ i, 0 ≤ w i) (hw_ne_zero : w ≠ 0) :
     collatzWielandtFn A w ≤ r := by
-  have hu_nonneg : ∀ i, 0 ≤ u i := fun i ↦ (hu_pos i).le
   have h_le_mulVec := CollatzWielandt.le_mulVec hA_nonneg hw_nonneg hw_ne_zero
   have h_intermediate :
       u ⬝ᵥ ((collatzWielandtFn A w) • w) ≤ u ⬝ᵥ (A *ᵥ w) := by
-    unfold dotProduct
-    apply Finset.sum_le_sum
-    intro i _
-    have hi := h_le_mulVec i
-    simp [Pi.smul_apply, smul_eq_mul] at hi ⊢
-    exact mul_le_mul_of_nonneg_left hi (hu_nonneg i)
-  have h_right :
-      u ⬝ᵥ (A *ᵥ w) = r * (u ⬝ᵥ w) := by
-    have := dotProduct_mulVec u A w
-    calc
-      u ⬝ᵥ (A *ᵥ w) = (u ᵥ* A) ⬝ᵥ w := this
-      _ = (r • u) ⬝ᵥ w := by simp [h_eig]
-      _ = r * (u ⬝ᵥ w) := by simp [smul_eq_mul]
-  have h_left :
-      u ⬝ᵥ ((collatzWielandtFn A w) • w)
-        = (collatzWielandtFn A w) * (u ⬝ᵥ w) := by
-    simp [dotProduct_smul, smul_eq_mul]
+    exact dotProduct_le_dotProduct_of_nonneg_left' (fun i => (hu_pos i).le) h_le_mulVec
   have h_dot_le :
       (collatzWielandtFn A w) * (u ⬝ᵥ w) ≤ r * (u ⬝ᵥ w) := by
-    simpa [h_left, h_right] using h_intermediate
+    simpa [dotProduct_mulVec, h_eig, dotProduct_smul_left, dotProduct_smul,
+      smul_eq_mul] using h_intermediate
   have h_dot_pos : 0 < u ⬝ᵥ w :=
     dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hw_nonneg hw_ne_zero
   exact le_of_mul_le_mul_right h_dot_le h_dot_pos
@@ -582,33 +566,55 @@ theorem eq_perron_root_of_positive_eigenvector [DecidableEq n]
   exact le_antisymm h₁ h₂
 
 omit [Nonempty n] in
+/-- A nonnegative nonzero vector has positive coordinate sum. -/
+lemma sum_pos_of_nonneg_ne_zero [DecidableEq n] {x : n → ℝ}
+    (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
+    0 < ∑ i, x i := by
+  obtain ⟨i, hi⟩ := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
+  exact Finset.sum_pos' (fun j _ => hx_nonneg j) ⟨i, Finset.mem_univ _, hi⟩
+
+omit [Nonempty n] in
+/-- Normalize a nonnegative nonzero vector into the standard simplex. -/
+lemma inv_sum_smul_mem_stdSimplex_of_nonneg_ne_zero [DecidableEq n] {x : n → ℝ}
+    (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
+    (∑ i, x i)⁻¹ • x ∈ stdSimplex ℝ n := by
+  have hs_pos := sum_pos_of_nonneg_ne_zero hx_nonneg hx_ne_zero
+  constructor
+  · intro i
+    exact mul_nonneg (inv_nonneg.mpr hs_pos.le) (hx_nonneg i)
+  · simp only [Pi.smul_apply, smul_eq_mul, ← Finset.mul_sum]
+    exact inv_mul_cancel₀ hs_pos.ne'
+
+omit [Nonempty n] in
+/-- Collatz-Wielandt is invariant under normalization by the coordinate sum. -/
+lemma collatzWielandtFn_inv_sum_smul_of_nonneg_ne_zero [DecidableEq n] {x : n → ℝ}
+    (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
+    collatzWielandtFn A ((∑ i, x i)⁻¹ • x) = collatzWielandtFn A x :=
+  collatzWielandtFn_smul (inv_pos.mpr (sum_pos_of_nonneg_ne_zero hx_nonneg hx_ne_zero))
+    hx_nonneg hx_ne_zero
+
+omit [Nonempty n] in
 private lemma le_of_isMaxOn_stdSimplex [DecidableEq n] {v : n → ℝ}
     (hv_max : IsMaxOn (collatzWielandtFn A) (stdSimplex ℝ n) v)
     {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
     collatzWielandtFn A x ≤ collatzWielandtFn A v := by
-  set s : ℝ := ∑ i, x i with hs
-  have hs_pos : 0 < s := by
-    obtain ⟨i, hi⟩ := exists_pos_of_ne_zero hx_nonneg hx_ne_zero
-    have : 0 < ∑ i, x i :=
-      Finset.sum_pos' (fun j _ => hx_nonneg j) ⟨i, Finset.mem_univ _, hi⟩
-    simpa [hs] using this
-  set x' : n → ℝ := s⁻¹ • x with hx'
-  have hx'_in_simplex : x' ∈ stdSimplex ℝ n := by
-    constructor
-    · intro i
-      have hs_inv_nonneg : 0 ≤ s⁻¹ := inv_nonneg.mpr hs_pos.le
-      simpa [hx'] using mul_nonneg hs_inv_nonneg (hx_nonneg i)
-    · have : (∑ i, x' i) = 1 := by
-        simp only [hx', Pi.smul_apply, smul_eq_mul, ← Finset.mul_sum, ← hs]
-        exact inv_mul_cancel₀ (ne_of_gt hs_pos)
-      exact this
-  have h_max : collatzWielandtFn A x' ≤ collatzWielandtFn A v := hv_max hx'_in_simplex
-  have h_scale : collatzWielandtFn A x = collatzWielandtFn A x' := by
-    have h_smul := CollatzWielandt.collatzWielandtFn_smul (A := A) (c := s⁻¹)
-      (inv_pos.mpr hs_pos) (x := x) hx_nonneg hx_ne_zero
-    rw [← hx'] at h_smul
-    exact h_smul.symm
-  rwa [h_scale]
+  have h_max := hv_max (inv_sum_smul_mem_stdSimplex_of_nonneg_ne_zero hx_nonneg hx_ne_zero)
+  simpa [collatzWielandtFn_inv_sum_smul_of_nonneg_ne_zero (A := A) hx_nonneg hx_ne_zero] using h_max
+
+/-- A simplex maximizer realizes the Perron root. -/
+lemma perronRoot_eq_of_isMaxOn_stdSimplex [DecidableEq n]
+    (hA_nonneg : ∀ i j, 0 ≤ A i j) {v : n → ℝ}
+    (hv_mem : v ∈ stdSimplex ℝ n)
+    (hv_max : IsMaxOn (collatzWielandtFn A) (stdSimplex ℝ n) v) :
+    perronRoot A = collatzWielandtFn A v := by
+  apply le_antisymm
+  · dsimp [perronRoot]
+    apply csSup_le set_nonempty
+    rintro _ ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
+    exact le_of_isMaxOn_stdSimplex (A := A) hv_max hx_nonneg hx_ne_zero
+  · dsimp [perronRoot]
+    exact le_csSup (bddAbove A hA_nonneg)
+      (Set.mem_image_of_mem _ ⟨hv_mem.1, ne_zero_of_mem_stdSimplex hv_mem⟩)
 
 omit [Fintype n] [Nonempty n] in
 lemma maximizer_satisfies_le_mulVec [Fintype n] [Nonempty n] [DecidableEq n]
@@ -617,27 +623,9 @@ lemma maximizer_satisfies_le_mulVec [Fintype n] [Nonempty n] [DecidableEq n]
     ∃ v ∈ stdSimplex ℝ n, r • v ≤ A *ᵥ v := by
   let r := perronRoot A
   obtain ⟨v, v_in_simplex, v_is_max⟩ := exists_maximizer (A := A)
-  have v_ne_zero : v ≠ 0 := by
-    intro hv
-    have h_sum_one : (∑ i, v i) = 1 := v_in_simplex.2
-    rw [hv] at h_sum_one
-    simp only [Pi.zero_apply, Finset.sum_const_zero] at h_sum_one
-    norm_num at h_sum_one
-  have v_nonneg : ∀ i, 0 ≤ v i := v_in_simplex.1
-  have r_eq : (perronRoot A) = collatzWielandtFn A v := by
-    dsimp [perronRoot]
-    apply le_antisymm
-    ·
-      apply csSup_le set_nonempty
-      rintro _ ⟨x, ⟨hx_nonneg, hx_ne_zero⟩, rfl⟩
-      exact le_of_isMaxOn_stdSimplex (A := A) v_is_max hx_nonneg hx_ne_zero
-    ·
-      apply le_csSup (bddAbove A hA_nonneg)
-      exact Set.mem_image_of_mem _ ⟨v_nonneg, v_ne_zero⟩
+  have r_eq := perronRoot_eq_of_isMaxOn_stdSimplex hA_nonneg v_in_simplex v_is_max
   have h_le : (perronRoot A) • v ≤ A *ᵥ v := by
-    have : (collatzWielandtFn A v) • v ≤ A *ᵥ v :=
-      le_mulVec hA_nonneg v_nonneg v_ne_zero
-    simpa [r_eq] using this
+    simpa [r_eq] using le_mulVec hA_nonneg v_in_simplex.1 (ne_zero_of_mem_stdSimplex v_in_simplex)
   refine ⟨v, v_in_simplex, ?_⟩
   simpa [r] using h_le
 

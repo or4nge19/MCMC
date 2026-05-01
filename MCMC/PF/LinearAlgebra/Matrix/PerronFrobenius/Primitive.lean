@@ -23,25 +23,17 @@ open scoped Convex Pointwise
 
 variable {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ}
 
-omit [DecidableEq n] in
 /-- Normalizing a strictly positive vector by its sum gives a point of the standard simplex. -/
 lemma inv_sum_smul_mem_stdSimplex_of_pos {x : n → ℝ} (hx_pos : ∀ i, 0 < x i) :
-    (∑ i, x i)⁻¹ • x ∈ stdSimplex ℝ n := by
-  refine ⟨fun i => mul_nonneg (inv_nonneg.mpr <| sum_nonneg fun j _ => (hx_pos j).le)
-    (hx_pos i).le, ?_⟩
-  have hsum_pos : 0 < ∑ i, x i := Finset.sum_pos (fun i _ => hx_pos i) Finset.univ_nonempty
-  calc
-    ∑ i, ((∑ j, x j)⁻¹ • x) i = (∑ j, x j)⁻¹ * ∑ i, x i := by
-      simp [smul_eq_mul, Finset.mul_sum]
-    _ = 1 := inv_mul_cancel₀ hsum_pos.ne'
+    (∑ i, x i)⁻¹ • x ∈ stdSimplex ℝ n :=
+  CollatzWielandt.inv_sum_smul_mem_stdSimplex_of_nonneg_ne_zero
+    (fun i => (hx_pos i).le) (Pi.ne_zero_of_pos hx_pos)
 
 /-- Collatz-Wielandt is unchanged by normalizing a strictly positive vector by its sum. -/
 lemma collatzWielandtFn_inv_sum_smul_of_pos (A : Matrix n n ℝ)
     {x : n → ℝ} (hx_pos : ∀ i, 0 < x i) :
-    collatzWielandtFn A ((∑ i, x i)⁻¹ • x) = collatzWielandtFn A x := by
-  have hsum_pos : 0 < ∑ i, x i := Finset.sum_pos (fun i _ => hx_pos i) Finset.univ_nonempty
-  exact CollatzWielandt.collatzWielandtFn_smul
-    (A := A) (c := (∑ i, x i)⁻¹) (inv_pos.mpr hsum_pos)
+    collatzWielandtFn A ((∑ i, x i)⁻¹ • x) = collatzWielandtFn A x :=
+  CollatzWielandt.collatzWielandtFn_inv_sum_smul_of_nonneg_ne_zero
     (fun i => (hx_pos i).le) (Pi.ne_zero_of_pos hx_pos)
 
 omit [DecidableEq n] in
