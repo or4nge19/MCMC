@@ -524,7 +524,22 @@ theorem spectralRadius_eq_nnnorm_perronRoot (hA_irred : A.IsIrreducible) (hA_non
 /-- The spectral radius of an irreducible nonnegative matrix is the Perron root as a real number. -/
 theorem spectralRadius_toReal_eq_perronRoot (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     (spectralRadius ℝ A).toReal = perronRoot A := by
-  sorry
+  obtain ⟨hr_spec, hr_bound⟩ := perron_root_is_spectral_radius hA_irred hA_nonneg
+  have hr_nonneg : 0 ≤ perronRoot A := (perronRoot_pos_of_irreducible hA_irred hA_nonneg).le
+  have h_eq : spectralRadius ℝ A = ‖perronRoot A‖₊ := by
+    apply le_antisymm
+    · apply iSup₂_le
+      intro μ hμ
+      simp only [ENNReal.coe_le_coe]
+      have h_abs_le : |μ| ≤ perronRoot A := hr_bound μ hμ
+      calc ‖μ‖₊ = ‖|μ|‖₊ := (Real.nnnorm_abs μ).symm
+           _ = |μ|.toNNReal := (Real.toNNReal_eq_nnnorm_of_nonneg (abs_nonneg μ)).symm
+           _ ≤ (perronRoot A).toNNReal := Real.toNNReal_le_toNNReal h_abs_le
+           _ = ‖perronRoot A‖₊ := Real.toNNReal_eq_nnnorm_of_nonneg hr_nonneg
+    · apply le_iSup₂_of_le (perronRoot A) hr_spec
+      rfl
+  rw [h_eq]
+  simp [Real.norm_eq_abs, abs_of_nonneg hr_nonneg]
 
 /--
 **Perron–Frobenius at the spectral radius:** an irreducible nonnegative matrix admits a strictly
