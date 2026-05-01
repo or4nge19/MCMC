@@ -647,12 +647,9 @@ lemma IsIrreducible.exists_pos_entry_in_row {A : Matrix n n ℝ} (hA_irred : A.I
     ∃ j, 0 < A i j := by
   by_contra h_no_pos
   push_neg at h_no_pos
-  have h_row_zero : ∀ j, A i j = 0 := by
-    intro j
-    have h_nonneg := hA_irred.nonneg i j
-    have h_not_pos := h_no_pos j
-    exact le_antisymm (h_no_pos j) h_nonneg
-  obtain ⟨i₀, j₀, hA_pos⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
+  have h_row_zero : ∀ j, A i j = 0 := fun j =>
+    le_antisymm (h_no_pos j) (hA_irred.nonneg i j)
+  obtain ⟨_, j₀, _⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
   letI : Quiver n := toQuiver A
   have hconn := hA_irred.connected i j₀
   obtain ⟨p, hp_pos⟩ := hconn
