@@ -7,6 +7,101 @@ open Finset CollatzWielandt LinearMap
 variable {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
 variable {A : Matrix n n ℝ}
 
+omit [Nonempty n] [DecidableEq n] in
+/-- A real eigenvector for the Perron root gives a subinvariant inequality for its absolute values. -/
+lemma perronRoot_smul_abs_le_mulVec_abs_of_eigenvector
+    (hA_nonneg : ∀ i j, 0 ≤ A i j) (hr_pos : 0 < perronRoot A)
+    {w : n → ℝ} (hw_eig : A *ᵥ w = perronRoot A • w) :
+    perronRoot A • (fun i => |w i|) ≤ A *ᵥ (fun i => |w i|) := by
+  intro i
+  calc
+    (perronRoot A • fun i => |w i|) i = perronRoot A * |w i| := by simp
+    _ = |perronRoot A * w i| := by rw [abs_mul, abs_of_pos hr_pos]
+    _ = |(A *ᵥ w) i| := by rw [hw_eig]; simp
+    _ = |∑ j, A i j * w j| := by simp [mulVec_apply]
+    _ ≤ ∑ j, |A i j * w j| := by
+      simpa using Finset.abs_sum_le_sum_abs (s := (Finset.univ : Finset n))
+        (f := fun j => A i j * w j)
+    _ = ∑ j, A i j * |w j| := by
+      simp_rw [abs_mul, abs_of_nonneg (hA_nonneg i _)]
+    _ = (A *ᵥ (fun i => |w i|)) i := by simp [mulVec_apply]
+
+/-- For an irreducible matrix, absolute values of a nonzero Perron eigenvector are positive
+and still form a Perron eigenvector. -/
+lemma abs_perron_eigenvector_eq_and_pos_of_irreducible
+    (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j)
+    (hr_pos : 0 < perronRoot A) {w : n → ℝ}
+    (hw_eig : A *ᵥ w = perronRoot A • w) (hw_ne_zero : w ≠ 0) :
+    A *ᵥ (fun i => |w i|) = perronRoot A • (fun i => |w i|) ∧
+      ∀ i, 0 < |w i| := by
+  have hw_abs_nonneg : ∀ i, 0 ≤ |w i| := fun _ => abs_nonneg _
+  have hw_abs_ne_zero : (fun i => |w i|) ≠ 0 := by
+    contrapose! hw_ne_zero
+    ext i
+    exact abs_eq_zero.mp (congr_fun hw_ne_zero i)
+  have hw_abs_eig :=
+    subinvariant_equality_implies_eigenvector hA_irred hA_nonneg
+      hw_abs_nonneg hw_abs_ne_zero
+      (perronRoot_smul_abs_le_mulVec_abs_of_eigenvector hA_nonneg hr_pos hw_eig)
+  exact ⟨hw_abs_eig,
+    eigenvector_is_positive_of_irreducible hA_irred hw_abs_eig hw_abs_nonneg hw_abs_ne_zero⟩
+
+omit [Fintype n] [Nonempty n] [DecidableEq n] in
+/-- A real vector whose complexification has a global phase is a real scalar multiple
+of its vector of absolute values. -/
+lemma real_eq_re_smul_abs_of_complex_phase
+    {w : n → ℝ} {c : ℂ}
+    (h_phase : (fun i => (w i : ℂ)) = fun i => c * ‖(w i : ℂ)‖) :
+    w = c.re • fun i => |w i| := by
+  ext j
+  have h := congrArg Complex.re (congr_fun h_phase j)
+  have : w j = c.re * ‖(w j : ℂ)‖ := by
+    simpa [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im] using h
+  simpa [Pi.smul_apply, Complex.norm_ofReal, smul_eq_mul] using this
+
+/-- Every nonzero Perron eigenvector lies in the line spanned by a fixed positive Perron eigenvector. -/
+lemma perron_eigenvector_mem_span_of_positive_eigenvector
+    (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j)
+    (hr_pos : 0 < perronRoot A) {v w : n → ℝ}
+    (hv_pos : ∀ i, 0 < v i) (hv_eig : A *ᵥ v = perronRoot A • v)
+    (hw_eig : A *ᵥ w = perronRoot A • w) (hw_ne_zero : w ≠ 0) :
+    w ∈ Submodule.span ℝ {v} := by
+  let w_abs := fun i => |w i|
+  obtain ⟨hw_abs_eig, hw_abs_pos⟩ :=
+    abs_perron_eigenvector_eq_and_pos_of_irreducible hA_irred hA_nonneg hr_pos hw_eig hw_ne_zero
+  obtain ⟨c_abs, _, hc_abs_eq⟩ :=
+    uniqueness_of_positive_eigenvector_gen hA_irred hr_pos hw_abs_pos hv_pos hw_abs_eig hv_eig
+  let B := 1 + A
+  let rB := perronRoot A + 1
+  have hB_nonneg : ∀ i j, 0 ≤ B i j := fun i j => Matrix.one_add_apply_nonneg hA_nonneg i j
+  have hB_irred := Matrix.Irreducible.add_one (A := A) hA_irred
+  have hB_prim : IsPrimitive B := by simpa [B] using one_add_isPrimitive_of_irreducible hA_irred
+  have hBw_eig : toLin' B w = rB • w := by
+    have hw_eig_lin : toLin' A w = perronRoot A • w := by simpa [toLin'_apply] using hw_eig
+    simpa [B, rB] using toLin'_one_add_eigenvector hw_eig_lin
+  have hw_abs_eig_B : toLin' B w_abs = rB • w_abs := by
+    have hw_abs_eig_lin : toLin' A w_abs = perronRoot A • w_abs := by
+      simpa [toLin'_apply, w_abs] using hw_abs_eig
+    simpa [B, rB] using toLin'_one_add_eigenvector hw_abs_eig_lin
+  let wc : n → ℂ := fun i => (w i : ℂ)
+  have hwc_eig_B : (B.map (algebraMap ℝ ℂ)) *ᵥ wc = (rB : ℂ) • wc := by
+    simpa [wc] using mulVec_map_complex_of_real_eigenvector hBw_eig
+  have hrB_eq_perronB : rB = perronRoot B :=
+    eigenvalue_is_perron_root_of_positive_eigenvector hB_irred hB_nonneg (by linarith)
+      (show ∀ i, 0 < w_abs i from hw_abs_pos) (by simpa [toLin'_apply] using hw_abs_eig_B)
+  have h_norm_eig : (B *ᵥ fun i => ‖wc i‖) = perronRoot B • (fun i => ‖wc i‖) := by
+    simpa [toLin'_apply, hrB_eq_perronB, wc, w_abs, Complex.norm_ofReal] using hw_abs_eig_B
+  obtain ⟨c, _, hc_eq⟩ := eigenvector_phase_aligned_of_primitive hB_prim hB_nonneg
+    (by simpa [hrB_eq_perronB] using perronRoot_nonneg hB_nonneg) hwc_eig_B h_norm_eig
+    (by
+      intro i
+      simpa [wc, w_abs, Complex.norm_ofReal] using hw_abs_pos i)
+  have hw_eq : w = c.re • w_abs := by
+    simpa [w_abs] using real_eq_re_smul_abs_of_complex_phase (by simpa [wc] using hc_eq)
+  have hc_abs_eq_wabs : w_abs = c_abs • v := by simpa [w_abs] using hc_abs_eq
+  rw [hw_eq, hc_abs_eq_wabs, smul_smul]
+  exact Submodule.mem_span_singleton.mpr ⟨c.re * c_abs, rfl⟩
+
 /--
 Helper lemma: If ker(f^2) = ker(f), then ker(f^k) = ker(f) for all k ≥ 1.
 This shows that the ascent of the kernel stabilizes at 1.
@@ -57,39 +152,21 @@ lemma geometric_multiplicity_one_of_irreducible
     · subst hw_zero
       exact Submodule.zero_mem _
     · let w_abs := fun i => |w i|
-      have hw_abs_nonneg : ∀ i, 0 ≤ w_abs i := fun i => abs_nonneg _
-      have hw_abs_ne_zero : w_abs ≠ 0 := by
-        contrapose! hw_zero
-        ext i
-        exact abs_eq_zero.mp (congr_fun hw_zero i)
-      have h_subinv : r • w_abs ≤ f w_abs := by
-        intro i
-        calc
-          (r • w_abs) i
-              = r * |w i| := by simp [w_abs]
-          _ = |r * w i| := by rw [abs_mul, abs_of_pos hr_pos]
-          _ = |(f w) i| := by rw [hw_eig]; simp
-          _ = |∑ j, A i j * w j| := by simp [f, toLin'_apply, mulVec_apply]
-          _ ≤ ∑ j, |A i j * w j| := by
-            simpa using
-              (Finset.abs_sum_le_sum_abs (s := (Finset.univ : Finset n))
-                (f := fun j => A i j * w j))
-          _ = ∑ j, A i j * |w j| := by
-            simp_rw [abs_mul, abs_of_nonneg (hA_nonneg i _)]
-          _ = (f w_abs) i := by simp [f, toLin'_apply, mulVec_apply, w_abs]
-      have hw_abs_eig : f w_abs = r • w_abs :=
-        subinvariant_equality_implies_eigenvector hA_irred hA_nonneg hw_abs_nonneg hw_abs_ne_zero h_subinv
-      have hw_abs_pos : ∀ i, 0 < w_abs i :=
-          eigenvector_is_positive_of_irreducible hA_irred hw_abs_eig hw_abs_nonneg hw_abs_ne_zero
+      have hAw_eig : A *ᵥ w = r • w := by simpa [f, toLin'_apply] using hw_eig
+      obtain ⟨hw_abs_eig_mat, hw_abs_pos⟩ :=
+        abs_perron_eigenvector_eq_and_pos_of_irreducible hA_irred hA_nonneg
+          hr_pos hAw_eig hw_zero
+      have hw_abs_eig : f w_abs = r • w_abs := by
+        simpa [f, toLin'_apply, w_abs] using hw_abs_eig_mat
       obtain ⟨c_abs, hc_abs_pos, hc_abs_eq⟩ :=
         uniqueness_of_positive_eigenvector_gen hA_irred hr_pos hw_abs_pos hv_pos hw_abs_eig hv_eig_f
+      have hc_abs_eq_wabs : w_abs = c_abs • v := by simpa [w_abs] using hc_abs_eq
       let B := 1 + A
       have hB_nonneg : ∀ i j, 0 ≤ B i j :=
         fun i j => Matrix.one_add_apply_nonneg hA_nonneg i j
       have hB_irred := Matrix.Irreducible.add_one (A := A) hA_irred
-      have hB_diag_pos : ∀ i, 0 < B i i :=
-        fun i => Matrix.one_add_diag_pos (fun j => hA_nonneg j j) i
-      have hB_prim : IsPrimitive B := IsPrimitive.of_irreducible_pos_diagonal B hB_nonneg hB_irred hB_diag_pos
+      have hB_prim : IsPrimitive B := by
+        simpa [B] using one_add_isPrimitive_of_irreducible hA_irred
       let rB := r + 1
       have hrB_pos : 0 < rB := by linarith [hr_pos]
       have hBw_eig : toLin' B w = rB • w := by
@@ -114,23 +191,9 @@ lemma geometric_multiplicity_one_of_irreducible
         hwc_eig_B
         h_norm_eig
         h_norm_pos
-      obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
-      have hc_eq_i := congr_fun hc_eq i
-      simp only [wc] at hc_eq_i
-      have hc_real : c.im = 0 := by
-        have h := congrArg Complex.im hc_eq_i
-        have h' : c.im * w_abs i = 0 := by
-          have : 0 = (c * (w_abs i : ℂ)).im := by
-            simpa [wc, w_abs, Complex.ofReal_mul, Complex.ofReal_im, Complex.ofReal_re] using h.symm
-          simpa [Complex.mul_im] using this
-        exact (mul_eq_zero.mp h').resolve_right (ne_of_gt (hw_abs_pos i))
       have hw_eq_c_wabs : w = c.re • w_abs := by
-        ext j
-        have h := congrArg Complex.re (congr_fun hc_eq j)
-        have : w j = c.re * ‖wc j‖ := by
-          simpa [wc, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im] using h
-        simpa [Pi.smul_apply, w_abs, wc, Complex.norm_ofReal, smul_eq_mul] using this
-      rw [hw_eq_c_wabs, hc_abs_eq, smul_smul]
+        simpa [w_abs] using real_eq_re_smul_abs_of_complex_phase (by simpa [wc] using hc_eq)
+      rw [hw_eq_c_wabs, hc_abs_eq_wabs, smul_smul]
       exact Submodule.mem_span_singleton.mpr ⟨c.re * c_abs, rfl⟩
   · intro hw
     rcases Submodule.mem_span_singleton.mp hw with ⟨c, rfl⟩
