@@ -8,7 +8,7 @@ This file starts a Chapter 2 style formalization of Seneta's treatment of Leonti
 
 The file deliberately reuses mathlib's global `resolvent` on the matrix algebra rather than
 introducing a second matrix-specific definition. The Perron-Frobenius input is
-`CollatzWielandt.perronRoot_alt`.
+`CollatzWielandt.perronRoot`.
 -/
 
 namespace Matrix
@@ -59,7 +59,7 @@ theorem exists_unique_pos_solution_iff_perronRoot_lt
     {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) {s : ℝ} :
     (∀ c : n → ℝ, (∀ i, 0 < c i) →
       ∃! x : n → ℝ, (∀ i, 0 < x i) ∧ (s • (1 : Matrix n n ℝ) - A) *ᵥ x = c) ↔
-      perronRoot_alt A < s := by
+      perronRoot A < s := by
   sorry
 
 /--
@@ -69,27 +69,27 @@ This is the matrix-valued Neumann positivity statement.
 theorem resolvent_nonneg_of_perronRoot_lt
     [Nonempty n]
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) {s : ℝ}
-    (hs : perronRoot_alt A < s) :
+    (hs : perronRoot A < s) :
     ∀ i j, 0 ≤ resolvent A s i j := by
   sorry
 
 /--
 For an irreducible nonnegative matrix, entrywise positivity of the resolvent exactly detects the
-strict inequality `perronRoot_alt A < s`.
+strict inequality `perronRoot A < s`.
 -/
 theorem resolvent_pos_iff_perronRoot_lt
     [Nonempty n]
     {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) {s : ℝ} :
-    (∀ i j, 0 < resolvent A s i j) ↔ perronRoot_alt A < s := by
+    (∀ i j, 0 < resolvent A s i j) ↔ perronRoot A < s := by
   sorry
 
 /--
-Neumann-series expansion of the resolvent in the productive regime `perronRoot_alt A < s`.
+Neumann-series expansion of the resolvent in the productive regime `perronRoot A < s`.
 -/
 theorem tendsto_resolventPartialSums
     [Nonempty n]
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) {s : ℝ}
-    (hs : perronRoot_alt A < s) :
+    (hs : perronRoot A < s) :
     Tendsto (fun N : ℕ => Matrix.resolventPartialSums A s N) atTop
       (nhds (resolvent A s)) := by
   sorry
@@ -101,7 +101,7 @@ the strictly productive regime.
 theorem perronRoot_lt_iff_principalMinors_pos
     {m : ℕ} [Nonempty (Fin m)]
     {A : Matrix (Fin m) (Fin m) ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) {s : ℝ} :
-    perronRoot_alt A < s ↔
+    perronRoot A < s ↔
       ∀ {k : ℕ} (e : Fin k ↪ Fin m),
         0 < Matrix.principalMinor (s • (1 : Matrix (Fin m) (Fin m) ℝ) - A) e := by
   sorry
@@ -113,7 +113,7 @@ minors of `s I - A`.
 theorem perronRoot_lt_iff_leadingPrincipalMinors_pos
     {m : ℕ} [Nonempty (Fin m)]
     {A : Matrix (Fin m) (Fin m) ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) {s : ℝ} :
-    perronRoot_alt A < s ↔
+    perronRoot A < s ↔
       ∀ {k : ℕ} (hk : k ≤ m),
         0 < Matrix.leadingPrincipalMinor (s • (1 : Matrix (Fin m) (Fin m) ℝ) - A) hk := by
   sorry

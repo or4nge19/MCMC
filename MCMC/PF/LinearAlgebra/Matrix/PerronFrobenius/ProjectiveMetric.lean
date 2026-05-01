@@ -92,28 +92,19 @@ noncomputable def birkhoffContraction (A : Matrix n n ℝ) : ℝ :=
 def IsScrambling (A : Matrix n n ℝ) : Prop :=
   ∀ i j, ∃ s, 0 < A i s ∧ 0 < A j s
 
+omit [DecidableEq n] in
 /-- Nonnegativity of the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_nonneg
     (x y : PositiveVec n) :
     0 ≤ Matrix.projectiveDist x y := by
-  unfold projectiveDist
-  have hpos : ∀ i, 0 < x.1 i / y.1 i := fun i => div_pos (x.2 i) (y.2 i)
-  let f := fun i => x.1 i / y.1 i
-  have hinf_pos : 0 < Finset.univ.inf' Finset.univ_nonempty f := by
-    obtain ⟨i, _, hi_eq⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty f
-    rw [hi_eq]
-    exact hpos i
-  have hsup_pos : 0 < Finset.univ.sup' Finset.univ_nonempty f := by
-    obtain ⟨i, _, hi_eq⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty f
-    rw [hi_eq]
-    exact hpos i
-  have hinf_le_sup : Finset.univ.inf' Finset.univ_nonempty f ≤ Finset.univ.sup' Finset.univ_nonempty f := by
-    obtain ⟨i, hi, _⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty f
-    exact le_trans (Finset.inf'_le f hi) (Finset.le_sup' f hi)
-  have hlog_le : Real.log (Finset.univ.inf' Finset.univ_nonempty f) ≤
-      Real.log (Finset.univ.sup' Finset.univ_nonempty f) := by
-    exact Real.log_le_log hinf_pos hinf_le_sup
-  linarith
+  rw [Matrix.projectiveDist, sub_nonneg]
+  refine Real.log_le_log ?hpos ?hle
+  · rw [Finset.lt_inf'_iff Finset.univ_nonempty]
+    intro i _
+    exact div_pos (x.2 i) (y.2 i)
+  · obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+    exact le_trans (Finset.inf'_le _ (Finset.mem_univ i))
+      (Finset.le_sup' (fun i => x.1 i / y.1 i) (Finset.mem_univ i))
 
 /-- Symmetry of the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_symm
@@ -152,14 +143,41 @@ The Birkhoff coefficient is bounded by `1` for a nonnegative row-allowable matri
 theorem birkhoffContraction_le_one
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) (hA_row : A.IsRowAllowable) :
     Matrix.birkhoffContraction A ≤ 1 := by
-  sorry
+  refine csSup_le ?nonempty ?upper
+  · exact ⟨0, Set.mem_union_left _ rfl⟩
+  · intro t ht
+    rw [Set.mem_union, Set.mem_singleton_iff] at ht
+    rcases ht with rfl | ht
+    · norm_num
+    obtain ⟨x, y, hx, hy, hdist_ne, rfl⟩ := ht
+    have hdist_nonneg : 0 ≤ Matrix.projectiveDist x y :=
+      Matrix.projectiveDist_nonneg x y
+    have hle :
+        Matrix.projectiveDist ⟨A *ᵥ x.1, hx⟩ ⟨A *ᵥ y.1, hy⟩ ≤
+          Matrix.projectiveDist x y := by
+      simpa [Matrix.mulVecPositive] using
+        Matrix.projectiveDist_mulVec_le hA_nonneg hA_row x y
+    exact div_le_one_of_le₀ hle hdist_nonneg
+
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
+/--
+Scrambling implies row-allowability.
+-/
+theorem IsScrambling.isRowAllowable
+    {A : Matrix n n ℝ} (h_scrambling : A.IsScrambling) :
+    A.IsRowAllowable := by
+  intro i
+  obtain ⟨s, hs, _⟩ := h_scrambling i i
+  exact ⟨s, hs⟩
 
 /--
-Scrambling implies strict Birkhoff contraction.
+Scrambling matrices satisfy the general Birkhoff coefficient bound `≤ 1`.
+
+Strict Hilbert-projective contraction requires stronger hypotheses than scrambling alone.
 -/
-theorem scrambling_implies_birkhoffContraction_lt_one
+theorem scrambling_implies_birkhoffContraction_le_one
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) (h_scrambling : A.IsScrambling) :
-    Matrix.birkhoffContraction A < 1 := by
-  sorry
+    Matrix.birkhoffContraction A ≤ 1 := by
+  exact Matrix.birkhoffContraction_le_one hA_nonneg h_scrambling.isRowAllowable
 
 end Matrix
