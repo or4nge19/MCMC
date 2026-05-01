@@ -236,50 +236,61 @@ theorem projectiveDist_eq_zero_iff_exists_pos_smul
     Matrix.projectiveDist x y = 0 ↔
       ∃ c : ℝ, 0 < c ∧ x.1 = c • y.1 := by
   unfold projectiveDist
-  simp only [sub_eq_zero]
+  rw [sub_eq_zero]
   have h_pos_ratio : ∀ i, 0 < x.1 i / y.1 i := fun i => div_pos (x.2 i) (y.2 i)
-  have h_sup_pos : 0 < Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i := by
-    obtain ⟨i⟩ := ‹Nonempty n›
-    exact lt_of_lt_of_le (h_pos_ratio i) (Finset.le_sup' (fun j => x.1 j / y.1 j) (Finset.mem_univ i))
-  have h_inf_pos : 0 < Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i := by
-    obtain ⟨i, _, hi⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
-    rw [hi]
+  set f := fun i => x.1 i / y.1 i with hf_def
+  set sup_val := Finset.univ.sup' Finset.univ_nonempty f with hsup_def
+  set inf_val := Finset.univ.inf' Finset.univ_nonempty f with hinf_def
+  have h_sup_pos : 0 < sup_val := by
+    have i₀ : n := Classical.arbitrary n
+    calc 0 < f i₀ := h_pos_ratio i₀
+         _ ≤ sup_val := Finset.le_sup' f (Finset.mem_univ i₀)
+  have h_inf_pos : 0 < inf_val := by
+    rw [Finset.lt_inf'_iff]
+    intro i _
     exact h_pos_ratio i
   constructor
   · intro h_eq
-    have h_sup_eq_inf : (Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i) =
-        (Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i) := by
-      have := Real.log_injOn_pos
-      apply this (Set.mem_Ioi.mpr h_sup_pos) (Set.mem_Ioi.mpr h_inf_pos)
-      exact h_eq
-    use Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i
+    have h_sup_eq_inf : sup_val = inf_val := by
+      exact Real.log_injOn_pos (Set.mem_Ioi.mpr h_sup_pos) (Set.mem_Ioi.mpr h_inf_pos) h_eq
+    use sup_val
     constructor
     · exact h_sup_pos
     · ext i
-      simp only [Pi.smul_apply, smul_eq_mul]
-      have h_le_sup : x.1 i / y.1 i ≤ Finset.univ.sup' Finset.univ_nonempty fun j => x.1 j / y.1 j := by
-        exact Finset.le_sup' (fun j => x.1 j / y.1 j) (Finset.mem_univ i)
-      have h_inf_le : Finset.univ.inf' Finset.univ_nonempty (fun j => x.1 j / y.1 j) ≤ x.1 i / y.1 i := by
-        exact Finset.inf'_le (fun j => x.1 j / y.1 j) (Finset.mem_univ i)
-      have h_ratio_eq : x.1 i / y.1 i = Finset.univ.sup' Finset.univ_nonempty fun j => x.1 j / y.1 j := by
+      have h_le_sup : f i ≤ sup_val := Finset.le_sup' f (Finset.mem_univ i)
+      have h_inf_le : inf_val ≤ f i := Finset.inf'_le f (Finset.mem_univ i)
+      have h_val_eq : f i = sup_val := by
         apply le_antisymm h_le_sup
         rw [h_sup_eq_inf]
         exact h_inf_le
-      have hy_ne : y.1 i ≠ 0 := ne_of_gt (y.2 i)
-      rw [← h_ratio_eq]
-      field_simp [hy_ne]
+      simp only [Pi.smul_apply, smul_eq_mul, hf_def] at h_val_eq ⊢
+      have hy_pos : 0 < y.1 i := y.2 i
+      have hy_ne : y.1 i ≠ 0 := ne_of_gt hy_pos
+      field_simp at h_val_eq ⊢
+      linarith
   · intro ⟨c, hc_pos, hc_eq⟩
-    have h_ratio : ∀ i, x.1 i / y.1 i = c := by
+    have h_ratio_const : ∀ i, f i = c := by
       intro i
-      have hxi : x.1 i = c * y.1 i := by
-        have := congrFun hc_eq i
-        simp only [Pi.smul_apply, smul_eq_mul] at this
-        exact this
-      rw [hxi]
+      simp only [hf_def, hc_eq, Pi.smul_apply, smul_eq_mul]
       have hy_ne : y.1 i ≠ 0 := ne_of_gt (y.2 i)
-      field_simp [hy_ne]
-    simp only [h_ratio]
-    simp [Finset.sup'_const, Finset.inf'_const]
+      field_simp
+    have h_sup_eq_c : sup_val = c := by
+      apply le_antisymm
+      · apply Finset.sup'_le
+        intro i _
+        rw [h_ratio_const i]
+      · have i₀ : n := Classical.arbitrary n
+        calc c = f i₀ := (h_ratio_const i₀).symm
+             _ ≤ sup_val := Finset.le_sup' f (Finset.mem_univ i₀)
+    have h_inf_eq_c : inf_val = c := by
+      apply le_antisymm
+      · have i₀ : n := Classical.arbitrary n
+        calc inf_val ≤ f i₀ := Finset.inf'_le f (Finset.mem_univ i₀)
+             _ = c := h_ratio_const i₀
+      · apply Finset.le_inf'
+        intro i _
+        rw [h_ratio_const i]
+    rw [h_sup_eq_c, h_inf_eq_c]
 
 /--
 Non-expansiveness of a nonnegative row-allowable matrix for Hilbert's projective distance.
