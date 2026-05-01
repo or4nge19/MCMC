@@ -281,6 +281,79 @@ theorem uniqueness_of_positive_eigenvector_gen
     exact False.elim (lt_irrefl (0 : ℝ) hlt)
 
 
+omit [DecidableEq n] in
+/-- Normalizing a positive eigenvector by the sum of its entries preserves its eigen-equation. -/
+lemma inv_sum_smul_eigenvector
+    {A : Matrix n n ℝ} {r : ℝ} {v : n → ℝ} (hv_eig : A *ᵥ v = r • v) :
+    A *ᵥ ((∑ i, v i)⁻¹ • v) = r • ((∑ i, v i)⁻¹ • v) := by
+  rw [mulVec_smul, hv_eig, smul_comm]
+
+omit [DecidableEq n] in
+/-- Normalizing a strictly positive vector by its coordinate sum preserves strict positivity. -/
+lemma inv_sum_smul_pos_of_pos [Nonempty n] {v : n → ℝ} (hv_pos : ∀ i, 0 < v i) :
+    ∀ i, 0 < ((∑ i, v i)⁻¹ • v) i := by
+  intro i
+  exact mul_pos (inv_pos.mpr <| Finset.sum_pos (fun j _ => hv_pos j) Finset.univ_nonempty)
+    (hv_pos i)
+
+omit [DecidableEq n] in
+/-- If two positive eigenvectors of a nonnegative matrix have eigenvalues `r` and `s`,
+then comparing them by the infimum of coordinate ratios gives `s ≤ r`. -/
+lemma eigenvalue_le_of_positive_eigenvectors [Nonempty n]
+    {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j)
+    {r s : ℝ} {v w : n → ℝ}
+    (hv_pos : ∀ i, 0 < v i) (hw_pos : ∀ i, 0 < w i)
+    (hv_eig : A *ᵥ v = r • v) (hw_eig : A *ᵥ w = s • w) :
+    s ≤ r := by
+  let c : ℝ := Finset.univ.inf' Finset.univ_nonempty (fun i : n => v i / w i)
+  have hc_pos : 0 < c := Finset.inf'_pos Finset.univ_nonempty fun i _ =>
+    div_pos (hv_pos i) (hw_pos i)
+  obtain ⟨i₀, _, hc_eq⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty
+    (fun i : n => v i / w i)
+  have hle : ∀ j, c * w j ≤ v j := fun j =>
+    (le_div_iff₀ (hw_pos j)).mp (Finset.inf'_le _ (Finset.mem_univ j))
+  have h_sum := mulVec_smul_le_mulVec_of_forall_smul_le i₀ (fun j => hA_nonneg i₀ j) c hle
+  have h_eq : v i₀ = c * w i₀ := eq_mul_of_eq_div (ne_of_gt <| hw_pos i₀) hc_eq
+  have h_pos : 0 < c * w i₀ := mul_pos hc_pos (hw_pos i₀)
+  apply le_of_mul_le_mul_right _ h_pos
+  calc
+    s * (c * w i₀) = c * (s * w i₀) := by ring
+    _ ≤ (A *ᵥ v) i₀ := by simpa [hw_eig, Pi.smul_apply, smul_eq_mul] using h_sum
+    _ = r * (c * w i₀) := by simp [hv_eig, h_eq, Pi.smul_apply, smul_eq_mul]
+
+omit [DecidableEq n] in
+/-- A scalar multiple of a simplex vector is the same simplex vector only when the scalar is `1`. -/
+lemma eq_one_of_smul_eq_of_sum_eq_one {c : ℝ} {v w : n → ℝ}
+    (hvw : v = c • w) (hv_sum : ∑ i, v i = 1) (hw_sum : ∑ i, w i = 1) :
+    c = 1 := by
+  calc
+    c = c * 1 := (mul_one c).symm
+    _ = c * (∑ i, w i) := by rw [hw_sum]
+    _ = ∑ i, c * w i := by rw [Finset.mul_sum]
+    _ = ∑ i, v i := by simp [hvw, smul_eq_mul]
+    _ = 1 := hv_sum
+
+/-- In the simplex, a primitive nonnegative matrix has at most one positive eigenvector,
+even if the eigenvalue is not specified in advance. -/
+lemma stdSimplex_eigenvector_eq_of_primitive [Nonempty n]
+    {A : Matrix n n ℝ} (hA_prim : IsPrimitive A) (hA_nonneg : ∀ i j, 0 ≤ A i j)
+    {r s : ℝ} (hr_pos : 0 < r) (hs_pos : 0 < s)
+    {v w : stdSimplex ℝ n} (hv_eig : A *ᵥ v.1 = r • v.1)
+    (hw_eig : A *ᵥ w.1 = s • w.1) :
+    v = w := by
+  have hv_pos := eigenvector_of_primitive_is_positive hA_prim hr_pos
+    hv_eig v.2.1 (ne_zero_of_mem_stdSimplex v.2)
+  have hw_pos := eigenvector_of_primitive_is_positive hA_prim hs_pos
+    hw_eig w.2.1 (ne_zero_of_mem_stdSimplex w.2)
+  have hs_le_hr := eigenvalue_le_of_positive_eigenvectors hA_nonneg hv_pos hw_pos hv_eig hw_eig
+  have hr_le_hs := eigenvalue_le_of_positive_eigenvectors hA_nonneg hw_pos hv_pos hw_eig hv_eig
+  have hr_eq : r = s := le_antisymm hr_le_hs hs_le_hr
+  have hw_eig' : A *ᵥ w.1 = r • w.1 := by simp [hw_eig, hr_eq]
+  obtain ⟨c, _, hcv⟩ :=
+    uniqueness_of_positive_eigenvector hA_prim hr_pos v.1 w.1 hv_eig hw_eig' hv_pos hw_pos
+  exact Subtype.val_injective <| by
+    simp [hcv, eq_one_of_smul_eq_of_sum_eq_one hcv v.2.2 w.2.2]
+
 /-- **Perron–Frobenius, primitive case (existence, positvity and uniqueness)** -/
 theorem pft_primitive
     {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n]
@@ -289,137 +362,19 @@ theorem pft_primitive
     ∃! (v : stdSimplex ℝ n), ∃ (r : ℝ) (_ : r > 0), A *ᵥ v.val = r • v.val := by
   obtain ⟨r, v_raw, hr_pos, hv_raw_pos, hv_raw_eig⟩ :=
     exists_positive_eigenvector_of_primitive hA_prim hA_nonneg
-  let s : ℝ := ∑ i, v_raw i
-  have hs_pos : 0 < s :=
-    Finset.sum_pos (fun i _ ↦ hv_raw_pos i) Finset.univ_nonempty
-  have hs_ne  : s ≠ 0 := ne_of_gt hs_pos
-  let v0 : n → ℝ := s⁻¹ • v_raw
-  have hv0_nonneg : ∀ i, 0 ≤ v0 i := by
-    intro i
-    have h₁ : 0 ≤ s⁻¹   := inv_nonneg.mpr (le_of_lt hs_pos)
-    have h₂ : 0 ≤ v_raw i := (hv_raw_pos i).le
-    simp only [v0, Pi.smul_apply, smul_eq_mul]
-    exact mul_nonneg h₁ h₂
-  have h_sum_v0 : ∑ i, v0 i = 1 := by
-    calc
-        ∑ i, v0 i
-            = ∑ i, s⁻¹ * v_raw i := by simp [v0, smul_eq_mul]
-        _ = s⁻¹ * ∑ i, v_raw i   := by
-              rw [Finset.mul_sum]
-        _ = s⁻¹ * s               := by simp [s]
-        _ = 1                     := inv_mul_cancel₀ hs_ne
-  have hv0_simplex : v0 ∈ stdSimplex ℝ n := ⟨hv0_nonneg, h_sum_v0⟩
+  let v0 : n → ℝ := (∑ i, v_raw i)⁻¹ • v_raw
+  have hv0_simplex : v0 ∈ stdSimplex ℝ n := by
+    simpa [v0] using inv_sum_smul_mem_stdSimplex_of_pos hv_raw_pos
   have hv0_pos : ∀ i, 0 < v0 i := by
-    intro i
-    have h₁ : 0 < s⁻¹ := inv_pos.mpr hs_pos
-    have h₂ : 0 < v_raw i := hv_raw_pos i
-    simp only [v0, Pi.smul_apply, smul_eq_mul]
-    exact mul_pos h₁ h₂
+    simpa [v0] using inv_sum_smul_pos_of_pos hv_raw_pos
   have hv0_eig : A *ᵥ v0 = r • v0 := by
-    calc
-      A *ᵥ v0 = A *ᵥ (s⁻¹ • v_raw) := rfl
-      _       = s⁻¹ • (A *ᵥ v_raw) := by rw [mulVec_smul]
-      _       = s⁻¹ • (r • v_raw)  := by rw [hv_raw_eig]
-      _       = r • (s⁻¹ • v_raw)  := by rw [smul_comm]
-      _       = r • v0             := rfl
+    simpa [v0] using inv_sum_smul_eigenvector hv_raw_eig
   refine ⟨⟨v0, hv0_simplex⟩, ?_, ?_⟩
   · exact ⟨r, hr_pos, hv0_eig⟩
   · intro w ⟨r', hr'_pos, hw_eig⟩
-    have hw_nonneg : ∀ i, 0 ≤ w.1 i := w.property.1
-    have hw_ne_zero := ne_zero_of_mem_stdSimplex w.property
-    have hw_pos : ∀ i, 0 < w.1 i :=
-      eigenvector_of_primitive_is_positive hA_prim hr'_pos
-        hw_eig hw_nonneg hw_ne_zero
-    let c : ℝ := Finset.univ.inf' Finset.univ_nonempty
-                   (fun i : n => v0 i / w.1 i)
-    have hc_pos : 0 < c := by
-      apply Finset.inf'_pos Finset.univ_nonempty
-      intro i _
-      exact div_pos (hv0_pos i) (hw_pos i)
-    obtain ⟨i₀, _, hc_eq⟩ :=
-      Finset.exists_mem_eq_inf' Finset.univ_nonempty
-        (fun i : n => v0 i / w.1 i)
-    have w_i₀_pos : 0 < w.1 i₀ := hw_pos i₀
-    have v0_ge_cw : ∀ j, c * w.1 j ≤ v0 j := by
-      intro j
-      have h_le : c ≤ v0 j / w.1 j :=
-        Finset.inf'_le _ (Finset.mem_univ j)
-      exact (le_div_iff₀ (hw_pos j)).mp h_le
-    have h_sum : c * (A *ᵥ w.1) i₀ ≤ (A *ᵥ v0) i₀ :=
-      mulVec_smul_le_mulVec_of_forall_smul_le i₀ (fun j => hA_nonneg i₀ j) c v0_ge_cw
-    have hv0_i₀ : (A *ᵥ v0) i₀ = r * v0 i₀ := by
-      rw [hv0_eig]
-      simp only [Pi.smul_apply, smul_eq_mul]
-    have hw_i₀  : (A *ᵥ w.1) i₀ = r' * w.1 i₀ := by
-      rw [hw_eig]
-      simp only [Pi.smul_apply, smul_eq_mul]
-    have v0_i₀_eq : v0 i₀ = c * w.1 i₀ :=
-      eq_mul_of_eq_div (ne_of_gt w_i₀_pos) hc_eq
-    have h_r_ge_r' : r ≥ r' := by
-      have h_pos : 0 < c * w.1 i₀ := mul_pos hc_pos w_i₀_pos
-      have h1 : c * r' * w.1 i₀ ≤ r * v0 i₀ := by
-        calc
-          c * r' * w.1 i₀ = c * (r' * w.1 i₀)   := by ring
-          _ = c * (A *ᵥ w.1) i₀                 := by rw [hw_i₀]
-          _ ≤ (A *ᵥ v0) i₀                      := h_sum
-          _ = r * v0 i₀                         := hv0_i₀
-      have h2 : c * r' * w.1 i₀ ≤ r * (c * w.1 i₀) := by
-        rwa [v0_i₀_eq] at h1
-      have h2' : r' * (c * w.1 i₀) ≤ r * (c * w.1 i₀) := by
-        simpa [mul_comm, mul_left_comm, mul_assoc] using h2
-      exact le_of_mul_le_mul_right h2' h_pos
-    let d : ℝ := Finset.univ.inf' Finset.univ_nonempty
-                   (fun i : n => w.1 i / v0 i)
-    have hd_pos : 0 < d := by
-      apply Finset.inf'_pos Finset.univ_nonempty
-      intro i _
-      exact div_pos (hw_pos i) (hv0_pos i)
-    obtain ⟨j₀, _, hd_eq⟩ :=
-      Finset.exists_mem_eq_inf' Finset.univ_nonempty
-        (fun i : n => w.1 i / v0 i)
-    have v0_j₀_pos : 0 < v0 j₀ := hv0_pos j₀
-    have w_ge_dv0 : ∀ j, d * v0 j ≤ w.1 j := by
-      intro j
-      have h_le : d ≤ w.1 j / v0 j :=
-        Finset.inf'_le _ (Finset.mem_univ j)
-      exact (le_div_iff₀ (hv0_pos j)).mp h_le
-    have h_sum2 : d * (A *ᵥ v0) j₀ ≤ (A *ᵥ w.1) j₀ :=
-      mulVec_smul_le_mulVec_of_forall_smul_le j₀ (fun j => hA_nonneg j₀ j) d w_ge_dv0
-    have w_j₀_eq : w.1 j₀ = d * v0 j₀ :=
-      eq_mul_of_eq_div (ne_of_gt v0_j₀_pos) hd_eq
-    have h_r'_ge_r : r' ≥ r := by
-      have h_pos : 0 < d * v0 j₀ := mul_pos hd_pos v0_j₀_pos
-      have h1 : d * r * v0 j₀ ≤ r' * w.1 j₀ := by
-        calc
-          d * r * v0 j₀ = d * (r * v0 j₀) := by ring
-          _ = d * (A *ᵥ v0) j₀ := by simp only [hv0_eig, Pi.smul_apply,
-            smul_eq_mul]
-          _ ≤ (A *ᵥ w.1) j₀ := h_sum2
-          _ = r' * w.1 j₀ := by simp only [hw_eig, Pi.smul_apply,
-            smul_eq_mul]
-      have h2 : d * r * v0 j₀ ≤ r' * (d * v0 j₀) := by
-        rwa [w_j₀_eq] at h1
-      have h2' : r * (d * v0 j₀) ≤ r' * (d * v0 j₀) := by
-        simpa [mul_comm, mul_left_comm, mul_assoc] using h2
-      exact (le_of_mul_le_mul_right h2' h_pos)
-    have hr_eq : r = r' := le_antisymm h_r'_ge_r h_r_ge_r'
-    have hw_eig' : A *ᵥ w.1 = r • w.1 := by
-      simp only [hw_eig, hr_eq]
-    rcases
-      uniqueness_of_positive_eigenvector
-          hA_prim hr_pos v0 w.1 hv0_eig hw_eig' hv0_pos hw_pos
-      with ⟨c', hc'_pos, hc'_eq⟩
-    have hc'_one : c' = 1 := by
-      have h_sum_w : ∑ i, w.1 i = 1 := w.property.2
-      calc
-        c' = c' * 1                 := by ring
-        _  = c' * (∑ i, w.1 i)      := by rw [h_sum_w]
-        _  = (∑ i, c' * w.1 i)      := by rw [Finset.mul_sum]
-        _  = (∑ i, v0 i)            := by
-               simp only [hc'_eq, Pi.smul_apply, smul_eq_mul]
-        _  = 1                      := h_sum_v0
-    ext i
-    simp [hc'_eq, hc'_one]
+    exact (stdSimplex_eigenvector_eq_of_primitive
+      (v := ⟨v0, hv0_simplex⟩) (w := w)
+      hA_prim hA_nonneg hr_pos hr'_pos hv0_eig hw_eig).symm
 /--
 **Perron–Frobenius theorem for irreducible real matrices (Existence, positivity, uniqueness)**.
 
