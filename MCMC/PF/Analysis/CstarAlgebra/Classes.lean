@@ -277,11 +277,7 @@ lemma align_each_with_sum {u : ℂ} {v : ι → ℂ} {s : Finset ι}
     each_term_is_nonneg_real_multiple_of_sum_of_triangle_eq s h_eq h_sum h_ne i hi
   have coeff_mul : k * ‖u‖ = ‖v i‖ := by
     have hk' : k = ‖v i‖ / ‖u‖ := coeff_of_aligned_vector hk k_nonneg h_ne
-    calc
-      k * ‖u‖ = (‖v i‖ / ‖u‖) * ‖u‖ := by simp [hk']
-      _ = ‖v i‖ * (‖u‖ / ‖u‖) := by
-        rw [div_mul_eq_mul_div]; grind
-      _ = ‖v i‖ := by simp [div_self h_norm_ne_zero]
+    rw [hk', div_mul_cancel₀ ‖v i‖ h_norm_ne_zero]
   calc
     (‖u‖ : ℂ) • v i
       = ↑‖u‖ * v i := by simp [smul_eq_mul]
@@ -292,7 +288,7 @@ lemma align_each_with_sum {u : ℂ} {v : ι → ℂ} {s : Finset ι}
     _ = (‖v i‖ : ℂ) • u := by simp [smul_eq_mul, mul_comm]
 
 variable {n : Type*} [Fintype n]
-/-- If equality holds in thetriangle inequality for a sum of complex vectors,
+/-- If equality holds in the triangle inequality for a sum of complex vectors,
     then all vectors must point in the same direction. -/
 theorem triangle_equality_iff_aligned {v : n → ℂ} (hv_nonzero : ∀ i, v i ≠ 0) [Nonempty n] :
     ‖∑ i, v i‖ = ∑ i, ‖v i‖ ↔

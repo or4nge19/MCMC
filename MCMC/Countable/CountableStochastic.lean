@@ -146,7 +146,16 @@ entry.
 -/
 theorem IsIrreducible.exists_pos [Nontrivial α] {P : InfMatrix α} (hP : IsIrreducible P) (i : α) :
     ∃ j, 0 < P i j := by
-  sorry
+  obtain ⟨j, hj⟩ := exists_ne i
+  letI : Quiver α := InfMatrix.toQuiver P
+  obtain ⟨p, hp⟩ := hP.connected i j
+  clear hj
+  induction p with
+  | nil => simp [Quiver.Path.length_nil] at hp
+  | cons rest e ih =>
+    cases rest with
+    | nil => exact ⟨_, e⟩
+    | cons rest' e' => exact ih (by simp [Quiver.Path.length_cons])
 
 /--
 An infinite matrix is aperiodic if it is irreducible and its positive-edge quiver is aperiodic.
