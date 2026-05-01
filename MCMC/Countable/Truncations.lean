@@ -125,7 +125,7 @@ theorem truncation_perronRoot_monotone_convergence
     {T : InfMatrix α} (hT_irred : IsIrreducible T)
     (i₀ : α) (hR_pos : 0 < rParam T i₀) (hR_lt_top : rParam T i₀ < ⊤)
     (s : ℕ → Finset α) (hs_mono : Monotone s) (hs_exhaust : ∀ a : α, ∃ n, a ∈ s n) :
-    Tendsto (fun n : ℕ => Matrix.CollatzWielandt.perronRoot_alt (finsetTruncation T (s n))) atTop
+    Tendsto (fun n : ℕ => Matrix.CollatzWielandt.perronRoot (finsetTruncation T (s n))) atTop
       (nhds ((rParam T i₀).toReal⁻¹)) := by
   sorry
 

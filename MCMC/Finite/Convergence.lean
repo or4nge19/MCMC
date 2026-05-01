@@ -87,7 +87,7 @@ lemma pow_stationary_mulVec [Nonempty n] (P : Matrix n n ℝ) (k : ℕ)
           = (Pᵀ * (Pᵀ ^ k)) *ᵥ π.val := by
               simp [pow_succ, Matrix.transpose_mul, Matrix.transpose_pow]
       _ = Pᵀ *ᵥ ((Pᵀ ^ k) *ᵥ π.val) := by
-              simp_rw [Matrix.mul_mulVec]
+              simp_rw [← Matrix.mulVec_mulVec]
       _ = Pᵀ *ᵥ π.val := by
               simp [ih']
       _ = π.val := by
@@ -504,6 +504,6 @@ theorem ergodic_theorem_lln [Nonempty n]
         fun N : ℕ => (∑ k ∈ Finset.range N, a_k k) / (N : ℝ) := by
     funext N
     simp [expected_time_average, div_eq_inv_mul]
-  simp_all only [CollatzWielandt.Finset.sum_def, one_div, a_k, μₖ, L, expected_time_average]
+  simp_all only [one_div, a_k, μₖ, L, expected_time_average]
 
 end MCMC.Finite

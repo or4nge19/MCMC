@@ -71,14 +71,45 @@ The dominant real eigenvalue of an ML-matrix, defined by shifting back the Perro
 `mlShifted B`.
 -/
 noncomputable def mlPerronRoot (B : Matrix n n ℝ) : ℝ :=
-  perronRoot_alt (mlShifted B) - mlShift B
+  perronRoot (mlShifted B) - mlShift B
+
+/--
+The Perron-Frobenius existence theorem needed for ML-matrices is already available via
+`perron_root_eq_positive_eigenvalue` applied to `mlShifted B`.
+The missing local API is only the algebraic bridge from the shifted eigen-equation back to `B`.
+-/
+@[simp] lemma mlShifted_mulVec (B : Matrix n n ℝ) (v : n → ℝ) :
+    mlShifted B *ᵥ v = mlShift B • v + B *ᵥ v := by
+  simp [mlShifted, add_mulVec, one_mulVec, Matrix.smul_mulVec]
+
+/--
+An eigenvector of the shifted nonnegative companion matrix yields an eigenvector of the original
+ML-matrix after subtracting the diagonal shift from the eigenvalue.
+-/
+lemma eig_of_mlShifted_eig {B : Matrix n n ℝ} {r : ℝ} {v : n → ℝ}
+    (h : mlShifted B *ᵥ v = r • v) :
+    B *ᵥ v = (r - mlShift B) • v := by
+  have h' : mlShift B • v + B *ᵥ v = r • v := by
+    simpa using h
+  have : B *ᵥ v = r • v - mlShift B • v := eq_sub_of_add_eq' h'
+  simpa [sub_smul] using this
 
 /--
 The shifted matrix of an ML-matrix is entrywise nonnegative.
 -/
 theorem mlShifted_nonneg {B : Matrix n n ℝ} (hB : IsMLMatrix B) :
     ∀ i j, 0 ≤ mlShifted B i j := by
-  sorry
+  intro i j
+  unfold mlShifted
+  rw [Matrix.add_apply, Matrix.smul_one_eq_diagonal]
+  by_cases hij : i = j
+  · subst hij
+    rw [Matrix.diagonal_apply_eq]
+    have h : -B i i ≤ mlShift B := by
+      apply Finset.le_sup'_of_le (f := fun k => -B k k) (Finset.mem_univ i) (le_refl _)
+    linarith
+  · rw [Matrix.diagonal_apply_ne _ hij, zero_add]
+    exact hB i j hij
 
 /--
 An irreducible ML-matrix admits a strictly positive eigenvector for its dominant real eigenvalue.

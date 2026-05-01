@@ -1,167 +1,27 @@
 import MCMC.PF.LinearAlgebra.Matrix.Spectrum
 import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Convex.StdSimplex
 import Mathlib.Data.Int.Star
 
 open Filter Set Finset Matrix Topology Convex
 
-/- Standard simplex definition
-def stdSimplex (𝕜 ι : Type*) [Semiring 𝕜] [PartialOrder 𝕜] [Fintype ι] : Set (ι → 𝕜) :=
-  {x | (∀ i, 0 ≤ x i) ∧ ∑ i, x i = 1}
+/-! # Auxiliary lemmas for Perron-Frobenius and MCMC
 
--- Upper semicontinuous function definition
-def UpperSemicontinuousOn {α β : Type*} [TopologicalSpace α] [Preorder β]
-    (f : α → β) (s : Set α) : Prop :=
-  ∀ x ∈ s, ∀ y, f x < y → ∃ U ∈ 𝓝[s] x, ∀ z ∈ U, f z < y
+Small results on the standard simplex, topology, matrices, and finsets shared by `MCMC.PF`.
+Prefer Mathlib statements when they already exist; this file keeps only what downstream modules use.
 
--- Lower semicontinuous function definition
-def LowerSemicontinuousOn {α β : Type*} [TopologicalSpace α] [Preorder β]
-    (f : α → β) (s : Set α) : Prop :=
-  ∀ x ∈ s, ∀ y, y < f x → ∃ U ∈ 𝓝[s] x, ∀ z ∈ U, y < f z
-
--- Cluster point definition
-def ClusterPt {X : Type*} [TopologicalSpace X] (x : X) (F : Filter X) : Prop :=
-  (𝓝 x ⊓ F).NeBot
-
--- Ultrafilter definition
-structure Ultrafilter (α : Type*) extends Filter α where
-  isUltra : ∀ s, s ∈ toFilter ∨ sᶜ ∈ toFilter-/
-
-/-!
-## Key Theorems for Compactness & Ultrafilters
+Includes `eq_mul_of_eq_div` (solve `a = c * b` from `c = a / b`) and `mul_div_mul_eq_div` (cancel a
+common nonzero factor in a field fraction).
 -/
-
-/- Ultrafilter existence theorem
-theorem Ultrafilter.exists_le {α : Type*} {F : Filter α} (h : F.NeBot) :
-  ∃ U : Ultrafilter α, (U : Filter α) ≤ F := by
-  exact Ultrafilter.exists_le F
-
--- Compactness characterization via ultrafilters
-theorem isCompact_iff_ultrafilter_le_nhds {X : Type*} [TopologicalSpace X] {s : Set X} :
-  IsCompact s ↔ ∀ (f : Ultrafilter X), s ∈ f → ∃ x ∈ s, (f : Filter X) ≤ 𝓝 x := by
-  exact isCompact_iff_ultrafilter_le_nhds
-
--- Cluster point existence in compact sets
-theorem IsCompact.exists_clusterPt {X : Type*} [TopologicalSpace X] {s : Set X}
-    (hs : IsCompact s) {f : Filter X} (hf : f.NeBot) (hfs : f ≤ 𝓟 s) :
-    ∃ x ∈ s, ClusterPt x f := by
-  exact hs.exists_clusterPt hfs-/
-
--- Ultrafilter convergence from cluster point
-theorem ClusterPt.exists_ultrafilter {X : Type*} [TopologicalSpace X] {x : X} {f : Filter X}
-    (h : ClusterPt x f) : ∃ U : Ultrafilter X, (U : Filter X) ≤ f ∧ (U : Filter X) ≤ 𝓝 x := by
-  exact clusterPt_iff_ultrafilter.mp h
-
-/-!
-## Semicontinuity Theorems
--/
-/--
-If an ultrafilter `G` on `X` converges to `x` within `s`, and `f` is continuous on `s`,
-then `f` maps `G` to the neighborhood filter of `f x`.
-This is a version with lower and upper semicontinuity.
--/
-lemma tendsto_of_lower_upper_semicontinuous_ultrafilter
-    {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y] [LinearOrder Y] [OrderTopology Y]
-    {f : X → Y} {s : Set X} (h_upper : UpperSemicontinuousOn f s)
-    (h_lower : LowerSemicontinuousOn f s) {x : X} (hx : x ∈ s) {G : Ultrafilter X}
-    (hG : (G : Filter X) ≤ 𝓝[s] x) :
-    Tendsto f (G : Filter X) (𝓝 (f x)) := by
-  have h_cont : ContinuousWithinAt f s x :=
-    continuousWithinAt_iff_lower_upperSemicontinuousWithinAt.mpr ⟨h_lower x hx, h_upper x hx⟩
-  exact h_cont.tendsto.comp (tendsto_id.mono_left hG)
-
-/--
-If an ultrafilter `G` on `X` converges to `x` within `s`, and `f` is upper semicontinuous on `s`,
-then for any `y' > f x`, `f` eventually maps elements of `G` to values less than `y'`.
--/
-lemma upperSemicontinuousOn_eventually_lt_ultrafilter
-    {X Y : Type*} [TopologicalSpace X] [LinearOrder Y] {f : X → Y} {s : Set X}
-    (hf : UpperSemicontinuousOn f s) {x : X} (hx : x ∈ s) {G : Ultrafilter X}
-    (hG : (G : Filter X) ≤ 𝓝[s] x) {y' : Y} (hy' : f x < y') :
-    ∀ᶠ (z : X) in (G : Filter X), f z < y' :=
-  hG (hf x hx y' hy')
-
-/--
-If an ultrafilter `G` on `X` converges to `x` within `s`, and `f` is lower semicontinuous on `s`,
-then for any `y' < f x`, `f` eventually maps elements of `G` to values greater than `y'`.
--/
-lemma lowerSemicontinuousOn_eventually_gt_ultrafilter
-    {X Y : Type*} [TopologicalSpace X] [LinearOrder Y] {f : X → Y} {s : Set X}
-    (hf : LowerSemicontinuousOn f s) {x : X} (hx : x ∈ s) {G : Ultrafilter X}
-    (hG : (G : Filter X) ≤ 𝓝[s] x) {y' : Y} (hy' : y' < f x) :
-    ∀ᶠ (z : X) in (G : Filter X), y' < f z :=
-  hG (hf x hx y' hy')
 
 /-!
 ## Standard Simplex Properties
 -/
 
-/- Standard simplex is compact
-theorem isCompact_stdSimplex (ι : Type*) [Fintype ι] : IsCompact (stdSimplex ℝ ι) := by
-  exact _root_.isCompact_stdSimplex ι
-
--- Standard simplex is convex
-theorem convex_stdSimplex (𝕜 ι : Type*) [OrderedRing 𝕜] [Fintype ι] :
-    Convex 𝕜 (stdSimplex 𝕜 ι) := by
-  exact _root_.convex_stdSimplex 𝕜 ι-/
-
 -- Standard simplex is nonempty when ι is nonempty
 theorem stdSimplex_nonempty {ι : Type*} [Fintype ι] [Nonempty ι] :
     (stdSimplex ℝ ι).Nonempty := by
   exact ⟨(Fintype.card ι : ℝ)⁻¹ • 1, by simp [stdSimplex, Finset.sum_const, nsmul_eq_mul]⟩
-
-/-!
-## Supremum & Infimum Theorems
--/
-
--- Compact sets in ℝ attain their supremum
-theorem IsCompact.exists_max {s : Set ℝ} (hs : IsCompact s) (hne : s.Nonempty) :
-  ∃ x ∈ s, ∀ y ∈ s, y ≤ x := by
-  let sup_s := sSup s
-  have h_mem : sup_s ∈ s := sSup_mem hs hne
-  use sup_s, h_mem
-  intro y hy
-  exact le_csSup (hs.bddAbove) hy
-
--- Function attaining maximum equals supremum of image
-theorem isMaxOn_eq_sSup {X : Type*} [TopologicalSpace X]
-    {f : X → ℝ} {s : Set X} {v : X}
-    (hv : v ∈ s) (hmax : ∀ z ∈ s, f z ≤ f v) :
-    sSup (f '' s) = f v := by
-  apply le_antisymm
-  · apply csSup_le
-    · use f v
-      refine ⟨v, hv, rfl⟩
-    · intro y hy
-      rcases hy with ⟨x, hx, rfl⟩
-      exact hmax x hx
-  · apply le_csSup
-    · exact ⟨f v, fun a ha => by
-        rcases ha with ⟨x, hx, rfl⟩
-        exact hmax x hx⟩
-    · exact Set.mem_image_of_mem f hv
-
-/-!
-## Filter & Ultrafilter Operations
--/
-
-/- Ultrafilter mapping
-def Ultrafilter.map {α β : Type*} (f : α → β) (u : Ultrafilter α) : Ultrafilter β :=
-  ⟨Filter.map f u, by
-    intro s
-    have := u.isUltra (f ⁻¹' s)
-    cases this with
-    | inl h => left; exact Filter.mem_map.mpr h
-    | inr h => right; exact Filter.mem_map.mpr h⟩
-
--- Ultrafilter equality from inclusion
-theorem Ultrafilter.eq_of_le {α : Type*} {u v : Ultrafilter α} (h : (u : Filter α) ≤ v) :
-    u = v := by
-  exact Ultrafilter.eq_of_le h
-
--- Tendsto characterization for ultrafilters
-theorem tendsto_map'_iff {α β : Type*} {f : α → β} {u : Ultrafilter α} {l : Filter β} :
-    Tendsto f (u : Filter α) l ↔ (Ultrafilter.map f u : Filter β) ≤ l := by
-  exact tendsto_map'_iff-/
 
 /-!
 ## Helper Lemmas for Continuity
@@ -201,37 +61,12 @@ theorem finset_inf'_mono_subset {α β : Type*} [LinearOrder β] {s t : Finset �
 ## Matrix & Vector Operations
 -/
 
--- Matrix-vector multiplication component
-theorem matrix_mulVec_component {n : Type*} [Fintype n] [DecidableEq n]
-    (A : Matrix n n ℝ) (v : n → ℝ) (j : n) :
-    (A *ᵥ v) j = ∑ i, A j i * v i := by
-  simp [Matrix.mulVec]; rfl
-
 -- Non-negative matrix preserves non-negative vectors
 theorem mulVec_nonneg {n : Type*} [Fintype n] {A : Matrix n n ℝ} (hA : ∀ i j, 0 ≤ A i j)
     {x : n → ℝ} (hx : ∀ i, 0 ≤ x i) : ∀ i, 0 ≤ (A *ᵥ x) i := by
   intro i
   simp only [Matrix.mulVec, dotProduct]
   exact Finset.sum_nonneg fun j _ => mul_nonneg (hA i j) (hx j)
-
--- Positive matrix with positive vector gives positive result
-theorem positive_mul_vec_pos {n : Type*} [Fintype n] [Nonempty n] {A : Matrix n n ℝ} (hA_pos : ∀ i j, 0 < A i j)
-    {x : n → ℝ} (hx_nonneg : ∀ i, 0 ≤ x i) (hx_ne_zero : x ≠ 0) :
-    ∀ i, 0 < (A *ᵥ x) i := by
-  intro i
-  simp only [Matrix.mulVec, dotProduct]
-  apply Finset.sum_pos'
-  · intro j _
-    exact mul_nonneg (le_of_lt (hA_pos i j)) (hx_nonneg j)
-  · have : ∃ k, 0 < x k := by
-      by_contra h_all_nonpos
-      push_neg at h_all_nonpos
-      have h_zero : x = 0 := funext (fun j => le_antisymm (h_all_nonpos j) (hx_nonneg j))
-      exact hx_ne_zero h_zero
-    rcases this with ⟨k, hk_pos⟩
-    refine ⟨k, ?_, ?_⟩
-    · simp
-    · exact mul_pos (hA_pos i k) hk_pos
 
 /-!
 ## Utility Lemmas
@@ -250,50 +85,12 @@ theorem exists_pos_of_sum_one_of_nonneg {n : Type*} [Fintype n] [Nonempty n] {x 
   have : 1 = 0 := by linarith
   exact absurd this (by norm_num)
 
--- Existence of non-zero element in non-zero vector
-theorem exists_ne_zero_of_ne_zero {n : Type*} [Fintype n] [Nonempty n] {x : n → ℝ} (hx : x ≠ 0) : ∃ j, x j ≠ 0 := by
-  by_contra h
-  push_neg at h
-  have h_all_zero : ∀ i, x i = 0 := h
-  have x_is_zero : x = 0 := by
-    ext i
-    exact h_all_zero i
-  exact hx x_is_zero
-
 -- Matrix power multiplication
 theorem pow_mulVec_succ {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ} (k : ℕ) (x : n → ℝ) :
     (A^(k+1)).mulVec x = A.mulVec ((A^k).mulVec x) := by
   simp only [mulVec_mulVec]
   rw [pow_succ']
 
-
-/-!
-## Finset Operations
--/
-
--- Infimum over finite type equals finset infimum
-theorem iInf_apply_eq_finset_inf'_apply_fun {α β γ : Type*} [Fintype α] [Nonempty α]
-    [ConditionallyCompleteLinearOrder γ] (f : α → β → γ) :
-    (fun x => ⨅ i, f i x) = (fun x => (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x)) := by
-  ext x
-  have h1 : ⨅ i, f i x = ⨅ i ∈ Set.univ, f i x := by simp only [mem_univ, ciInf_unique]
-  have h2 : ⨅ i ∈ Set.univ, f i x = ⨅ i ∈ (Finset.univ : Finset α), f i x := by
-    congr
-    ext i
-    simp only [mem_univ, ciInf_unique, Finset.mem_univ]
-  have h3 : ⨅ i ∈ (Finset.univ : Finset α), f i x =
-           (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x) := by
-    rw [Finset.inf'_eq_csInf_image]
-    simp only [ciInf_unique, Finset.mem_univ, Finset.coe_univ, image_univ]
-    rfl
-  rw [h1, h2, h3]
-
--- Infimum over finite type equals conditional infimum
-theorem iInf_eq_ciInf {α β : Type*} [Fintype α] [Nonempty α] [ConditionallyCompleteLinearOrder β]
-    (f : α → β) : (⨅ i, f i) = ⨅ i ∈ (Set.univ : Set α), f i := by
-  apply eq_of_forall_le_iff
-  intro b
-  simp only [mem_univ, ciInf_unique]
 
 /-!
 ## Order & Field Properties
@@ -311,19 +108,6 @@ theorem mul_nonpos_of_nonpos_of_pos {α : Type*} [Ring α] [LinearOrder α] [IsS
   rcases le_iff_eq_or_lt.mp ha with (rfl | h)
   · rw [zero_mul]
   · exact (mul_neg_of_neg_of_pos h hb).le
-
--- Continuous infimum over finite index
-theorem continuousOn_iInf {α β : Type*} [Fintype α] [Nonempty α] [TopologicalSpace β]
-    {s : Set β} {f : α → β → ℝ} (hf : ∀ i, ContinuousOn (f i) s) :
-    ContinuousOn (fun x => ⨅ i, f i x) s := by
-  classical
-  let g : β → ℝ := fun x => (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i => f i x)
-  have hg : ContinuousOn g s := ContinuousOn.finset_inf'_apply Finset.univ_nonempty fun i _ => hf i
-  have h_eq : (fun x => ⨅ i, f i x) = g := by
-    dsimp [g]
-    exact iInf_apply_eq_finset_inf'_apply_fun f
-  rwa [h_eq]
-
 
 namespace Fintype
 
@@ -472,6 +256,20 @@ lemma exists_pos_of_ne_zero [Fintype n] [DecidableEq n] {v : n → ℝ} (h_nonne
   ext i
   exact le_antisymm (by simp_all) (h_nonneg i)
 
+/-- A non-negative, non-zero vector has a positive component that dominates all others. -/
+lemma exists_pos_maximal_of_nonneg_ne_zero [Fintype n] [Nonempty n] [DecidableEq n] {v : n → ℝ}
+    (h_nonneg : ∀ i, 0 ≤ v i) (h_ne_zero : v ≠ 0) :
+    ∃ i, 0 < v i ∧ ∀ j, v j ≤ v i := by
+  obtain ⟨i, -, hi_max⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty v
+  obtain ⟨j, hj_pos⟩ := exists_pos_of_ne_zero h_nonneg h_ne_zero
+  refine ⟨i, ?_, ?_⟩
+  · refine lt_of_lt_of_le hj_pos ?_
+    rw [← hi_max]
+    exact Finset.le_sup' v (Finset.mem_univ j)
+  · intro j
+    rw [← hi_max]
+    exact Finset.le_sup' v (Finset.mem_univ j)
+
 /-- A set is nonempty if and only if its finite conversion is nonempty. -/
 lemma Set.toFinset_nonempty_iff {α : Type*} [Fintype α] [DecidableEq α] (s : Set α) [Finite s] [Fintype s] :
     s.toFinset.Nonempty ↔ s.Nonempty := by
@@ -531,6 +329,15 @@ This is standard in Mathlib and often available via `simp`.
 lemma mulVec_apply {n : Type*} [Fintype n] {A : Matrix n n ℝ} {v : n → ℝ} (i : n) :
   (A *ᵥ v) i = ∑ j, A i j * v j :=
 rfl
+
+/-- If `c = a / b` with `b ≠ 0`, then `a = c * b`. -/
+lemma eq_mul_of_eq_div {a b c : ℝ} (hb : b ≠ 0) (h : c = a / b) : a = c * b := by
+  rw [h, div_mul_cancel₀ a hb]
+
+/-- Cancel a common nonzero factor from numerator and denominator in a field. -/
+lemma mul_div_mul_eq_div {R : Type*} [Field R] {a b c : R} (hc : c ≠ 0) (hb : b ≠ 0) :
+    (c * a) / (c * b) = a / b := by
+  field_simp [hc, hb]
 
 /--
 An element of a set is less than or equal to the supremum of that set,
@@ -614,43 +421,6 @@ lemma Nat.eq_one_or_one_lt (n : ℕ) (hn : n ≠ 0) : n = 1 ∨ 1 < n := by
 /-- For a finite type, the infimum over the type is attained at some element. -/
 lemma exists_eq_iInf {α : Type*} [Fintype α] [Nonempty α] (f : α → ℝ) : ∃ i, f i = ⨅ j, f j :=
   exists_eq_ciInf_of_finite
-
-/-- Functions computing pointwise infima are equal when using `iInf` vs `Finset.inf'`. -/
-lemma Finset.iInf_apply_eq_finset_inf'_apply_fun {α β γ : Type*}
-    [Fintype α] [Nonempty α] [ConditionallyCompleteLinearOrder γ]
-    (f : α → β → γ) :
-    (fun x ↦ ⨅ i, f i x) = (fun x ↦ (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i ↦ f i x)) := by
-  ext x
-  have h1 : ⨅ i, f i x = ⨅ i ∈ Set.univ, f i x := by
-    simp only [Set.mem_univ, ciInf_unique]
-  have h2 : ⨅ i ∈ Set.univ, f i x = ⨅ i ∈ (Finset.univ : Finset α), f i x := by
-    congr
-    ext i
-    simp only [Set.mem_univ, ciInf_unique, mem_univ]
-  have h3 : ⨅ i ∈ (Finset.univ : Finset α), f i x =
-           (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i ↦ f i x) := by
-    rw [Finset.inf'_eq_csInf_image]
-    simp only [mem_univ, ciInf_unique, Finset.mem_univ, Finset.coe_univ, image_univ]
-    rfl
-  rw [h1, h2, h3]
-
-/-- For a finite index type, the point-wise (finite) infimum of a family of
-    continuous functions is continuous. -/
-lemma continuousOn_iInf' {α β : Type*}
-    [Fintype α] [Nonempty α]
-    [TopologicalSpace β]
-    {s : Set β} {f : α → β → ℝ}
-    (hf : ∀ i, ContinuousOn (f i) s) :
-    ContinuousOn (fun x ↦ ⨅ i, f i x) s := by
-  classical
-  let g : β → ℝ :=
-    fun x ↦ (Finset.univ : Finset α).inf' Finset.univ_nonempty (fun i ↦ f i x)
-  have hg : ContinuousOn g s := by
-    exact ContinuousOn.finset_inf'_apply Finset.univ_nonempty fun i a ↦ hf i
-  have h_eq : (fun x ↦ ⨅ i, f i x) = g := by
-    dsimp [g]
-    exact Finset.iInf_apply_eq_finset_inf'_apply_fun f
-  rwa [h_eq]
 
 /-- An element of the image of a set is less than or equal to the supremum of that set. -/
 lemma le_csSup_of_mem {α : Type*} {f : α → ℝ} {s : Set α} (hs_bdd : BddAbove (f '' s)) {y : α} (hy : y ∈ s) :
@@ -830,6 +600,19 @@ lemma diagonal_inv_mulVec_self [DecidableEq n][Fintype n] {d : n → ℝ} (hd : 
   ext i
   simp [mulVec_diagonal]
   simp_all only [ne_eq, isUnit_iff_ne_zero, not_false_eq_true, IsUnit.inv_mul_cancel]
+
+lemma diagonal_mulVec_diagonal_inv_mulVec [DecidableEq n] [Fintype n]
+    {d x : n → ℝ} (hd : ∀ i, d i ≠ 0) :
+    diagonal d *ᵥ (diagonal (d⁻¹) *ᵥ x) = x := by
+  ext i
+  simp [mulVec_diagonal, hd i]
+
+lemma diagonal_mulVec_mono [DecidableEq n] [Fintype n] {d x y : n → ℝ}
+    (hd_nonneg : ∀ i, 0 ≤ d i) (hxy : x ≤ y) :
+    diagonal d *ᵥ x ≤ diagonal d *ᵥ y := by
+  intro i
+  rw [mulVec_diagonal, mulVec_diagonal]
+  exact mul_le_mul_of_nonneg_left (hxy i) (hd_nonneg i)
 
 end Matrix
 

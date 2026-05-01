@@ -92,23 +92,141 @@ noncomputable def birkhoffContraction (A : Matrix n n ℝ) : ℝ :=
 def IsScrambling (A : Matrix n n ℝ) : Prop :=
   ∀ i j, ∃ s, 0 < A i s ∧ 0 < A j s
 
+omit [DecidableEq n] in
 /-- Nonnegativity of the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_nonneg
     (x y : PositiveVec n) :
     0 ≤ Matrix.projectiveDist x y := by
-  sorry
+  rw [Matrix.projectiveDist, sub_nonneg]
+  refine Real.log_le_log ?hpos ?hle
+  · rw [Finset.lt_inf'_iff Finset.univ_nonempty]
+    intro i _
+    exact div_pos (x.2 i) (y.2 i)
+  · obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+    exact le_trans (Finset.inf'_le _ (Finset.mem_univ i))
+      (Finset.le_sup' (fun i => x.1 i / y.1 i) (Finset.mem_univ i))
 
 /-- Symmetry of the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_symm
     (x y : PositiveVec n) :
     Matrix.projectiveDist x y = Matrix.projectiveDist y x := by
-  sorry
+  unfold projectiveDist
+  have h_inv : ∀ i, y.1 i / x.1 i = (x.1 i / y.1 i)⁻¹ := fun i => by rw [inv_div]
+  simp_rw [h_inv]
+  have hxy : ∀ i, 0 < x.1 i / y.1 i := fun i => div_pos (x.2 i) (y.2 i)
+  have hinf_pos : 0 < Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+    rw [hj]
+    exact hxy j
+  have hsup_pos : 0 < Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+    rw [hj]
+    exact hxy j
+  have hsup_inv : (Finset.univ.sup' Finset.univ_nonempty fun i => (x.1 i / y.1 i)⁻¹) =
+      (Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i)⁻¹ := by
+    apply le_antisymm
+    · apply Finset.sup'_le
+      intro i hi
+      have h1 : Finset.univ.inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i) ≤ x.1 i / y.1 i :=
+        Finset.inf'_le (fun i => x.1 i / y.1 i) hi
+      rw [inv_eq_one_div, inv_eq_one_div]
+      exact one_div_le_one_div_of_le hinf_pos h1
+    · obtain ⟨j, hj_mem, hj_eq⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+      rw [hj_eq]
+      exact Finset.le_sup' (fun i => (x.1 i / y.1 i)⁻¹) hj_mem
+  have hinf_inv : (Finset.univ.inf' Finset.univ_nonempty fun i => (x.1 i / y.1 i)⁻¹) =
+      (Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i)⁻¹ := by
+    apply le_antisymm
+    · obtain ⟨j, hj_mem, hj_eq⟩ := Finset.exists_mem_eq_sup' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+      rw [hj_eq]
+      exact Finset.inf'_le (fun i => (x.1 i / y.1 i)⁻¹) hj_mem
+    · apply Finset.le_inf'
+      intro i hi
+      have h1 : x.1 i / y.1 i ≤ Finset.univ.sup' Finset.univ_nonempty (fun i => x.1 i / y.1 i) :=
+        Finset.le_sup' (fun i => x.1 i / y.1 i) hi
+      rw [inv_eq_one_div, inv_eq_one_div]
+      exact one_div_le_one_div_of_le (hxy i) h1
+  rw [hsup_inv, hinf_inv]
+  rw [Real.log_inv, Real.log_inv]
+  ring
 
 /-- Triangle inequality for the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_triangle
     (x y z : PositiveVec n) :
     Matrix.projectiveDist x z ≤ Matrix.projectiveDist x y + Matrix.projectiveDist y z := by
-  sorry
+  unfold projectiveDist
+  -- Let M_xy = sup(x/y), m_xy = inf(x/y), etc.
+  set M_xz := Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / z.1 i with hM_xz
+  set m_xz := Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / z.1 i with hm_xz
+  set M_xy := Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i with hM_xy
+  set m_xy := Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i with hm_xy
+  set M_yz := Finset.univ.sup' Finset.univ_nonempty fun i => y.1 i / z.1 i with hM_yz
+  set m_yz := Finset.univ.inf' Finset.univ_nonempty fun i => y.1 i / z.1 i with hm_yz
+  -- Positivity of all ratios
+  have hpos_xz : ∀ i, 0 < x.1 i / z.1 i := fun i => div_pos (x.2 i) (z.2 i)
+  have hpos_xy : ∀ i, 0 < x.1 i / y.1 i := fun i => div_pos (x.2 i) (y.2 i)
+  have hpos_yz : ∀ i, 0 < y.1 i / z.1 i := fun i => div_pos (y.2 i) (z.2 i)
+  have hM_xz_pos : 0 < M_xz := by
+    obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
+    exact lt_of_lt_of_le (hpos_xz i) (Finset.le_sup' (f := fun i => x.1 i / z.1 i) hi)
+  have hm_xz_pos : 0 < m_xz := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / z.1 i)
+    rw [hm_xz, hj]
+    exact hpos_xz j
+  have hM_xy_pos : 0 < M_xy := by
+    obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
+    exact lt_of_lt_of_le (hpos_xy i) (Finset.le_sup' (f := fun i => x.1 i / y.1 i) hi)
+  have hm_xy_pos : 0 < m_xy := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => x.1 i / y.1 i)
+    rw [hm_xy, hj]
+    exact hpos_xy j
+  have hM_yz_pos : 0 < M_yz := by
+    obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
+    exact lt_of_lt_of_le (hpos_yz i) (Finset.le_sup' (f := fun i => y.1 i / z.1 i) hi)
+  have hm_yz_pos : 0 < m_yz := by
+    obtain ⟨j, _, hj⟩ := Finset.exists_mem_eq_inf' Finset.univ_nonempty (fun i => y.1 i / z.1 i)
+    rw [hm_yz, hj]
+    exact hpos_yz j
+  -- Key: x_i/z_i = (x_i/y_i) * (y_i/z_i)
+  have h_ratio : ∀ i, x.1 i / z.1 i = (x.1 i / y.1 i) * (y.1 i / z.1 i) := by
+    intro i
+    field_simp [ne_of_gt (y.2 i), ne_of_gt (z.2 i)]
+  -- M_xz ≤ M_xy * M_yz
+  have hM_le : M_xz ≤ M_xy * M_yz := by
+    apply Finset.sup'_le
+    intro i _
+    rw [h_ratio i]
+    calc (x.1 i / y.1 i) * (y.1 i / z.1 i) 
+        ≤ M_xy * (y.1 i / z.1 i) := by
+          apply mul_le_mul_of_nonneg_right
+          · exact Finset.le_sup' (f := fun i => x.1 i / y.1 i) (Finset.mem_univ i)
+          · exact le_of_lt (hpos_yz i)
+      _ ≤ M_xy * M_yz := by
+          apply mul_le_mul_of_nonneg_left
+          · exact Finset.le_sup' (f := fun i => y.1 i / z.1 i) (Finset.mem_univ i)
+          · exact le_of_lt hM_xy_pos
+  -- m_xz ≥ m_xy * m_yz
+  have hm_ge : m_xy * m_yz ≤ m_xz := by
+    apply Finset.le_inf'
+    intro i _
+    rw [h_ratio i]
+    calc m_xy * m_yz 
+        ≤ (x.1 i / y.1 i) * m_yz := by
+          apply mul_le_mul_of_nonneg_right
+          · exact Finset.inf'_le (f := fun i => x.1 i / y.1 i) (Finset.mem_univ i)
+          · exact le_of_lt hm_yz_pos
+      _ ≤ (x.1 i / y.1 i) * (y.1 i / z.1 i) := by
+          apply mul_le_mul_of_nonneg_left
+          · exact Finset.inf'_le (f := fun i => y.1 i / z.1 i) (Finset.mem_univ i)
+          · exact le_of_lt (hpos_xy i)
+  -- Now use log monotonicity
+  have h1 : Real.log M_xz ≤ Real.log M_xy + Real.log M_yz := by
+    rw [← Real.log_mul (ne_of_gt hM_xy_pos) (ne_of_gt hM_yz_pos)]
+    exact Real.log_le_log hM_xz_pos hM_le
+  have h2 : Real.log m_xy + Real.log m_yz ≤ Real.log m_xz := by
+    rw [← Real.log_mul (ne_of_gt hm_xy_pos) (ne_of_gt hm_yz_pos)]
+    exact Real.log_le_log (mul_pos hm_xy_pos hm_yz_pos) hm_ge
+  linarith
 
 /--
 The Hilbert projective distance vanishes exactly on positive scalar multiples.
@@ -182,7 +300,67 @@ theorem projectiveDist_mulVec_le
     (x y : PositiveVec n) :
     Matrix.projectiveDist (Matrix.mulVecPositive A hA_nonneg hA_row x)
       (Matrix.mulVecPositive A hA_nonneg hA_row y) ≤ Matrix.projectiveDist x y := by
-  sorry
+  unfold projectiveDist
+  simp only [coe_mulVecPositive]
+  set M := Finset.univ.sup' Finset.univ_nonempty fun i => x.1 i / y.1 i with hM_def
+  set m := Finset.univ.inf' Finset.univ_nonempty fun i => x.1 i / y.1 i with hm_def
+  set M' := Finset.univ.sup' Finset.univ_nonempty fun i => (A *ᵥ x.1) i / (A *ᵥ y.1) i with hM'_def
+  set m' := Finset.univ.inf' Finset.univ_nonempty fun i => (A *ᵥ x.1) i / (A *ᵥ y.1) i with hm'_def
+  have hm_pos : 0 < m := by
+    rw [Finset.lt_inf'_iff]
+    intro j _
+    exact div_pos (x.2 j) (y.2 j)
+  have hM_pos : 0 < M := by
+    obtain ⟨i₀, hi₀⟩ := Finset.univ_nonempty (α := n)
+    have h1 : 0 < x.1 i₀ / y.1 i₀ := div_pos (x.2 i₀) (y.2 i₀)
+    have h2 : x.1 i₀ / y.1 i₀ ≤ M := Finset.le_sup' (fun i => x.1 i / y.1 i) (Finset.mem_univ i₀)
+    linarith
+  have hm'_pos : 0 < m' := by
+    rw [Finset.lt_inf'_iff]
+    intro j _
+    exact div_pos ((mulVecPositive A hA_nonneg hA_row x).2 j) ((mulVecPositive A hA_nonneg hA_row y).2 j)
+  have hM'_pos : 0 < M' := by
+    obtain ⟨i₀, hi₀⟩ := Finset.univ_nonempty (α := n)
+    have h1 : 0 < (A *ᵥ x.1) i₀ / (A *ᵥ y.1) i₀ := div_pos ((mulVecPositive A hA_nonneg hA_row x).2 i₀) ((mulVecPositive A hA_nonneg hA_row y).2 i₀)
+    have h2 : (A *ᵥ x.1) i₀ / (A *ᵥ y.1) i₀ ≤ M' := Finset.le_sup' (fun i => (A *ᵥ x.1) i / (A *ᵥ y.1) i) (Finset.mem_univ i₀)
+    linarith
+  have hM'_le_M : M' ≤ M := by
+    apply Finset.sup'_le
+    intro i _
+    have hAy_pos : 0 < (A *ᵥ y.1) i := (mulVecPositive A hA_nonneg hA_row y).2 i
+    rw [div_le_iff₀ hAy_pos]
+    simp only [Matrix.mulVec]
+    have hy_pos : ∀ j, y.1 j ≠ 0 := fun j => (y.2 j).ne'
+    calc ∑ j, A i j * x.1 j
+        = ∑ j, A i j * (x.1 j / y.1 j) * y.1 j := by
+          congr 1; ext j; field_simp [hy_pos j]
+      _ ≤ ∑ j, A i j * M * y.1 j := by
+          apply Finset.sum_le_sum; intro j _
+          have h1 : x.1 j / y.1 j ≤ M := Finset.le_sup' (fun k => x.1 k / y.1 k) (Finset.mem_univ j)
+          have h2 : A i j * (x.1 j / y.1 j) ≤ A i j * M := mul_le_mul_of_nonneg_left h1 (hA_nonneg i j)
+          exact mul_le_mul_of_nonneg_right h2 (le_of_lt (y.2 j))
+      _ = M * ∑ j, A i j * y.1 j := by rw [Finset.mul_sum]; congr 1; ext j; ring
+  have hm_le_m' : m ≤ m' := by
+    apply Finset.le_inf'
+    intro i _
+    have hAy_pos : 0 < (A *ᵥ y.1) i := (mulVecPositive A hA_nonneg hA_row y).2 i
+    rw [le_div_iff₀ hAy_pos]
+    simp only [Matrix.mulVec]
+    have hy_pos : ∀ j, y.1 j ≠ 0 := fun j => (y.2 j).ne'
+    calc m * ∑ j, A i j * y.1 j
+        = ∑ j, A i j * m * y.1 j := by rw [Finset.mul_sum]; congr 1; ext j; ring
+      _ ≤ ∑ j, A i j * (x.1 j / y.1 j) * y.1 j := by
+          apply Finset.sum_le_sum; intro j _
+          have h1 : m ≤ x.1 j / y.1 j := Finset.inf'_le (fun k => x.1 k / y.1 k) (Finset.mem_univ j)
+          have h2 : A i j * m ≤ A i j * (x.1 j / y.1 j) := mul_le_mul_of_nonneg_left h1 (hA_nonneg i j)
+          exact mul_le_mul_of_nonneg_right h2 (le_of_lt (y.2 j))
+      _ = ∑ j, A i j * x.1 j := by
+          congr 1; ext j; field_simp [hy_pos j]
+  have h1 : Real.log M' - Real.log m' ≤ Real.log M - Real.log m := by
+    have hlog1 : Real.log M' ≤ Real.log M := Real.log_le_log hM'_pos hM'_le_M
+    have hlog2 : Real.log m ≤ Real.log m' := Real.log_le_log hm_pos hm_le_m'
+    linarith
+  exact h1
 
 /--
 The Birkhoff coefficient is bounded by `1` for a nonnegative row-allowable matrix.
@@ -190,14 +368,41 @@ The Birkhoff coefficient is bounded by `1` for a nonnegative row-allowable matri
 theorem birkhoffContraction_le_one
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) (hA_row : A.IsRowAllowable) :
     Matrix.birkhoffContraction A ≤ 1 := by
-  sorry
+  refine csSup_le ?nonempty ?upper
+  · exact ⟨0, Set.mem_union_left _ rfl⟩
+  · intro t ht
+    rw [Set.mem_union, Set.mem_singleton_iff] at ht
+    rcases ht with rfl | ht
+    · norm_num
+    obtain ⟨x, y, hx, hy, hdist_ne, rfl⟩ := ht
+    have hdist_nonneg : 0 ≤ Matrix.projectiveDist x y :=
+      Matrix.projectiveDist_nonneg x y
+    have hle :
+        Matrix.projectiveDist ⟨A *ᵥ x.1, hx⟩ ⟨A *ᵥ y.1, hy⟩ ≤
+          Matrix.projectiveDist x y := by
+      simpa [Matrix.mulVecPositive] using
+        Matrix.projectiveDist_mulVec_le hA_nonneg hA_row x y
+    exact div_le_one_of_le₀ hle hdist_nonneg
+
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
+/--
+Scrambling implies row-allowability.
+-/
+theorem IsScrambling.isRowAllowable
+    {A : Matrix n n ℝ} (h_scrambling : A.IsScrambling) :
+    A.IsRowAllowable := by
+  intro i
+  obtain ⟨s, hs, _⟩ := h_scrambling i i
+  exact ⟨s, hs⟩
 
 /--
-Scrambling implies strict Birkhoff contraction.
+Scrambling matrices satisfy the general Birkhoff coefficient bound `≤ 1`.
+
+Strict Hilbert-projective contraction requires stronger hypotheses than scrambling alone.
 -/
-theorem scrambling_implies_birkhoffContraction_lt_one
+theorem scrambling_implies_birkhoffContraction_le_one
     {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j) (h_scrambling : A.IsScrambling) :
-    Matrix.birkhoffContraction A < 1 := by
-  sorry
+    Matrix.birkhoffContraction A ≤ 1 := by
+  exact Matrix.birkhoffContraction_le_one hA_nonneg h_scrambling.isRowAllowable
 
 end Matrix
