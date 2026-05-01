@@ -44,6 +44,8 @@ These results connect `Matrix.IsIrreducible` and `Matrix.IsPrimitive` to the qui
   `c` is still an `r`-eigenvector.
 - `Matrix.mulVec_pos_of_exists_pos_mul_pos` gives `(A *ᵥ v) i > 0` from one positive summand
   `A i j * v j` in a nonnegative row against a positive vector.
+- `Matrix.row_sum_pos_of_irreducible_nonneg`: each row sum of an irreducible nonnegative matrix is
+  strictly positive (no zero row).
 
 -/
 
@@ -314,6 +316,26 @@ lemma irreducible_one_element_implies_diagonal_pos [Fintype n]
   have hji : j = i := Subsingleton.elim _ _
   have e_pos : 0 < A j i := e
   simpa [hji] using e_pos
+
+/-- Every row sum of an irreducible nonnegative matrix is strictly positive
+(no zero row). -/
+lemma row_sum_pos_of_irreducible_nonneg [Fintype n] [Nonempty n] [DecidableEq n]
+    {A : Matrix n n ℝ} (hA_irred : IsIrreducible A) (hA_nonneg : ∀ i j, 0 ≤ A i j) (i : n) :
+    0 < ∑ j, A i j := by
+  rw [lt_iff_le_and_ne]
+  refine ⟨Finset.sum_nonneg fun j _ => hA_nonneg i j, ?_⟩
+  intro h0
+  have h_sum0 : ∑ j, A i j = 0 := Eq.symm h0
+  have h_zero_row : ∀ j, A i j = 0 := fun j =>
+    forall_eq_zero_of_finset_sum_eq_zero_of_nonneg (fun k => hA_nonneg i k) h_sum0 j
+  by_cases h_card_one : Fintype.card n = 1
+  · exact lt_irrefl (0 : ℝ) <|
+      (h_zero_row i).symm ▸ irreducible_one_element_implies_diagonal_pos hA_irred h_card_one i
+  · have h_card_gt_one : 1 < Fintype.card n :=
+      Nat.lt_of_le_of_ne (Nat.succ_le_iff.mpr Fintype.card_pos) (Ne.symm h_card_one)
+    haveI : Nontrivial n := Fintype.one_lt_card_iff_nontrivial.1 h_card_gt_one
+    obtain ⟨j, hj_pos⟩ := Matrix.IsIrreducible.exists_pos (A := A) hA_irred i
+    exact lt_irrefl (0 : ℝ) <| (h_zero_row j).symm ▸ hj_pos
 
 /-- An irreducible matrix cannot send a nonnegative nonzero vector to `0`. -/
 theorem irreducible_mulVec_ne_zero [DecidableEq n] [Fintype n]
