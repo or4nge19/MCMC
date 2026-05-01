@@ -234,6 +234,7 @@ theorem eigenvalue_abs_subinvariant
       simp only [Complex.norm_mul, norm_real, Real.norm_eq_abs, abs_of_nonneg (hA_nonneg _ _)]
     _ = (A *ᵥ fun i => ‖x i‖) i := by simp [mulVec_apply]
 
+omit [DecidableEq n] in
 /--
 Under the conditions of the main theorem, the eigenvalue `lam` must be non-zero.
 -/
@@ -611,6 +612,7 @@ lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrre
     apply (Complex.aligned_of_mul_of_real_pos hAkm_pos rfl h_xm_ne_zero).symm
   rw [h_xl_aligned, h_xm_aligned, h_align_l, h_align_m]
 
+omit [DecidableEq n] in
 /-- The reference phase has norm 1. -/
 lemma reference_phase_norm_one {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     {x : n → ℂ} (hx_ne_zero : x ≠ 0)
