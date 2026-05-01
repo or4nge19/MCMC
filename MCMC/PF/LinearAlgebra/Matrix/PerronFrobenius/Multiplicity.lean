@@ -93,32 +93,12 @@ lemma geometric_multiplicity_one_of_irreducible
       let rB := r + 1
       have hrB_pos : 0 < rB := by linarith [hr_pos]
       have hBw_eig : toLin' B w = rB • w := by
-        simp [B, f, LinearMap.add_apply, toLin'_one, add_smul, one_smul, rB, hw_eig,
-          add_comm]
+        simpa [B, f, rB] using toLin'_one_add_eigenvector hw_eig
       have hw_abs_eig_B : toLin' B w_abs = rB • w_abs := by
-        simp [B, f, LinearMap.add_apply, toLin'_one, add_smul, one_smul, rB, hw_abs_eig,
-          add_comm]
+        simpa [B, f, rB] using toLin'_one_add_eigenvector hw_abs_eig
       let wc : n → ℂ := fun i => (w i : ℂ)
       have hwc_eig_B : (B.map (algebraMap ℝ ℂ)) *ᵥ wc = (rB : ℂ) • wc := by
-        ext i
-        have h_real : ∑ j, B i j * w j = rB * w i := by
-          have := congrArg (fun v : n → ℝ => v i)
-            (by simpa [toLin'_apply, Pi.smul_apply] using hBw_eig)
-          simpa [Matrix.mulVec, dotProduct] using this
-        calc
-          ((B.map (algebraMap ℝ ℂ)) *ᵥ wc) i
-              = ∑ j, (algebraMap ℝ ℂ (B i j)) * wc j := by
-                simp [Matrix.mulVec, dotProduct]
-          _ = ∑ j, (B i j : ℂ) * (w j : ℂ) := by
-                simp [wc]
-          _ = ∑ j, Complex.ofReal (B i j * w j) := by
-                simp [Complex.ofReal_mul]
-          _ = Complex.ofReal (∑ j, B i j * w j) := by
-                simp
-          _ = Complex.ofReal (rB * w i) := by
-                simp [h_real]
-          _ = (rB : ℂ) * wc i := by
-                simp [wc, Complex.ofReal_mul]
+        simpa [wc] using mulVec_map_complex_of_real_eigenvector hBw_eig
       have hrB_eq_perronB : rB = perronRoot B :=
         eigenvalue_is_perron_root_of_positive_eigenvector hB_irred hB_nonneg hrB_pos hw_abs_pos hw_abs_eig_B
       have h_norm_eig : (B *ᵥ fun i => ‖wc i‖) = perronRoot B • (fun i => ‖wc i‖) := by

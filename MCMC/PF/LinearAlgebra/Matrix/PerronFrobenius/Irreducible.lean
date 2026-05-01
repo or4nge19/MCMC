@@ -111,6 +111,7 @@ lemma eigenvector_no_zero_entries_of_irreducible [Fintype n]
 variable {n : Type*} [Fintype n] [DecidableEq n]
 variable {A : Matrix n n ℝ}
 
+omit [Fintype n] [DecidableEq n] in
 /-- An irreducible matrix has a positive entry. -/
 lemma Irreducible.exists_pos_entry [Nonempty n] (hA_irred : A.IsIrreducible) :
     ∃ i j : n, 0 < A i j := by

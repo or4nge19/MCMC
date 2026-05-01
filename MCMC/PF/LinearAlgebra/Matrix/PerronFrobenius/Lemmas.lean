@@ -442,6 +442,30 @@ lemma mulVec_map_pow_eq_smul_pow_of_mulVec_map_smul
 
 end MulVecPowMap
 
+section ShiftAndMap
+
+variable {n : Type*} [Fintype n] [DecidableEq n]
+
+/-- If `v` is an `r`-eigenvector for `A`, then it is an `(r + 1)`-eigenvector for `1 + A`. -/
+lemma toLin'_one_add_eigenvector {A : Matrix n n ℝ} {r : ℝ} {v : n → ℝ}
+    (h : toLin' A v = r • v) :
+    toLin' (1 + A) v = (r + 1) • v := by
+  simp [LinearMap.add_apply, toLin'_one, add_smul, one_smul, h, add_comm]
+
+/-- A real eigenvector equation, coerced to the complexified matrix. -/
+lemma mulVec_map_complex_of_real_eigenvector {A : Matrix n n ℝ} {r : ℝ} {v : n → ℝ}
+    (h : toLin' A v = r • v) :
+    (A.map (algebraMap ℝ ℂ)) *ᵥ (fun i => (v i : ℂ)) =
+      (r : ℂ) • fun i => (v i : ℂ) := by
+  ext i
+  have h_real : ∑ j, A i j * v j = r * v i := by
+    have := congr_fun (by simpa [toLin'_apply, Pi.smul_apply] using h) i
+    simpa [Matrix.mulVec, dotProduct] using this
+  simpa [Matrix.mulVec, dotProduct, Pi.smul_apply, smul_eq_mul, Complex.ofReal_mul] using
+    congrArg (fun x : ℝ => (x : ℂ)) h_real
+
+end ShiftAndMap
+
 end PerronFrobenius
 
 end Matrix
