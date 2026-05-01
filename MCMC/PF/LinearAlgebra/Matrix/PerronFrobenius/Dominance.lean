@@ -258,11 +258,7 @@ theorem eigenvalue_is_perron_root_of_positive_eigenvector
   have h_le : r ≤ perronRoot A := by
     rw [← eq_eigenvalue_of_positive_eigenvector hv_pos h_eig]
     have hv_nonneg : ∀ i, 0 ≤ v i := fun i ↦ (hv_pos i).le
-    have hv_ne_zero : v ≠ 0 := by
-      intro h0
-      have : 0 < v (Classical.arbitrary n) := hv_pos (Classical.arbitrary n)
-      rw [h0] at this
-      simp only [Pi.zero_apply, lt_self_iff_false] at this
+    have hv_ne_zero : v ≠ 0 := Pi.ne_zero_of_pos hv_pos
     apply le_csSup (CollatzWielandt.bddAbove A hA_nonneg)
     rw [@Set.mem_image]
     exact ⟨v, ⟨hv_nonneg, hv_ne_zero⟩, rfl⟩
@@ -287,10 +283,7 @@ theorem perronRoot_transpose_eq
     have : Aᵀ *ᵥ u = r' • u := hu_eig_T
     simpa [vecMul_eq_mulVec_transpose] using this
   have hv_nonneg : ∀ i, 0 ≤ v i := fun i ↦ (hv_pos i).le
-  have hv_ne_zero : v ≠ 0 := by
-    intro h
-    have : 0 < v (Classical.arbitrary n) := hv_pos _
-    simp only [h, Pi.zero_apply, lt_self_iff_false] at this
+  have hv_ne_zero : v ≠ 0 := Pi.ne_zero_of_pos hv_pos
   have h_dot_pos : 0 < u ⬝ᵥ v :=
     dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hv_nonneg hv_ne_zero
   have h1 : u ⬝ᵥ (A *ᵥ v) = r * (u ⬝ᵥ v) := by
@@ -455,10 +448,7 @@ lemma mem_spectrum_of_eigenvalue
 theorem perron_root_is_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     perronRoot A ∈ spectrum ℝ A := by
   obtain ⟨r', v, _, hv_pos, h_eig, h_eq⟩ := perron_root_eq_positive_eigenvalue hA_irred hA_nonneg
-  have hv_ne_0 : v ≠ 0 := fun h => by
-    have := hv_pos (Classical.arbitrary n)
-    rw [h] at this
-    exact lt_irrefl 0 this
+  have hv_ne_0 : v ≠ 0 := Pi.ne_zero_of_pos hv_pos
   rw [h_eq]
   exact mem_spectrum_of_eigenvalue hv_ne_0 h_eig
 
@@ -609,17 +599,14 @@ lemma aligned_neighbors_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrre
 /-- The reference phase has norm 1. -/
 lemma reference_phase_norm_one {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     {x : n → ℂ} (hx_ne_zero : x ≠ 0)
-    (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot A) • (fun i => ‖x i‖)) :
-    let j₀ := Classical.arbitrary n
-    let c := x j₀ / ↑‖x j₀‖
-    ‖c‖ = 1 := by
+    (h_x_abs_eig : A *ᵥ (fun i => ‖x i‖) = (perronRoot A) • (fun i => ‖x i‖))
+    (j₀ : n) :
+    ‖x j₀ / ↑‖x j₀‖‖ = 1 := by
   let x_abs := fun i => ‖x i‖
   have hx_abs_nonneg : ∀ i, 0 ≤ x_abs i := fun i => norm_nonneg _
   have hx_abs_ne_zero : x_abs ≠ 0 := normFun_complex_ne_zero_of_ne_zero hx_ne_zero
   have h_x_abs_pos : ∀ k, 0 < x_abs k :=
     eigenvector_is_positive_of_irreducible hA_irred h_x_abs_eig hx_abs_nonneg hx_abs_ne_zero
-  let j₀ := Classical.arbitrary n
-  let c := x j₀ / ↑‖x j₀‖
   simp_rw [norm_div, Complex.norm_ofReal, abs_of_nonneg (norm_nonneg _)]
   exact div_self (h_x_abs_pos j₀).ne'
 
@@ -923,7 +910,7 @@ lemma entries_share_phase_of_primitive
     ∀ i j : n, x i / ‖x i‖ = x j / ‖x j‖ := by
   obtain ⟨k, _hk_pos, hAk_pos⟩ := hA_prim.2
   intro i j
-  let m := Classical.arbitrary n
+  obtain ⟨m⟩ := inferInstanceAs (Nonempty n)
   have tri := triangle_equality_for_primitive_power
               hA_prim hx_eig h_x_abs_eig h_norm_eq_r m k hAk_pos
   have align_i :=
@@ -949,7 +936,7 @@ lemma eigenvector_phase_aligned_of_primitive
     (h_x_abs_eig : A *ᵥ (fun i ↦ ‖x i‖) = (perronRoot A) • (fun i ↦ ‖x i‖))
     (hx_abs_pos : ∀ i, 0 < ‖x i‖) :
     ∃ c : ℂ, ‖c‖ = 1 ∧ x = fun i ↦ c * ‖x i‖ := by
-  let i₀ : n := Classical.arbitrary _
+  obtain ⟨i₀⟩ := inferInstanceAs (Nonempty n)
   let c   : ℂ := x i₀ / ‖x i₀‖
   have hc_norm : ‖c‖ = 1 := by
     have h_pos : 0 < ‖x i₀‖ := hx_abs_pos i₀
@@ -983,7 +970,7 @@ lemma eigenvalue_eq_of_phase_aligned
     intro hc
     have : (‖(0 : ℂ)‖ : ℝ) = 1 := by
       rw [hc, norm_zero] at hc_norm
-      aesop
+      simp at hc_norm
     norm_num at this
   set x_abs : n → ℂ := fun j ↦ (‖x j‖ : ℂ) with hx_abs_def
   have hx_repr : x = fun j ↦ c * x_abs j := by
@@ -1098,6 +1085,7 @@ theorem spectral_dominance_of_primitive
       hA_prim hA_nonneg h_norm_eq_r
       hx_eig h_x_abs_eig hx_abs_pos
   -- μ = r  from the phase-aligned situation.
+  obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
   have hμ_eq_r :
       μ = perronRoot A :=
     eigenvalue_eq_of_phase_aligned
@@ -1107,7 +1095,7 @@ theorem spectral_dominance_of_primitive
         intro i
         exact congrFun h_phase i)
       h_x_abs_eig
-      (hx_abs_pos (Classical.arbitrary n))
+      (hx_abs_pos i)
   exact hμ_eq_r
 
 /--

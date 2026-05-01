@@ -84,20 +84,20 @@ lemma geometric_multiplicity_one_of_irreducible
       obtain ⟨c_abs, hc_abs_pos, hc_abs_eq⟩ :=
         uniqueness_of_positive_eigenvector_gen hA_irred hr_pos hw_abs_pos hv_pos hw_abs_eig hv_eig_f
       let B := 1 + A
-      have hB_nonneg : ∀ i j, 0 ≤ B i j := by
-         intro i j; by_cases h : i = j
-         · subst h; have := hA_nonneg i i; simp [B]; linarith
-         · simp [B, h, hA_nonneg i j]
+      have hB_nonneg : ∀ i j, 0 ≤ B i j :=
+        fun i j => Matrix.one_add_apply_nonneg hA_nonneg i j
       have hB_irred := Matrix.Irreducible.add_one (A := A) hA_irred
-      have hB_diag_pos : ∀ i, 0 < B i i := by
-        intro i; have := hA_nonneg i i; simp [B]; linarith
+      have hB_diag_pos : ∀ i, 0 < B i i :=
+        fun i => Matrix.one_add_diag_pos (fun j => hA_nonneg j j) i
       have hB_prim : IsPrimitive B := IsPrimitive.of_irreducible_pos_diagonal B hB_nonneg hB_irred hB_diag_pos
       let rB := r + 1
       have hrB_pos : 0 < rB := by linarith [hr_pos]
       have hBw_eig : toLin' B w = rB • w := by
-        simp [B, LinearMap.add_apply, toLin'_one, add_smul, one_smul, rB]; abel_nf; aesop
+        simp [B, f, LinearMap.add_apply, toLin'_one, add_smul, one_smul, rB, hw_eig,
+          add_comm]
       have hw_abs_eig_B : toLin' B w_abs = rB • w_abs := by
-        simp [B, LinearMap.add_apply, toLin'_one, add_smul, one_smul, rB]; abel_nf; aesop
+        simp [B, f, LinearMap.add_apply, toLin'_one, add_smul, one_smul, rB, hw_abs_eig,
+          add_comm]
       let wc : n → ℂ := fun i => (w i : ℂ)
       have hwc_eig_B : (B.map (algebraMap ℝ ℂ)) *ᵥ wc = (rB : ℂ) • wc := by
         ext i
@@ -134,7 +134,7 @@ lemma geometric_multiplicity_one_of_irreducible
         hwc_eig_B
         h_norm_eig
         h_norm_pos
-      let i := Classical.arbitrary n
+      obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
       have hc_eq_i := congr_fun hc_eq i
       simp only [wc] at hc_eq_i
       have hc_real : c.im = 0 := by
@@ -176,7 +176,6 @@ lemma algebraic_multiplicity_one_of_irreducible
     (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
     Module.End.maxGenEigenspace (toLin' A) (perronRoot A) =
     Module.End.eigenspace (toLin' A) (perronRoot A) := by
-  classical
   let r := perronRoot A
   let f := toLin' A
   let g := f - r • LinearMap.id
@@ -228,11 +227,7 @@ lemma algebraic_multiplicity_one_of_irreducible
             simpa [hc_eq] using h_dot_u
           simpa [dotProduct_smul, smul_eq_mul, mul_comm] using this
         exact mul_eq_zero.mp hc_mul
-      have hv_ne_zero : v ≠ 0 := by
-        intro h
-        have : 0 < v (Classical.arbitrary n) := hv_pos _
-        have : False := by simp [h] at this
-        exact this.elim
+      have hv_ne_zero : v ≠ 0 := Pi.ne_zero_of_pos hv_pos
       have h_dot_pos : 0 < u_star ⬝ᵥ v :=
         dotProduct_pos_of_pos_of_nonneg_ne_zero hu_star_pos
           (fun i => (hv_pos i).le) hv_ne_zero

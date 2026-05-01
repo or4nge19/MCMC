@@ -188,7 +188,8 @@ omit [Fintype n] in
 lemma nonnegNeZero_mem_const_one : (fun _ : n => (1 : ℝ)) ∈ nonnegNeZero := by
   refine ⟨fun _ => zero_le_one, ?_⟩
   intro h
-  exact one_ne_zero (congr_fun h (Classical.arbitrary n))
+  obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+  exact one_ne_zero (congr_fun h i)
 
 /-- The Collatz-Wielandt function attains its maximum on the standard simplex.
     [Giaquinta-Modica, Theorem 6.24 (dual), p: 235] -/
@@ -331,8 +332,8 @@ theorem eq_eigenvalue_of_positive_eigenvector [DecidableEq n] [Nonempty n]
     (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) :
     collatzWielandtFn A v = r := by
   have h_supp_nonempty : ({i | 0 < v i}.toFinset).Nonempty := by
-    let i0 : n := Classical.arbitrary n
-    exact ⟨i0, by simpa using hv_pos i0⟩
+    obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+    exact ⟨i, by simpa using hv_pos i⟩
   rw [eq_iInf_of_nonempty v h_supp_nonempty]
   calc
     ⨅ i : {i | 0 < v i}, (A *ᵥ v) i / v i = ⨅ _ : {i | 0 < v i}, r := by
@@ -358,11 +359,7 @@ theorem eigenvalue_le_perron_root_of_positive_eigenvector
     r ≤ perronRoot A := by
   have hv_nonneg : ∀ i, 0 ≤ v i := fun i ↦ (hv_pos i).le
   have hv_ne_zero : v ≠ 0 := by
-    intro h
-    have hcontr : (0 : ℝ) < 0 := by
-      have hpos := hv_pos (Classical.arbitrary n)
-      simp [h] at hpos
-    exact (lt_irrefl _ hcontr).elim
+    exact Pi.ne_zero_of_pos hv_pos
   have h_r : r = collatzWielandtFn A v :=
     (eq_eigenvalue_of_positive_eigenvector hv_pos h_eig).symm
   have h_le : collatzWielandtFn A v ≤ perronRoot A := by
@@ -691,7 +688,9 @@ lemma collatzWielandtFn_of_ones_is_pos [DecidableEq n]
     0 < collatzWielandtFn A (fun _ ↦ 1) := by
   let x_ones : n → ℝ := fun _ ↦ 1
   have h_supp_nonempty : ({i | 0 < x_ones i}.toFinset).Nonempty := by
-    rw [Set.toFinset_nonempty_iff]; exact ⟨Classical.arbitrary n, by simp [x_ones]⟩
+    rw [Set.toFinset_nonempty_iff]
+    obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+    exact ⟨i, by simp [x_ones]⟩
   dsimp [collatzWielandtFn]
   rw [dif_pos h_supp_nonempty]
   have h_supp_ones : {i | 0 < x_ones i}.toFinset = Finset.univ := by

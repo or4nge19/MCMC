@@ -111,6 +111,16 @@ lemma eigenvector_no_zero_entries_of_irreducible [Fintype n]
 variable {n : Type*} [Fintype n] [DecidableEq n]
 variable {A : Matrix n n ℝ}
 
+/-- An irreducible matrix has a positive entry. -/
+lemma Irreducible.exists_pos_entry [Nonempty n] (hA_irred : A.IsIrreducible) :
+    ∃ i j : n, 0 < A i j := by
+  letI : Quiver n := toQuiver A
+  obtain ⟨i₀⟩ := inferInstanceAs (Nonempty n)
+  obtain ⟨p, hp_pos⟩ := hA_irred.connected i₀ i₀
+  rcases Quiver.Path.path_decomposition_first_edge p hp_pos with
+    ⟨j, e, -, -, -⟩
+  exact ⟨i₀, j, e⟩
+
 /-- **Perron–Frobenius, irreducible case (Existence part)**
 If `A` is a non-negative irreducible matrix, then there exists a strictly positive eigenvalue `r > 0`
 and a strictly positive eigenvector `v` (`∀ i, 0 < v i`) such that `A *ᵥ v = r • v`.
@@ -144,13 +154,7 @@ theorem exists_positive_eigenvector_of_irreducible [Nonempty n]
   -- 4.  We show that `rB - 1 > 0`.
   letI GA : Quiver n := toQuiver A
   -- 4a.  We find a positive entry of `A`.
-  have h_pos_entry : ∃ i j, 0 < A i j := by
-    let i₀ : n := Classical.arbitrary n
-    obtain ⟨p₀, hp₀_len⟩ := hA_irred.connected i₀ i₀
-    rcases Quiver.Path.path_decomposition_first_edge p₀ hp₀_len with
-      ⟨j, e, -, -, -⟩
-    exact ⟨i₀, j, e⟩
-  rcases h_pos_entry with ⟨i₀, j₀, hA_pos⟩
+  rcases Irreducible.exists_pos_entry (A := A) hA_irred with ⟨i₀, j₀, hA_pos⟩
   -- 4b.  The `i₀`-component of `A * v` is positive.
   have hAv_i₀_pos : 0 < (A *ᵥ v) i₀ :=
     mulVec_pos_of_exists_pos_mul_pos i₀ j₀ (fun k => hA_irred.1 i₀ k) hv_pos hA_pos
@@ -415,19 +419,6 @@ theorem pft_primitive
         _  = 1                      := h_sum_v0
     ext i
     simp [hc'_eq, hc'_one]
-open Quiver
-
-lemma Irreducible.exists_pos_entry
-    {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n] {A : Matrix n n ℝ}
-    (hA_irred : A.IsIrreducible) :
-    ∃ i j : n, 0 < A i j := by
-  letI : Quiver n := toQuiver A
-  let i₀ : n := Classical.arbitrary n
-  obtain ⟨p, hp_pos⟩ := hA_irred.connected i₀ i₀
-  rcases Quiver.Path.path_decomposition_first_edge p hp_pos with
-    ⟨j, e, -, -, -⟩
-  exact ⟨i₀, j, e⟩
-
 /--
 **Perron–Frobenius theorem for irreducible real matrices (Existence, positivity, uniqueness)**.
 

@@ -104,7 +104,7 @@ theorem primitive_implies_irreducible_and_aperiodic
     IsPrimitive A → IsAperiodic A := by
   intro h_prim
   have h_irred : IsIrreducible A := (Matrix.IsPrimitive.isIrreducible (A := A) h_prim)
-  let i0 : n := Classical.choice ‹Nonempty n›
+  obtain ⟨i0⟩ := inferInstanceAs (Nonempty n)
   exact ⟨h_irred, ⟨i0, period_eq_one_of_primitive hA_nonneg h_prim i0⟩⟩
 
 /-! # Frobenius Normal Form -/

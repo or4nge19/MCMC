@@ -47,6 +47,18 @@ These results connect `Matrix.IsIrreducible` and `Matrix.IsPrimitive` to the qui
 
 -/
 
+namespace Pi
+
+/-- A strictly positive dependent function on a nonempty type is nonzero. -/
+lemma ne_zero_of_pos {ι α : Type*} [Nonempty ι] [Zero α] [Preorder α]
+    {v : ι → α} (hv_pos : ∀ i, 0 < v i) :
+    v ≠ 0 := by
+  rintro rfl
+  obtain ⟨i⟩ := inferInstanceAs (Nonempty ι)
+  exact (hv_pos i).false
+
+end Pi
+
 namespace Matrix
 section PerronFrobenius
 open Matrix Finset Quiver Quiver.Path

@@ -54,7 +54,9 @@ theorem maximizer_is_eigenvector (hA_prim : IsPrimitive A)
     rw [h_calc]; exact lt_add_of_pos_right (r * y i) h_pos_term
   have r_lt_r_y : r < collatzWielandtFn A y := by
     have h_y_supp_nonempty : ({i | 0 < y i}.toFinset).Nonempty := by
-      rw [Set.toFinset_nonempty_iff]; exact ⟨(Classical.arbitrary n), hy_pos _⟩
+      rw [Set.toFinset_nonempty_iff]
+      obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+      exact ⟨i, hy_pos i⟩
     rw [collatzWielandtFn, dif_pos h_y_supp_nonempty]; apply (Finset.lt_inf'_iff h_y_supp_nonempty).mpr
     intro i _;
     exact (lt_div_iff₀ (hy_pos i)).mpr (h_Ay_gt_ry i)
@@ -152,7 +154,8 @@ lemma perron_root_pos_of_primitive
     have hx_nonneg : ∀ i, 0 ≤ x i := fun _ => zero_le_one
     have hx_ne_zero : x ≠ 0 := by
       intro h
-      have : (1 : ℝ) = 0 := congr_fun h (Classical.arbitrary n)
+      obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+      have : (1 : ℝ) = 0 := congr_fun h i
       exact one_ne_zero this
     have h_eq : ones_norm = c • x := by ext; simp [c, x, ones_norm]
     rw [h_eq]
