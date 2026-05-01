@@ -7,15 +7,11 @@ import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.CollatzWielandt
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 import Mathlib.Tactic
 
-set_option linter.unusedSectionVars false
-
 /-!
 # Perron-Frobenius for primitive matrices
 
 Theorem 1.1 in Seneta, *Non-negative Matrices and Markov Chains*: Collatz–Wielandt supremum,
 existence of a simplex maximizer, then primitivity forces a strictly positive eigenvector.
-Irreducible facts such as `perronRoot_pos_of_irreducible` live in `CollatzWielandt.lean` next to
-`perronRoot`.
 
 -/
 
@@ -124,6 +120,7 @@ theorem maximizer_is_eigenvector (hA_prim : IsPrimitive A)
     · rfl
   linarith [r_ge_r_y_norm, r_y_norm_eq_r_y, r_lt_r_y]
 
+omit [Nonempty n] in
 /-- An eigenvector `v` of a primitive matrix `A` corresponding to a positive eigenvalue `r` must be strictly positive. -/
 lemma eigenvector_of_primitive_is_positive {r : ℝ} (hA_prim : IsPrimitive A) (hr_pos : 0 < r)
     {v : n → ℝ} (h_eigen : A *ᵥ v = r • v) (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :

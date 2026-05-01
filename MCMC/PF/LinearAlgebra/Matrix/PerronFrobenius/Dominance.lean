@@ -1,8 +1,6 @@
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Irreducible
 import MCMC.PF.Analysis.CstarAlgebra.Classes
 
-set_option linter.unusedSectionVars false
-
 open Quiver.Path
 namespace Matrix
 open CollatzWielandt
@@ -12,6 +10,7 @@ open Matrix Classical Complex
 
 variable {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℝ}
 
+omit [Fintype n] [DecidableEq n] in
 /-- If `x : n → ℂ` is nonzero, then `fun i ↦ ‖x i‖` is nonzero as a dependent function. -/
 lemma normFun_complex_ne_zero_of_ne_zero {x : n → ℂ} (hx : x ≠ 0) : (fun i ↦ ‖x i‖) ≠ 0 := by
   contrapose! hx
@@ -24,13 +23,13 @@ lemma eq_mul_div_ofReal_norm_complex (z : ℂ) (hz : ‖z‖ ≠ 0) :
   have hn : (↑‖z‖ : ℂ) ≠ 0 := ofReal_ne_zero.mpr hz
   exact (div_mul_cancel₀ z hn).symm
 
+omit [DecidableEq n] in
 /-- If a property `P` holds for at least one vertex `i₀` and propagates along the edges
 of an irreducible matrix's graph (`P i ∧ A i j > 0 → P j`), then `P` holds for all vertices. -/
 lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n → Prop)
     (h_nonempty : ∃ i₀, P i₀)
     (h_propagate : ∀ i j, P i → 0 < A i j → P j) :
     ∀ i, P i := by
-  classical
   let S : Set n := {i | P i}
   let T : Set n := {i | ¬ P i}
   by_contra h_not_all
@@ -54,6 +53,7 @@ lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n →
   exact hj_not_S (by
     simpa [S] using hPj)
 
+omit [DecidableEq n] in
 /-- For an irreducible, non-negative matrix `A`, if `v` is an eigenvector for an eigenvalue `μ`,
 then the vector `w` of absolute values of `v` satisfies the inequality `|μ| • w ≤ A *ᵥ w`.
 This is a key step in the Perron-Frobenius theorem. -/
@@ -72,6 +72,7 @@ lemma abs_eigenvector_inequality
     _ = ∑ j, (A i j) * |v j| := by simp_rw [abs_mul, abs_of_nonneg (hA_nonneg i _)]
     _ = (A *ᵥ w) i := by simp [w, mulVec, dotProduct]
 
+omit [DecidableEq n] in
 /--
 If the triangle equality holds for the complex eigenvector equation `A * x = lam * x`,
 then the vector of norms `‖x‖` is a real eigenvector of `A` with eigenvalue `‖lam‖`.
@@ -94,6 +95,7 @@ lemma norm_eigenvector_is_eigenvector_of_triangle_eq
     _   = ‖lam‖ * ‖x i‖ := by rw [norm_mul]
     _   = ((‖lam‖ : ℝ) • fun i => ‖x i‖) i := by simp [smul_eq_mul]
 
+omit [DecidableEq n] in
 /--
 If equality holds in the triangle inequality for `∑ z_j`, then all non-zero `z_j`
 are aligned with the sum.
@@ -105,7 +107,6 @@ lemma aligned_of_all_nonneg_re_im
     ∀ j, (A i j : ℂ) * x j ≠ 0 →
       ∃ c : ℝ, 0 ≤ c ∧
         (A i j : ℂ) * x j = c • (∑ k, (A i k : ℂ) * x k) := by
-  classical
   let z : n → ℂ := fun j => (A i j : ℂ) * x j
   let s : ℂ     := ∑ j, z j
   have h_z_sum : ‖s‖ = ∑ j, ‖z j‖ := by
@@ -137,6 +138,7 @@ lemma aligned_of_all_nonneg_re_im
   refine ⟨c, hc_nonneg, ?_⟩
   simpa [z, s] using hcz_smul
 
+omit [DecidableEq n] in
 /-- For a non-negative matrix A, if the row sums are all equal to λ, then λ is an eigenvalue
     with the all-ones vector as its eigenvector. -/
 lemma row_sum_eigenvalue
@@ -147,6 +149,7 @@ lemma row_sum_eigenvalue
   simp only [mul_one]
   rw [h_row_sums i]
 
+omit [DecidableEq n] in
 /-- If the dot product of a non-negative vector `v` and a strictly positive vector `w` is zero,
     then `v` must be the zero vector. -/
 lemma eq_zero_of_dotProduct_eq_zero_of_nonneg_of_pos
@@ -178,7 +181,8 @@ theorem exists_eigenvector_of_mem_spectrum
 
 variable [Nonempty n]
 
-private lemma sum_component_norms_eq_perron_power_norm [DecidableEq n] -- [CommSemiring R]
+omit [Nonempty n] in
+private lemma sum_component_norms_eq_perron_power_norm
     {A : Matrix n n ℝ} {x : n → ℂ}
     (h_x_abs_eig : A *ᵥ (fun i ↦ ‖x i‖) = (perronRoot A) • (fun i ↦ ‖x i‖))
     (k : ℕ) (m : n) (hAk_pos : ∀ i j, 0 < (A ^ k) i j) :
@@ -194,6 +198,7 @@ private lemma sum_component_norms_eq_perron_power_norm [DecidableEq n] -- [CommS
     _ = ((perronRoot A) ^ k • (fun i ↦ ‖x i‖)) m := by rw [h_pow_eig]
     _ = (perronRoot A) ^ k * ‖x m‖ := by simp [Pi.smul_apply, smul_eq_mul]
 
+omit [DecidableEq n] [Nonempty n] in
 /--
 For an eigenvalue μ of a nonnegative matrix A with eigenvector x,
 the absolute value |μ| satisfies the sub-invariant relation: |μ|⋅|x| ≤ A⋅|x|.
@@ -859,6 +864,7 @@ lemma reference_phase_norm_one_of_primitive
     ‖x i₀ / ‖x i₀‖‖ = (1 : ℝ) := by
   simp [hx_abs_pos.ne']
 
+omit [Nonempty n] in
 /-- The norm of a matrix-vector product equals the perron root to the kth power times the norm of the vector component. -/
 lemma norm_matrix_power_vec_eq_perron_power_norm
     {A : Matrix n n ℝ} {μ : ℂ} {x : n → ℂ}
@@ -876,6 +882,7 @@ lemma norm_matrix_power_vec_eq_perron_power_norm
     _ = ‖μ‖ ^ k * ‖x m‖ := by rw [norm_pow]
     _ = (perronRoot A) ^ k * ‖x m‖ := by rw [h_norm_eq_r]
 
+omit [Nonempty n] in
 /-- For a primitive matrix power, triangle equality holds for the eigenvector equation. -/
 lemma triangle_equality_for_primitive_power
     {A : Matrix n n ℝ} (_ : IsPrimitive A)
@@ -894,6 +901,7 @@ lemma triangle_equality_for_primitive_power
     sum_component_norms_eq_perron_power_norm h_x_abs_eig k m hAk_pos
   rw [h_left, h_right]
 
+omit [Nonempty n] in
 /-- Components align with their weighted versions under positive scaling. -/
 lemma component_phase_alignment
     {A : Matrix n n ℝ} {x : n → ℂ} {k : ℕ} {m i : n}
@@ -913,7 +921,6 @@ lemma entries_share_phase_of_primitive
     (h_norm_eq_r : ‖μ‖ = perronRoot A)
     (hx_abs_pos : ∀ i, 0 < ‖x i‖) :
     ∀ i j : n, x i / ‖x i‖ = x j / ‖x j‖ := by
-  classical
   obtain ⟨k, _hk_pos, hAk_pos⟩ := hA_prim.2
   intro i j
   let m := Classical.arbitrary n
@@ -942,7 +949,6 @@ lemma eigenvector_phase_aligned_of_primitive
     (h_x_abs_eig : A *ᵥ (fun i ↦ ‖x i‖) = (perronRoot A) • (fun i ↦ ‖x i‖))
     (hx_abs_pos : ∀ i, 0 < ‖x i‖) :
     ∃ c : ℂ, ‖c‖ = 1 ∧ x = fun i ↦ c * ‖x i‖ := by
-  classical
   let i₀ : n := Classical.arbitrary _
   let c   : ℂ := x i₀ / ‖x i₀‖
   have hc_norm : ‖c‖ = 1 := by

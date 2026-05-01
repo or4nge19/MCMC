@@ -9,7 +9,7 @@ import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Uniqueness
 
 /-!
-# Irreducible nonnegative matrices (Perron-Frobenius layer)
+# Irreducible nonnegative matrices
 
 Quivers, path lifting, `1 + A` irreducibility, and consequences for nonnegative eigenvectors.
 -/
@@ -142,7 +142,6 @@ theorem exists_positive_eigenvector_of_irreducible [Nonempty n]
     have : A *ᵥ v = rB • v - v := eq_sub_of_add_eq' h_exp
     simpa [one_smul, sub_smul] using this
   -- 4.  We show that `rB - 1 > 0`.
-  classical
   letI GA : Quiver n := toQuiver A
   -- 4a.  We find a positive entry of `A`.
   have h_pos_entry : ∃ i j, 0 < A i j := by
@@ -422,7 +421,6 @@ lemma Irreducible.exists_pos_entry
     {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n] {A : Matrix n n ℝ}
     (hA_irred : A.IsIrreducible) :
     ∃ i j : n, 0 < A i j := by
-  classical
   letI : Quiver n := toQuiver A
   let i₀ : n := Classical.arbitrary n
   obtain ⟨p, hp_pos⟩ := hA_irred.connected i₀ i₀
