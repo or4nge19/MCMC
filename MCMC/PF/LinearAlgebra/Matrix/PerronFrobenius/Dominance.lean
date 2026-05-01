@@ -558,7 +558,7 @@ theorem irreducible_nonnegative_matrix_has_positive_eigenvector_at_spectralRadiu
   rw [Module.End.hasEigenvector_iff]
   refine ⟨?_, Pi.ne_zero_of_pos hv_pos⟩
   rw [Module.End.mem_eigenspace_iff, Matrix.toLin'_apply]
-  simpa [← hr_eq] using h_eig
+  rw [h_eig, hr_eq]
 
 omit [Nonempty n] [DecidableEq n] in
 /-- If an eigenvalue `μ` has a norm equal to the Perron root `r`, then the triangle inequality
