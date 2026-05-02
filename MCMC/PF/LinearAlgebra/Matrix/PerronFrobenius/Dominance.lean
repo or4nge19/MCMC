@@ -568,9 +568,32 @@ theorem irreducible_nonnegative_matrix_has_positive_eigenvector_at_spectralRadiu
     ∃ v : n → ℝ,
       Module.End.HasEigenvector (Matrix.toLin' A) (spectralRadius ℝ A).toReal v ∧
       (∀ i, 0 < v i) := by
-  sorry
-
-omit [Nonempty n] [DecidableEq n] in
+  have hA_nonneg : ∀ i j, 0 ≤ A i j := hA.nonneg
+  have h_r_pos := perronRoot_pos_of_irreducible hA hA_nonneg
+  have h_r_in_spec := perron_root_is_eigenvalue hA hA_nonneg
+  have h_r_is_max := (perron_root_is_spectral_radius hA hA_nonneg).2
+  -- Prove spectral radius equals nnnorm of Perron root
+  have h_spectral_le : spectralRadius ℝ A ≤ ‖(perronRoot A : ℝ)‖₊ := by
+    apply iSup₂_le
+    intro μ hμ
+    simp only [ENNReal.coe_le_coe]
+    have h := h_r_is_max μ hμ
+    rw [Real.nnnorm_of_nonneg h_r_pos.le, ← NNReal.coe_le_coe, NNReal.coe_mk]
+    calc (‖μ‖₊ : ℝ) = ‖μ‖ := rfl
+      _ = |μ| := Real.norm_eq_abs μ
+      _ ≤ perronRoot A := h
+  have h_spectral_ge : ‖(perronRoot A : ℝ)‖₊ ≤ spectralRadius ℝ A := by
+    apply le_iSup₂_of_le (perronRoot A) h_r_in_spec
+    rfl
+  have h_spectral_eq : spectralRadius ℝ A = ‖(perronRoot A : ℝ)‖₊ := le_antisymm h_spectral_le h_spectral_ge
+  have h_toReal_eq : (spectralRadius ℝ A).toReal = perronRoot A := by
+    simp [h_spectral_eq, Real.norm_of_nonneg h_r_pos.le]
+  rw [h_toReal_eq]
+  obtain ⟨r, v, hr_pos, hv_pos, h_eig, h_eq⟩ := perron_root_eq_positive_eigenvalue hA hA_nonneg
+  refine ⟨v, ?_, hv_pos⟩
+  rw [h_eq]
+  exact ⟨by rw [Module.End.mem_eigenspace_iff, toLin'_apply]; exact h_eig,
+         Pi.ne_zero_of_pos hv_pos⟩
 /-- If an eigenvalue `μ` has a norm equal to the Perron root `r`, then the triangle inequality
 for the eigenvector equation holds with equality. -/
 lemma triangle_equality_of_norm_eq_perron_root
