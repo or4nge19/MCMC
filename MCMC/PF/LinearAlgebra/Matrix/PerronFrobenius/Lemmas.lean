@@ -56,8 +56,7 @@ lemma ne_zero_of_pos {ι α : Type*} [Nonempty ι] [Zero α] [Preorder α]
     {v : ι → α} (hv_pos : ∀ i, 0 < v i) :
     v ≠ 0 := by
   rintro rfl
-  let i := Classical.arbitrary ι
-  exact (hv_pos i).false
+  exact Nonempty.elim ‹Nonempty ι› fun i => lt_irrefl (0 : α) (hv_pos i)
 
 end Pi
 

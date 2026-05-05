@@ -141,7 +141,7 @@ lemma dobrushinCoeff_nonneg [Nonempty n] (P : Matrix n n ℝ) : 0 ≤ dobrushinC
     · intro h; rcases h with ⟨⟨i, i'⟩, rfl⟩; exact ⟨i, i', rfl⟩
   have hfin : (Set.range f).Finite := (Set.finite_range f)
   have hmem : 0 ∈ Set.range f := by
-    let i0 : n := Classical.arbitrary n
+    obtain ⟨i0, _⟩ := Finset.univ_nonempty (α := n)
     refine ⟨⟨i0, i0⟩, ?_⟩
     simp [f, rowDist, tvDist, sub_self, abs_zero, sum_const_zero]
   have hbdd : BddAbove (Set.range f) := hfin.bddAbove
@@ -411,8 +411,7 @@ lemma dobrushinCoeff_mul [DecidableEq n] (P Q : Matrix n n ℝ)
     have := hcontract.trans (mul_le_mul_of_nonneg_left hleP hnonnegQ)
     simpa [mul_comm] using this
   have hnonemptyPQ : (Set.range fPQ).Nonempty := by
-    classical
-    let i0 : n := Classical.arbitrary n
+    obtain ⟨i0, _⟩ := Finset.univ_nonempty (α := n)
     exact ⟨fPQ ⟨i0, i0⟩, ⟨⟨i0, i0⟩, rfl⟩⟩
   have : sSup (Set.range fPQ) ≤ dobrushinCoeff P * dobrushinCoeff Q :=
     csSup_le hnonemptyPQ hforall
@@ -477,7 +476,7 @@ lemma dobrushinCoeff_pow [DecidableEq n] (P : Matrix n n ℝ) [Nonempty n] (hP :
       rcases hd with ⟨⟨i, i'⟩, rfl⟩
       simpa using hpair i i'
     have hnonempty : (Set.range fId).Nonempty := by
-      let i0 : n := Classical.arbitrary n
+      obtain ⟨i0, _⟩ := Finset.univ_nonempty (α := n)
       exact ⟨fId ⟨i0, i0⟩, ⟨⟨i0, i0⟩, rfl⟩⟩
     have hset_eqId :
         { d | ∃ i i' : n, d = tvDist (rowDist (1 : Matrix n n ℝ) i) (rowDist (1 : Matrix n n ℝ) i') }
@@ -615,7 +614,7 @@ theorem dobrushinCoeff_pow_lt_one_of_primitive
   have hforall : ∀ d ∈ Set.range fPk, d ≤ 1 - (Fintype.card n : ℝ) * β := by
     intro d hd; rcases hd with ⟨⟨i, i'⟩, rfl⟩; simpa using hpair i i'
   have hnonempty : (Set.range fPk).Nonempty := by
-    let i0 : n := Classical.arbitrary n
+    obtain ⟨i0, _⟩ := Finset.univ_nonempty (α := n)
     exact ⟨fPk ⟨i0, i0⟩, ⟨⟨i0, i0⟩, rfl⟩⟩
   have hset_eq :
       { d | ∃ i i' : n, d = Matrix.tvDist (Matrix.rowDist (P^k) i) (Matrix.rowDist (P^k) i') }

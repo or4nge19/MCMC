@@ -275,8 +275,7 @@ lemma IsPrimitive.has_spectral_gap [Nonempty n] {P : Matrix n n ℝ}
         (div_le_iff h2).mpr (by simpa [one_mul] using hnum)
       simpa [Matrix.tvDist] using this
     have hnonempty : (Set.range f).Nonempty := by
-      classical
-      let i0 : n := Classical.arbitrary n
+      obtain ⟨i0, _⟩ := Finset.univ_nonempty (α := n)
       exact ⟨f ⟨i0, i0⟩, ⟨⟨i0, i0⟩, rfl⟩⟩
     have hset_eq :
       { d | ∃ i i' : n, d = Matrix.tvDist (Matrix.rowDist (P^s) i) (Matrix.rowDist (P^s) i') }

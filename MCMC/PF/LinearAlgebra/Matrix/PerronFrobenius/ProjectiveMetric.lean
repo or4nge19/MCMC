@@ -102,9 +102,8 @@ theorem projectiveDist_nonneg
   · rw [Finset.lt_inf'_iff Finset.univ_nonempty]
     intro i _
     exact div_pos (x.2 i) (y.2 i)
-  · let i := Classical.arbitrary n
-    exact le_trans (Finset.inf'_le _ (Finset.mem_univ i))
-      (Finset.le_sup' (fun i => x.1 i / y.1 i) (Finset.mem_univ i))
+  · obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
+    exact le_trans (Finset.inf'_le _ hi) (Finset.le_sup' (fun i => x.1 i / y.1 i) hi)
 
 /-- Symmetry of the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_symm
@@ -242,9 +241,9 @@ theorem projectiveDist_eq_zero_iff_exists_pos_smul
   set sup_val := Finset.univ.sup' Finset.univ_nonempty f with hsup_def
   set inf_val := Finset.univ.inf' Finset.univ_nonempty f with hinf_def
   have h_sup_pos : 0 < sup_val := by
-    have i₀ : n := Classical.arbitrary n
+    obtain ⟨i₀, hi₀⟩ := Finset.univ_nonempty (α := n)
     calc 0 < f i₀ := h_pos_ratio i₀
-         _ ≤ sup_val := Finset.le_sup' f (Finset.mem_univ i₀)
+         _ ≤ sup_val := Finset.le_sup' f hi₀
   have h_inf_pos : 0 < inf_val := by
     rw [Finset.lt_inf'_iff]
     intro i _
@@ -279,13 +278,13 @@ theorem projectiveDist_eq_zero_iff_exists_pos_smul
       · apply Finset.sup'_le
         intro i _
         rw [h_ratio_const i]
-      · have i₀ : n := Classical.arbitrary n
+      · obtain ⟨i₀, hi₀⟩ := Finset.univ_nonempty (α := n)
         calc c = f i₀ := (h_ratio_const i₀).symm
-             _ ≤ sup_val := Finset.le_sup' f (Finset.mem_univ i₀)
+             _ ≤ sup_val := Finset.le_sup' f hi₀
     have h_inf_eq_c : inf_val = c := by
       apply le_antisymm
-      · have i₀ : n := Classical.arbitrary n
-        calc inf_val ≤ f i₀ := Finset.inf'_le f (Finset.mem_univ i₀)
+      · obtain ⟨i₀, hi₀⟩ := Finset.univ_nonempty (α := n)
+        calc inf_val ≤ f i₀ := Finset.inf'_le f hi₀
              _ = c := h_ratio_const i₀
       · apply Finset.le_inf'
         intro i _

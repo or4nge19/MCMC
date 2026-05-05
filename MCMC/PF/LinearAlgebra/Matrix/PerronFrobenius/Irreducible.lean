@@ -114,11 +114,11 @@ omit [Fintype n] [DecidableEq n] in
 lemma Irreducible.exists_pos_entry [Nonempty n] (hA_irred : A.IsIrreducible) :
     ∃ i j : n, 0 < A i j := by
   letI : Quiver n := toQuiver A
-  let i₀ := Classical.arbitrary n
-  obtain ⟨p, hp_pos⟩ := hA_irred.connected i₀ i₀
-  rcases Quiver.Path.path_decomposition_first_edge p hp_pos with
-    ⟨j, e, -, -, -⟩
-  exact ⟨i₀, j, e.down⟩
+  exact Nonempty.elim ‹Nonempty n› fun i₀ => by
+    obtain ⟨p, hp_pos⟩ := hA_irred.connected i₀ i₀
+    rcases Quiver.Path.path_decomposition_first_edge p hp_pos with
+      ⟨j, e, -, -, -⟩
+    exact ⟨i₀, j, e.down⟩
 
 /-- Translate an eigenvector equation for `1 + A` into one for `A`. -/
 lemma mulVec_eq_sub_one_smul_of_one_add_mulVec

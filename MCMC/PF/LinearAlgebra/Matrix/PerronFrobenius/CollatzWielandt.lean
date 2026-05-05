@@ -188,8 +188,7 @@ omit [Fintype n] in
 lemma nonnegNeZero_mem_const_one : (fun _ : n => (1 : ℝ)) ∈ nonnegNeZero := by
   refine ⟨fun _ => zero_le_one, ?_⟩
   intro h
-  let i := Classical.arbitrary n
-  exact one_ne_zero (congr_fun h i)
+  exact Nonempty.elim ‹Nonempty n› fun i => one_ne_zero (congr_fun h i)
 
 /-- The Collatz-Wielandt function attains its maximum on the standard simplex.
     [Giaquinta-Modica, Theorem 6.24 (dual), p: 235] -/
@@ -332,7 +331,7 @@ theorem eq_eigenvalue_of_positive_eigenvector [DecidableEq n] [Nonempty n]
     (hv_pos : ∀ i, 0 < v i) (h_eig : A *ᵥ v = r • v) :
     collatzWielandtFn A v = r := by
   have h_supp_nonempty : ({i | 0 < v i}.toFinset).Nonempty := by
-    let i := Classical.arbitrary n
+    obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
     exact ⟨i, by simpa using hv_pos i⟩
   rw [eq_iInf_of_nonempty v h_supp_nonempty]
   calc
@@ -677,7 +676,7 @@ lemma collatzWielandtFn_of_ones_is_pos [DecidableEq n]
   let x_ones : n → ℝ := fun _ ↦ 1
   have h_supp_nonempty : ({i | 0 < x_ones i}.toFinset).Nonempty := by
     rw [Set.toFinset_nonempty_iff]
-    let i := Classical.arbitrary n
+    obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
     exact ⟨i, by simp [x_ones]⟩
   dsimp [collatzWielandtFn]
   rw [dif_pos h_supp_nonempty]
