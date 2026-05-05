@@ -102,7 +102,7 @@ theorem projectiveDist_nonneg
   · rw [Finset.lt_inf'_iff Finset.univ_nonempty]
     intro i _
     exact div_pos (x.2 i) (y.2 i)
-  · obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+  · let i := Classical.arbitrary n
     exact le_trans (Finset.inf'_le _ (Finset.mem_univ i))
       (Finset.le_sup' (fun i => x.1 i / y.1 i) (Finset.mem_univ i))
 

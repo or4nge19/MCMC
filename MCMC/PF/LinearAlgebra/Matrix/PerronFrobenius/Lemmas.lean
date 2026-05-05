@@ -56,7 +56,7 @@ lemma ne_zero_of_pos {ι α : Type*} [Nonempty ι] [Zero α] [Preorder α]
     {v : ι → α} (hv_pos : ∀ i, 0 < v i) :
     v ≠ 0 := by
   rintro rfl
-  obtain ⟨i⟩ := inferInstanceAs (Nonempty ι)
+  let i := Classical.arbitrary ι
   exact (hv_pos i).false
 
 end Pi
@@ -247,7 +247,7 @@ lemma Irreducible.exists_edge_out {A : Matrix n n ℝ}
   have hj : j ∉ S := by simpa using hj_compl
   obtain ⟨u, v, e, _p₁, _p₂, hu_in_S, hv_not_in_S, _hp⟩ :=
     Quiver.Path.exists_boundary_edge_from_set p S hi hj
-  exact ⟨u, hu_in_S, v, hv_not_in_S, e⟩
+  exact ⟨u, hu_in_S, v, hv_not_in_S, e.down⟩
 
 /-- Let `S = {i | 0 < v i}` and `T = {i | v i = 0}` for a nonnegative vector `v`. If `A` is
 irreducible and both sets are nonempty, then there is a positive edge from `T` to `S`. -/
@@ -299,7 +299,7 @@ lemma not_irreducible_of_zero_matrix {n : Type*} [Fintype n]
   obtain ⟨p, hp_pos⟩ := h.connected i j
   cases p with
   | nil => simp at hp_pos
-  | cons p' e => exact (lt_irrefl (0 : ℝ)) e
+  | cons p' e => exact (lt_irrefl (0 : ℝ)) e.down
 
 /-- For an irreducible matrix on a one-element type, the diagonal entry is positive. -/
 lemma irreducible_one_element_implies_diagonal_pos [Fintype n]
@@ -314,7 +314,7 @@ lemma irreducible_one_element_implies_diagonal_pos [Fintype n]
     exact ⟨fun x y => by simp [ha x, ha y]⟩
   haveI : Subsingleton n := h_sub
   have hji : j = i := Subsingleton.elim _ _
-  have e_pos : 0 < A j i := e
+  have e_pos : 0 < A j i := e.down
   simpa [hji] using e_pos
 
 /-- Every row sum of an irreducible nonnegative matrix is strictly positive
@@ -400,7 +400,8 @@ theorem IsPrimitive.of_irreducible_pos_diagonal [Fintype n] [Nonempty n] [Decida
     obtain ⟨p_any, _hp_any_pos⟩ := hA_irred.connected i j
     obtain ⟨p_ij, hp_len_le⟩ :=
       Quiver.Path.exists_path_length_le_card_sub_one (a := i) (b := j) ⟨p_any⟩
-    let p_loop : Path i i := (show i ⟶ i from hA_diag_pos i).toPath
+    let p_loop : Path i i :=
+      Quiver.Hom.toPath (⟨hA_diag_pos i⟩ : @Quiver.Hom n (toQuiver A) i i)
     have hp_loop_len : p_loop.length = 1 := by
       simp [p_loop]
     have hp_len_le_k : p_ij.length ≤ k := by

@@ -43,7 +43,7 @@ lemma lt_collatzWielandtFn_of_forall_mul_lt_mulVec
     (hx_pos : ∀ i, 0 < x i) (h_lt : ∀ i, r * x i < (A *ᵥ x) i) :
     r < collatzWielandtFn A x := by
   have hsupp : ({i | 0 < x i}.toFinset).Nonempty := by
-    obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+    let i := Classical.arbitrary n
     exact ⟨i, by simpa using hx_pos i⟩
   rw [collatzWielandtFn_eq_inf' A hsupp]
   exact (Finset.lt_inf'_iff hsupp).mpr fun i _ => (lt_div_iff₀ (hx_pos i)).mpr (h_lt i)
@@ -128,7 +128,7 @@ lemma collatzWielandtFn_ones_norm_eq (A : Matrix n n ℝ) :
   let x : n → ℝ := fun _ => 1
   have hx_ne_zero : x ≠ 0 := by
     intro h
-    obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+    let i := Classical.arbitrary n
     exact one_ne_zero (congr_fun h i)
   have h_eq : (fun _ : n => (Fintype.card n : ℝ)⁻¹) = c • x := by
     ext

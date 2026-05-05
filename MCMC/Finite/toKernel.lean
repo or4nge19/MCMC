@@ -399,9 +399,8 @@ theorem isReversible_iff_kernel_reversible (P : Matrix n n ℝ) (π : stdSimplex
           ∫⁻ x in ({i} : Set n), κ x {j} ∂μ
             = ∑ k : n, ENNReal.ofReal (π.val k) *
                 (({i} : Set n).indicator (fun x => κ x {j}) k) := by
+        rw [← MeasureTheory.lintegral_indicator hAi]
         simp [μ, vecToMeasure]
-        ring_nf
-        simp [Set.indicator_apply]
       have hsum :
           ∑ k : n, ENNReal.ofReal (π.val k) *
               (({i} : Set n).indicator (fun x => κ x {j}) k)
@@ -420,9 +419,8 @@ theorem isReversible_iff_kernel_reversible (P : Matrix n n ℝ) (π : stdSimplex
           ∫⁻ x in ({j} : Set n), κ x {i} ∂μ
             = ∑ k : n, ENNReal.ofReal (π.val k) *
                 (({j} : Set n).indicator (fun x => κ x {i}) k) := by
+        rw [← MeasureTheory.lintegral_indicator hBj]
         simp [μ, vecToMeasure]
-        ring_nf
-        simp [Set.indicator_apply]
       have hsum :
           ∑ k : n, ENNReal.ofReal (π.val k) *
               (({j} : Set n).indicator (fun x => κ x {i}) k)

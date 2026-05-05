@@ -627,8 +627,8 @@ theorem exists_decomp_of_mem_vertices_prop
             pPrev.cons e = p₁.comp p₂ ∧
             x ∉ p₂.vertices.tail := by
         intro hxe; subst hxe
-        exact ⟨pPrev.cons e, Path.nil, by simp only [cons_eq_comp_toPath, comp_nil],
-          by simp only [vertices_nil, tail_cons, not_mem_nil, not_false_eq_true]⟩
+        exact ⟨pPrev.cons e, Path.nil, by simp [comp_nil],
+          by grind [vertices_nil]⟩
       -- Case 2 : `x` occurs in the prefix (and **is not** the final vertex).
       have h_case₂ :
           x ∈ pPrev.vertices → x ≠ (pPrev.cons e).end →
@@ -636,80 +636,10 @@ theorem exists_decomp_of_mem_vertices_prop
             pPrev.cons e = p₁.comp p₂ ∧
             x ∉ p₂.vertices.tail := by
         intro hxPrev hxe_ne
-        rcases ih hxPrev with ⟨q₁, q₂, h_prev, h_not_tail⟩
-        let q₂' : Path x (pPrev.cons e).end := q₂.comp e.toPath
-        have h_eq : pPrev.cons e = q₁.comp q₂' := by
-          dsimp [q₂']; simp only [h_prev, cons_eq_comp_toPath, Path.comp_assoc]
-        have h_no_tail : x ∉ q₂'.vertices.tail := by
-          intro hmem
-          have hmem' : x ∈ (q₂.vertices.dropLast ++ (e.toPath).vertices).tail := by
-            -- Avoid shape change (e.g. to q₂.vertices ++ [c]) by recording the decomposition first.
-            have hq₂' : q₂'.vertices = q₂.vertices.dropLast ++ (e.toPath).vertices := by
-              simp_rw [q₂']; exact vertices_comp q₂ e.toPath
-            simpa [hq₂'] using hmem
-          by_cases h_nil : q₂.vertices.dropLast = []
-          · have h_tail_toPath : x ∈ (e.toPath).vertices.tail := by
-              simpa [h_nil] using hmem'
-            have hx_end : x = (pPrev.comp e.toPath).end := by
-              have : e.toPath.vertices.tail = [(pPrev.cons e).end] := by
-                simp only [cons_eq_comp_toPath]
-                rfl
-              rw [this] at h_tail_toPath
-              exact List.mem_singleton.mp h_tail_toPath
-            exact hxe_ne hx_end
-          · have h_split := (List.mem_tail_append).1 hmem'
-            have h_mem_right :
-                x ∈ (q₂.vertices.dropLast).tail ++ (e.toPath).vertices := by
-              cases h_split with
-              | inl h_left  => cases (h_nil h_left.1)
-              | inr h_right => exact h_right.2
-            have h_parts := (List.mem_append).1 h_mem_right
-            cases h_parts with
-            | inl h_in_dropLast_tail =>
-                have : x ∈ q₂.vertices.tail :=
-                  List.mem_of_mem_tail_dropLast h_in_dropLast_tail
-                exact h_not_tail this
-            | inr h_in_toPath =>
-                have hx_end : x = (pPrev.comp e.toPath).end := by
-                  have h' : x = pPrev.end ∨
-                            x = (pPrev.cons e).end := by
-                    have : e.toPath.vertices = [pPrev.end, (pPrev.cons e).end] := by
-                      simp only [cons_eq_comp_toPath]
-                      rfl
-                    rw [this] at h_in_toPath
-                    simpa [List.mem_cons, List.mem_singleton] using h_in_toPath
-                  cases h' with
-                  | inl h_eq_src =>
-                      have : x ∈ q₂.vertices.tail := by
-                        have h_q2_len_pos : 0 < q₂.length := by
-                          have h_drop_len_pos : q₂.vertices.dropLast.length > 0 :=
-                            List.length_pos_of_ne_nil h_nil
-                          have h_vert_len_ge_2 : q₂.vertices.length ≥ 2 := by
-                            subst h_eq_src h_prev
-                            simp_all
-                            exact h_drop_len_pos
-                          have h_path_len_ge_1 : q₂.length ≥ 1 := by
-                            subst h_eq_src h_prev
-                            simp_all
-                          exact h_path_len_ge_1
-                        have h_q2_end : q₂.end = pPrev.end := by
-                          have : (q₁.comp q₂).end = pPrev.end := by rw [h_prev]
-                          simpa using this
-                        subst h_eq_src
-                        have h_nonempty : q₂.vertices ≠ [] := by
-                          rw [List.ne_nil_iff_length_pos, vertices_length]
-                          omega
-                        have h_x_is_last : x = q₂.vertices.getLast h_nonempty := by
-                          simp
-                        have h_mem_tail : q₂.vertices.getLast h_nonempty ∈ q₂.vertices.tail := by
-                          have h_len2 : q₂.vertices.length ≥ 2 := by rw [vertices_length]; omega
-                          exact List.getLast_mem_tail h_len2
-                        rw [← h_x_is_last] at h_mem_tail
-                        exact h_mem_tail
-                      contradiction
-                  | inr h_eq_end => exact h_eq_end
-                exact hxe_ne hx_end
-        exact ⟨q₁, q₂', h_eq, h_no_tail⟩
+        obtain ⟨q₁, q₂, h_prev, h_not_tail⟩ := ih hxPrev
+        let q₂' : Path x (pPrev.cons e).end := q₂.cons e
+        have h_no_tail : x ∉ q₂'.vertices.tail := by grind [vertices_cons, end_cons]
+        exact ⟨q₁, q₂', by simp [q₂', h_prev], h_no_tail⟩
       cases hx' with
       | inl h_in_prefix =>
           by_cases h_eq_end : x = (pPrev.cons e).end

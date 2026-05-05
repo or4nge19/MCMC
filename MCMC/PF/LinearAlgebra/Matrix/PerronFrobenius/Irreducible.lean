@@ -33,7 +33,7 @@ def pathToQuiverOfForallPosImpPos {A B : Matrix n n ℝ}
       ⟨@Quiver.Path.nil n (toQuiver B) u, ⟨by simp⟩⟩
   | u, _, @Quiver.Path.cons n (toQuiver A) u b c p e =>
       let ⟨p', hp'⟩ := pathToQuiverOfForallPosImpPos hAB p
-      ⟨@Quiver.Path.cons n (toQuiver B) u b c p' (hAB e), ⟨by simp [hp'.down]⟩⟩
+      ⟨@Quiver.Path.cons n (toQuiver B) u b c p' ⟨hAB e.down⟩, ⟨by simp [hp'.down]⟩⟩
 
 /-- A positive entry of a nonnegative matrix remains positive after adding the identity. -/
 lemma one_add_pos_of_pos {A : Matrix n n ℝ} (hA_nonneg : ∀ i j, 0 ≤ A i j)
@@ -114,11 +114,11 @@ omit [Fintype n] [DecidableEq n] in
 lemma Irreducible.exists_pos_entry [Nonempty n] (hA_irred : A.IsIrreducible) :
     ∃ i j : n, 0 < A i j := by
   letI : Quiver n := toQuiver A
-  obtain ⟨i₀⟩ := inferInstanceAs (Nonempty n)
+  let i₀ := Classical.arbitrary n
   obtain ⟨p, hp_pos⟩ := hA_irred.connected i₀ i₀
   rcases Quiver.Path.path_decomposition_first_edge p hp_pos with
     ⟨j, e, -, -, -⟩
-  exact ⟨i₀, j, e⟩
+  exact ⟨i₀, j, e.down⟩
 
 /-- Translate an eigenvector equation for `1 + A` into one for `A`. -/
 lemma mulVec_eq_sub_one_smul_of_one_add_mulVec

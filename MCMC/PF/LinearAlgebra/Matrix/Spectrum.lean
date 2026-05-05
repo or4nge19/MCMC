@@ -140,7 +140,7 @@ lemma stdSimplex_nonempty [Nonempty n] : (stdSimplex ℝ n).Nonempty :=
 
 omit [DecidableEq n] in
 lemma isCompact_stdSimplex : IsCompact (stdSimplex ℝ n) :=
-  _root_.isCompact_stdSimplex n
+  _root_.isCompact_stdSimplex ℝ n
 
 omit [DecidableEq n] in
 lemma convex_stdSimplex : Convex ℝ (stdSimplex ℝ n) :=

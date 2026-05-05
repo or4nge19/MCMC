@@ -15,7 +15,8 @@ as a function `α → α → ℝ` and define matrix multiplication using `tsum`.
 * `InfMatrix`: real-valued infinite matrices.
 * `infMatMul`, `InfMatrix.pow`: `tsum`-based multiplication and powers.
 * `IsStochastic`, `IsSubstochastic`: stochasticity and substochasticity for infinite matrices.
-* `IsIrreducible`, `IsAperiodic`: irreducibility and aperiodicity via the positive-edge quiver.
+* `InfMatrix.IsIrreducible` / `IsIrreducible`, `IsAperiodic`: irreducibility and aperiodicity via the
+  positive-edge quiver.
 * `firstPassageProb`, `meanRecurrenceTime`: first-passage probabilities and mean recurrence times.
 * `IsTransient`, `IsRecurrent`, `IsPositiveRecurrent`, `IsNullRecurrent`: recurrence classes.
 * `IsInvariantMeasure`, `IsInvariantDistribution`: invariant weights and invariant probability
@@ -95,17 +96,46 @@ noncomputable def pow (P : InfMatrix α) : ℕ → InfMatrix α
 
 omit [DecidableEq α] in
 /-- The positive-edge quiver attached to an infinite matrix. -/
+@[reducible]
 def toQuiver (P : InfMatrix α) : Quiver α :=
-  ⟨fun i j => 0 < P i j⟩
+  ⟨fun i j => PLift (0 < P i j)⟩
 
 omit [DecidableEq α] in
 @[simp] theorem toQuiver_hom_iff (P : InfMatrix α) {i j : α} :
-    @Nonempty (@Quiver.Hom α (toQuiver P) i j) ↔ 0 < P i j := by
+    Nonempty (@Quiver.Hom α (toQuiver P) i j) ↔ 0 < P i j := by
   constructor
   · intro h
-    exact h.some
+    exact h.some.down
   · intro h
-    exact ⟨h⟩
+    exact ⟨⟨h⟩⟩
+
+/--
+Irreducibility of an infinite matrix, following mathlib's finite `Matrix.IsIrreducible` API.
+
+It packages entrywise nonnegativity together with strong connectivity of the positive-edge quiver
+`InfMatrix.toQuiver P`.
+-/
+@[mk_iff] structure IsIrreducible (P : InfMatrix α) : Prop where
+  nonneg (i j : α) : 0 ≤ P i j
+  connected : @Quiver.IsSStronglyConnected α (toQuiver P)
+
+omit [DecidableEq α] in
+/--
+If an irreducible infinite matrix acts on a nontrivial state space, then every row has a positive
+entry.
+-/
+theorem IsIrreducible.exists_pos [Nontrivial α] {P : InfMatrix α} (hP : IsIrreducible P) (i : α) :
+    ∃ j, 0 < P i j := by
+  obtain ⟨j, hj⟩ := exists_ne i
+  letI : Quiver α := toQuiver P
+  obtain ⟨p, hp⟩ := hP.connected i j
+  clear hj
+  induction p with
+  | nil => simp [Quiver.Path.length_nil] at hp
+  | cons rest e ih =>
+    cases rest with
+    | nil => exact ⟨_, e.down⟩
+    | cons rest' e' => exact ih (by simp [Quiver.Path.length_cons])
 
 end InfMatrix
 
@@ -129,33 +159,10 @@ total mass at most `1`.
 def IsSubstochastic (Q : InfMatrix α) : Prop :=
   (∀ i j, 0 ≤ Q i j) ∧ ∀ i, Summable (Q i) ∧ ∑' j, Q i j ≤ 1
 
-/--
-Irreducibility of an infinite matrix, following mathlib's finite `Matrix.IsIrreducible` API.
-
-It packages entrywise nonnegativity together with strong connectivity of the positive-edge quiver
-`InfMatrix.toQuiver P`.
--/
-@[mk_iff] structure IsIrreducible (P : InfMatrix α) : Prop where
-  nonneg (i j : α) : 0 ≤ P i j
-  connected : @Quiver.IsSStronglyConnected α (InfMatrix.toQuiver P)
-
-omit [DecidableEq α] in
-/--
-If an irreducible infinite matrix acts on a nontrivial state space, then every row has a positive
-entry.
--/
-theorem IsIrreducible.exists_pos [Nontrivial α] {P : InfMatrix α} (hP : IsIrreducible P) (i : α) :
-    ∃ j, 0 < P i j := by
-  obtain ⟨j, hj⟩ := exists_ne i
-  letI : Quiver α := InfMatrix.toQuiver P
-  obtain ⟨p, hp⟩ := hP.connected i j
-  clear hj
-  induction p with
-  | nil => simp [Quiver.Path.length_nil] at hp
-  | cons rest e ih =>
-    cases rest with
-    | nil => exact ⟨_, e⟩
-    | cons rest' e' => exact ih (by simp [Quiver.Path.length_cons])
+/-- Irreducible infinite matrix; abbreviation for `InfMatrix.IsIrreducible` (avoids clash with
+`Topology.IsIrreducible` on sets). -/
+abbrev IsIrreducible (P : InfMatrix α) : Prop :=
+  InfMatrix.IsIrreducible P
 
 /--
 An infinite matrix is aperiodic if it is irreducible and its positive-edge quiver is aperiodic.

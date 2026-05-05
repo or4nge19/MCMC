@@ -737,7 +737,7 @@ lemma IsIrreducible.exists_pos_entry_in_row {A : Matrix n n ℝ} (hA_irred : A.I
   have h_pos : p.length > 0 := hp_pos
   obtain ⟨c, e, p', hp_eq, hp_len_eq⟩ :=
     Quiver.Path.path_decomposition_first_edge p h_pos
-  have hic_pos : 0 < A i c := e
+  have hic_pos : 0 < A i c := e.down
   exact (h_row_zero c).symm.not_lt hic_pos
 
 /-! ### Triangle equality and phases
@@ -1008,7 +1008,7 @@ lemma entries_share_phase_of_primitive
     ∀ i j : n, x i / ‖x i‖ = x j / ‖x j‖ := by
   obtain ⟨k, _hk_pos, hAk_pos⟩ := hA_prim.2
   intro i j
-  obtain ⟨m⟩ := inferInstanceAs (Nonempty n)
+  let m := Classical.arbitrary n
   let v l := ((A ^ k) m l : ℂ) * x l
   have hτ := triangle_equality_for_primitive_power hA_prim hx_eig h_x_abs_eig h_norm_eq_r m k hAk_pos
   have hi := term_ne_zero_of_pos_entry (hAk_pos m i) (norm_pos_iff.mp (hx_abs_pos i))
@@ -1025,7 +1025,7 @@ lemma eigenvector_phase_aligned_of_primitive
     (h_x_abs_eig : A *ᵥ (fun i ↦ ‖x i‖) = (perronRoot A) • (fun i ↦ ‖x i‖))
     (hx_abs_pos : ∀ i, 0 < ‖x i‖) :
     ∃ c : ℂ, ‖c‖ = 1 ∧ x = fun i ↦ c * ‖x i‖ := by
-  obtain ⟨i₀⟩ := inferInstanceAs (Nonempty n)
+  let i₀ := Classical.arbitrary n
   let c   : ℂ := x i₀ / ‖x i₀‖
   have hc_norm : ‖c‖ = 1 := by
     have h_pos : 0 < ‖x i₀‖ := hx_abs_pos i₀
@@ -1129,7 +1129,7 @@ theorem spectral_dominance_of_primitive
     eigenvector_phase_aligned_of_primitive
       hA_prim hA_nonneg h_norm_eq_r
       hx_eig h_x_abs_eig hx_abs_pos
-  obtain ⟨i⟩ := inferInstanceAs (Nonempty n)
+  let i := Classical.arbitrary n
   exact eigenvalue_eq_of_phase_aligned
     hc_norm hx_eig (fun i => congrFun h_phase i) h_x_abs_eig (hx_abs_pos i)
 
