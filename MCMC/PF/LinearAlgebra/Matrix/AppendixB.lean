@@ -1,5 +1,6 @@
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
 import Mathlib.Analysis.SpecificLimits.Normed
+import Mathlib.Tactic
 
 /-!
 # Seneta Appendix B
@@ -33,7 +34,7 @@ matrix, resolvent, Neumann series, matrix exponential
 namespace MCMC.PF
 
 open Filter Topology
-open scoped BigOperators
+open scoped BigOperators Matrix.Norms.Operator
 
 section AppendixB
 
@@ -62,7 +63,8 @@ The matrix exponential series is summable termwise.
 -/
 theorem summable_matrixExpSeries {A : Matrix n n ℂ} (t : ℂ) :
     Summable (fun k : ℕ => (t ^ k / (Nat.factorial k : ℂ)) • A ^ k) := by
-  sorry
+  simpa [NormedSpace.expSeries_apply_eq, smul_pow, div_eq_mul_inv, smul_smul, mul_comm] using
+    (NormedSpace.expSeries_summable (𝕂 := ℂ) (𝔸 := Matrix n n ℂ) (t • A))
 
 end AppendixB
 
