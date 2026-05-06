@@ -141,6 +141,22 @@ lemma one_add_diag_pos [DecidableEq n] {A : Matrix n n ℝ} (h_diag : ∀ i, 0 �
   simp only [Matrix.add_apply, Matrix.one_apply_eq]
   linarith [h_diag i]
 
+/-- Powers of an entrywise nonnegative matrix are entrywise nonnegative. -/
+lemma pow_entrywise_nonneg [Fintype n] [DecidableEq n] {A : Matrix n n ℝ}
+    (hA : ∀ i j, 0 ≤ A i j) (k : ℕ) :
+    ∀ i j, 0 ≤ (A ^ k) i j := by
+  induction k with
+  | zero =>
+      intro i j
+      by_cases hij : i = j
+      · subst hij
+        simp
+      · simp [hij]
+  | succ k ih =>
+      intro i j
+      rw [pow_succ, Matrix.mul_apply]
+      exact Finset.sum_nonneg fun l _ => mul_nonneg (ih i l) (hA l j)
+
 /-- If `∑ j, f j = 0` and every `f j` is nonnegative, then `f j = 0` for all `j`. -/
 lemma forall_eq_zero_of_finset_sum_eq_zero_of_nonneg {ι : Type*} [Fintype ι] {f : ι → ℝ}
     (h_nonneg : ∀ j, 0 ≤ f j) (hsum : ∑ j, f j = 0) (j : ι) : f j = 0 :=

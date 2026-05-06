@@ -105,6 +105,7 @@ theorem projectiveDist_nonneg
   · obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
     exact le_trans (Finset.inf'_le _ hi) (Finset.le_sup' (fun i => x.1 i / y.1 i) hi)
 
+omit [DecidableEq n] in
 /-- Symmetry of the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_symm
     (x y : PositiveVec n) :
@@ -149,6 +150,7 @@ theorem projectiveDist_symm
   rw [Real.log_inv, Real.log_inv]
   ring
 
+omit [DecidableEq n] in
 /-- Triangle inequality for the Hilbert projective distance on the strictly positive cone. -/
 theorem projectiveDist_triangle
     (x y z : PositiveVec n) :
@@ -227,6 +229,7 @@ theorem projectiveDist_triangle
     exact Real.log_le_log (mul_pos hm_xy_pos hm_yz_pos) hm_ge
   linarith
 
+omit [DecidableEq n] in
 /--
 The Hilbert projective distance vanishes exactly on positive scalar multiples.
 -/
@@ -291,6 +294,7 @@ theorem projectiveDist_eq_zero_iff_exists_pos_smul
         rw [h_ratio_const i]
     rw [h_sup_eq_c, h_inf_eq_c]
 
+omit [DecidableEq n] in
 /--
 Non-expansiveness of a nonnegative row-allowable matrix for Hilbert's projective distance.
 -/
@@ -361,6 +365,7 @@ theorem projectiveDist_mulVec_le
     linarith
   exact h1
 
+omit [DecidableEq n] in
 /--
 The Birkhoff coefficient is bounded by `1` for a nonnegative row-allowable matrix.
 -/
@@ -394,6 +399,7 @@ theorem IsScrambling.isRowAllowable
   obtain ⟨s, hs, _⟩ := h_scrambling i i
   exact ⟨s, hs⟩
 
+omit [DecidableEq n] in
 /--
 Scrambling matrices satisfy the general Birkhoff coefficient bound `≤ 1`.
 

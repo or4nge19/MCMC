@@ -50,7 +50,7 @@ lemma IsIrreducible.eq_univ_of_propagate (hA_irred : A.IsIrreducible) (P : n →
   let S : Set n := {i | P i}
   let T : Set n := {i | ¬ P i}
   by_contra h_not_all
-  push_neg at h_not_all
+  push Not at h_not_all
   have hS_nonempty : (S : Set n).Nonempty := h_nonempty
   have hT_nonempty : (T : Set n).Nonempty := h_not_all
   have hS_ne_univ : (S : Set n) ≠ Set.univ := by
@@ -594,6 +594,7 @@ theorem irreducible_nonnegative_matrix_has_positive_eigenvector_at_spectralRadiu
   rw [h_eq]
   exact ⟨by rw [Module.End.mem_eigenspace_iff, toLin'_apply]; exact h_eig,
          Pi.ne_zero_of_pos hv_pos⟩
+omit [DecidableEq n] [Nonempty n] in
 /-- If an eigenvalue `μ` has a norm equal to the Perron root `r`, then the triangle inequality
 for the eigenvector equation holds with equality. -/
 lemma triangle_equality_of_norm_eq_perron_root
@@ -727,7 +728,7 @@ omit [DecidableEq n] in
 lemma IsIrreducible.exists_pos_entry_in_row {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) (i : n) :
     ∃ j, 0 < A i j := by
   by_contra h_no_pos
-  push_neg at h_no_pos
+  push Not at h_no_pos
   have h_row_zero : ∀ j, A i j = 0 := fun j =>
     le_antisymm (h_no_pos j) (hA_irred.nonneg i j)
   obtain ⟨_, j₀, _⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
@@ -797,7 +798,7 @@ lemma Complex.triangle_eq_sum_with_common_phase {ι : Type*} [Fintype ι]
     ∑ i, v i = (∑ i, ‖v i‖ : ℂ) * c := by
   by_cases h_all_zero : ∀ i, v i = 0
   · simp only [h_all_zero, Finset.sum_const_zero, norm_zero, ofReal_zero, zero_mul]
-  push_neg at h_all_zero
+  push Not at h_all_zero
   rcases h_all_zero with ⟨j, hj_ne_zero⟩
   have hsum_ne := Fintype.sum_ne_zero_of_triangle_norm_exists_nonzero h_triangle_eq hj_ne_zero
   have h_phase := Complex.norm_div_norm_eq_of_triangle_aligned h_triangle_eq h_aligned hj_ne_zero
