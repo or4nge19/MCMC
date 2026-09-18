@@ -122,6 +122,6 @@ theorem exists_frobenius_normal_form [Nonempty n]
   refine ⟨1, ?_, trivial⟩
   refine ⟨Equiv.refl _, ?_⟩
   intro i j
-  simp [Matrix.one_apply]
+  rw [Matrix.one_apply, Equiv.refl_apply]
 
 end Matrix

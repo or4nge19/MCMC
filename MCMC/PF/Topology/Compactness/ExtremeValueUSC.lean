@@ -14,7 +14,7 @@ section GeneralProof
 -- This section provides proofs that do not rely on first-countability.
 
 lemma upperSemicontinuousOn_iff_upperSemicontinuous {s : Set α}  :
-    UpperSemicontinuousOn f s ↔ UpperSemicontinuous (s.restrict f) := by
+    UpperSemicontinuousOn f s ↔ UpperSemicontinuous (s.domRestrict f) := by
   constructor
   · intro h x c hc
     specialize h x.val x.property c hc
@@ -23,7 +23,7 @@ lemma upperSemicontinuousOn_iff_upperSemicontinuous {s : Set α}  :
   · intro h x hx c hc
     specialize h ⟨x, hx⟩ c hc
     rw [nhdsWithin_eq_map_subtype_coe]
-    have h_eventually : ∀ᶠ (x' : ↑s) in 𝓝 ⟨x, hx⟩, (s.restrict f) x' < c := by exact h
+    have h_eventually : ∀ᶠ (x' : ↑s) in 𝓝 ⟨x, hx⟩, (s.domRestrict f) x' < c := h
     exact h
 
 /--
@@ -39,16 +39,18 @@ theorem bddAbove_image_of_upperSemicontinuousOn (hK : IsCompact K)
   by_contra h_unbdd
   -- We work on the space `K` with the subspace topology.
   -- The hypothesis `IsCompact K` is equivalent to `K` being a compact space.
-  haveI : CompactSpace K := isCompact_iff_compactSpace.mp hK
+  have : CompactSpace K := isCompact_iff_compactSpace.mp hK
   -- Define a family of sets `U n = {x : K | f(x) < n}`.
   let U : ℕ → Set K := fun n => {x : K | f x < n}
   -- By upper semicontinuity, each `U n` is an open set in the subspace topology of K.
   have hU_open : ∀ n, IsOpen (U n) := by
     intro n
-    have hf_restrict : UpperSemicontinuous (K.restrict f) :=
+    have hf_restrict : UpperSemicontinuous (K.domRestrict f) :=
       (upperSemicontinuousOn_iff_upperSemicontinuous).mp hf
     rw [upperSemicontinuous_iff_isOpen_preimage] at hf_restrict
     convert hf_restrict n
+    ext x
+    simp [U, mem_Iio]
   -- If `f` is unbounded on `K`, then the collection `{U n}` covers `K` (i.e., `univ` in `Set K`).
   have hU_covers_univ : (univ : Set K) ⊆ ⋃ n, U n := by
     intro x _
@@ -110,16 +112,17 @@ theorem exists_isMaxOn_of_upperSemicontinuousOn (hK : IsCompact K) (hK_nonempty 
   have h_bdd_above : BddAbove (f '' K) := bddAbove_image_of_upperSemicontinuousOn hK hf
   let s := sSup (f '' K)
   -- We work in the compact space `K`.
-  haveI : CompactSpace K := isCompact_iff_compactSpace.mp hK
+  have : CompactSpace K := isCompact_iff_compactSpace.mp hK
   -- Consider the sets Cₙ = {x ∈ K | s - 1/(n+1) ≤ f(x)}.
   let C : ℕ → Set K := fun n => {x : K | s - 1 / (n + 1 : ℝ) ≤ f x}
   -- These sets are closed in the compact space K.
   have hC_closed : ∀ n, IsClosed (C n) := by
     intro n
-    have hf_restrict : UpperSemicontinuous (K.restrict f) :=
+    have hf_restrict : UpperSemicontinuous (K.domRestrict f) :=
       (upperSemicontinuousOn_iff_upperSemicontinuous).mp hf
-    have : C n = K.restrict f ⁻¹' (Ici (s - 1 / (↑n + 1))) := by
-      ext x; simp_all only [one_div, tsub_le_iff_right, mem_setOf_eq, mem_preimage, restrict_apply, mem_Ici, C, s]
+    have : C n = K.domRestrict f ⁻¹' (Ici (s - 1 / (↑n + 1))) := by
+      ext x
+      simp [C, s, mem_preimage, mem_Ici]
     rw [this]
     exact UpperSemicontinuous.isClosed_preimage hf_restrict (s - 1 / (↑n + 1))
   have hC_compact : ∀ n, IsCompact (C n) := fun n => (hC_closed n).isCompact
@@ -182,7 +185,7 @@ theorem exists_isMaxOn_of_upperSemicontinuousOn (hK : IsCompact K) (hK_nonempty 
 /- Short aliases for long names (backwards‑compatible) -/
 -- upperSemicontinuousOn_iff_upperSemicontinuous
 lemma usco_on_iff_usco {s : Set α} :
-  UpperSemicontinuousOn f s ↔ UpperSemicontinuous (s.restrict f) :=
+  UpperSemicontinuousOn f s ↔ UpperSemicontinuous (s.domRestrict f) :=
   upperSemicontinuousOn_iff_upperSemicontinuous
 
 -- bddAbove_image_of_upperSemicontinuousOn

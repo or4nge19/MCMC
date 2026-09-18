@@ -102,7 +102,7 @@ lemma norm_eigenvector_is_eigenvector_of_triangle_eq
   funext i
   calc
     (A *ᵥ fun i => ‖x i‖) i
-        = ∑ j, A i j * ‖x j‖ := by simp [mulVec_apply]
+        = ∑ j, A i j * ‖x j‖ := by simp [mulVec_apply_eq_sum]
     _   = ∑ j, ‖(A i j : ℂ)‖ * ‖x j‖ := by simp_rw [Complex.norm_ofReal, abs_of_nonneg (hA_nonneg _ _)]
     _   = ∑ j, ‖(A i j : ℂ) * x j‖ := by simp_rw [norm_mul]
     _   = ‖∑ j, (A i j : ℂ) * x j‖ := (h_triangle_eq i).symm
@@ -171,7 +171,7 @@ lemma row_sum_eigenvalue
     (_ : ∀ i j, 0 ≤ A i j) (lambda : ℝ) (h_row_sums : ∀ i, ∑ j, A i j = lambda) :
     A *ᵥ (fun _ => (1 : ℝ)) = lambda • (fun _ => (1 : ℝ)) := by
   ext i
-  rw [mulVec_apply, Pi.smul_apply, smul_eq_mul]
+  rw [mulVec_apply_eq_sum, Pi.smul_apply, smul_eq_mul]
   simp only [mul_one]
   rw [h_row_sums i]
 
@@ -220,7 +220,7 @@ lemma sum_component_norms_eq_perron_power_norm
         simp_rw [norm_mul, Complex.norm_ofReal]
     _ = ∑ l, (A ^ k) m l * ‖x l‖ := by
       simp_rw [abs_of_pos (hAk_pos m _)]
-    _ = ((A ^ k) *ᵥ (fun i ↦ ‖x i‖)) m := by simp [mulVec_apply]
+    _ = ((A ^ k) *ᵥ (fun i ↦ ‖x i‖)) m := by simp [mulVec_apply_eq_sum]
     _ = ((perronRoot A) ^ k • (fun i ↦ ‖x i‖)) m := by rw [h_pow_eig]
     _ = (perronRoot A) ^ k * ‖x m‖ := by simp [Pi.smul_apply, smul_eq_mul]
 
@@ -243,7 +243,7 @@ theorem eigenvalue_abs_subinvariant
     _ ≤ ∑ j, ‖(A i j : ℂ) * x j‖ := by apply norm_sum_le
     _ = ∑ j, A i j * ‖x j‖ := by
       simp only [Complex.norm_mul, norm_real, Real.norm_eq_abs, abs_of_nonneg (hA_nonneg _ _)]
-    _ = (A *ᵥ fun i => ‖x i‖) i := by simp [mulVec_apply]
+    _ = (A *ᵥ fun i => ‖x i‖) i := by simp [mulVec_apply_eq_sum]
 
 omit [DecidableEq n] in
 /--
@@ -531,10 +531,12 @@ theorem spectralRadius_eq_nnnorm_perronRoot (hA_irred : A.IsIrreducible) (hA_non
     exact Real.toNNReal_le_toNNReal (h_dom μ hμ)
   apply le_antisymm
   · -- Upper bound: spectralRadius ≤ ‖perronRoot A‖₊
+    rw [spectralRadius_eq_of_unital]
     apply iSup₂_le
     intro μ hμ
     exact ENNReal.coe_le_coe.mpr (h_nnnorm_dom μ hμ)
   · -- Lower bound: ‖perronRoot A‖₊ ≤ spectralRadius
+    rw [spectralRadius_eq_of_unital]
     apply le_iSup₂_of_le (perronRoot A) h_in_spec
     exact le_refl _
 
@@ -545,7 +547,8 @@ theorem spectralRadius_toReal_eq_perronRoot (hA_irred : A.IsIrreducible) (hA_non
   have hr_nonneg : 0 ≤ perronRoot A := (perronRoot_pos_of_irreducible hA_irred hA_nonneg).le
   have h_eq : spectralRadius ℝ A = ‖perronRoot A‖₊ := by
     apply le_antisymm
-    · apply iSup₂_le
+    · rw [spectralRadius_eq_of_unital]
+      apply iSup₂_le
       intro μ hμ
       simp only [ENNReal.coe_le_coe]
       have h_abs_le : |μ| ≤ perronRoot A := hr_bound μ hμ
@@ -553,7 +556,8 @@ theorem spectralRadius_toReal_eq_perronRoot (hA_irred : A.IsIrreducible) (hA_non
            _ = |μ|.toNNReal := (Real.toNNReal_eq_nnnorm_of_nonneg (abs_nonneg μ)).symm
            _ ≤ (perronRoot A).toNNReal := Real.toNNReal_le_toNNReal h_abs_le
            _ = ‖perronRoot A‖₊ := Real.toNNReal_eq_nnnorm_of_nonneg hr_nonneg
-    · apply le_iSup₂_of_le (perronRoot A) hr_spec
+    · rw [spectralRadius_eq_of_unital]
+      apply le_iSup₂_of_le (perronRoot A) hr_spec
       rfl
   rw [h_eq]
   simp [Real.norm_eq_abs, abs_of_nonneg hr_nonneg]
@@ -574,6 +578,7 @@ theorem irreducible_nonnegative_matrix_has_positive_eigenvector_at_spectralRadiu
   have h_r_is_max := (perron_root_is_spectral_radius hA hA_nonneg).2
   -- Prove spectral radius equals nnnorm of Perron root
   have h_spectral_le : spectralRadius ℝ A ≤ ‖(perronRoot A : ℝ)‖₊ := by
+    rw [spectralRadius_eq_of_unital]
     apply iSup₂_le
     intro μ hμ
     simp only [ENNReal.coe_le_coe]
@@ -583,6 +588,7 @@ theorem irreducible_nonnegative_matrix_has_positive_eigenvector_at_spectralRadiu
       _ = |μ| := Real.norm_eq_abs μ
       _ ≤ perronRoot A := h
   have h_spectral_ge : ‖(perronRoot A : ℝ)‖₊ ≤ spectralRadius ℝ A := by
+    rw [spectralRadius_eq_of_unital]
     apply le_iSup₂_of_le (perronRoot A) h_r_in_spec
     rfl
   have h_spectral_eq : spectralRadius ℝ A = ‖(perronRoot A : ℝ)‖₊ := le_antisymm h_spectral_le h_spectral_ge
@@ -612,7 +618,7 @@ lemma triangle_equality_of_norm_eq_perron_root
     _ = r * x_abs i := by rw [h_norm_eq_r];
     _ = (r • x_abs) i := by simp [smul_eq_mul]
     _ = (A *ᵥ x_abs) i := by rw [h_x_abs_eig]
-    _ = ∑ j, A i j * x_abs j := by simp [mulVec_apply]
+    _ = ∑ j, A i j * x_abs j := by simp [mulVec_apply_eq_sum]
     _ = ∑ j, ‖(A i j : ℂ) * x j‖ := by
         simp_rw [x_abs, norm_mul, norm_ofReal, abs_of_nonneg (hA_nonneg _ _)]
 
@@ -651,7 +657,7 @@ lemma sum_s_ne_zero_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrreduci
   have h_sum_norm_zero : ∑ j, ‖(A i j : ℂ) * x j‖ = 0 := h_triangle_eq i ▸ h_norm_s_zero
   have h_sum_A_x_abs_zero : ∑ j, A i j * x_abs j = 0 := by
     simpa [norm_mul, norm_ofReal, abs_of_nonneg (hA_nonneg _ _)] using h_sum_norm_zero
-  have h_Ax_abs_i_zero : (A *ᵥ x_abs) i = 0 := by simpa [mulVec_apply]
+  have h_Ax_abs_i_zero : (A *ᵥ x_abs) i = 0 := by simpa [mulVec_apply_eq_sum]
   have h_pos := mulVec_x_abs_pos_of_irreducible hA_irred
       (by
         intro k
@@ -836,7 +842,7 @@ lemma sum_norm_weighted_row_eq_mulVec_norm
       refine Finset.sum_congr rfl ?_
       intro j _
       rw [norm_mul, norm_ofReal, abs_of_nonneg (hA_nonneg i j)]
-    _ = (A *ᵥ (fun j => ‖x j‖)) i := by simp [mulVec_apply]
+    _ = (A *ᵥ (fun j => ‖x j‖)) i := by simp [mulVec_apply_eq_sum]
 
 /-- In the specific context of the Perron-Frobenius theorem, if we have an irreducible
     non-negative matrix A with triangle equality for the eigenvector equation,

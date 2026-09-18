@@ -96,8 +96,12 @@ lemma path_exists_in_support_of_irreducible {A : Matrix n n ℝ}
   let i' : S := ⟨i, hi⟩
   let j' : S := ⟨j, hj⟩
   obtain ⟨p_sub, _hp_sub_pos⟩ := hS.connected i' j'
-  have p_sub' : @Quiver.Path S (letI := Matrix.toQuiver A; inducedQuiver S) i' j' := by
-    simpa [Matrix.toQuiver, Matrix.submatrix_apply] using p_sub
+  have hQ : Matrix.toQuiver (A.submatrix (Subtype.val : S → n) Subtype.val) =
+      @inducedQuiver n (Matrix.toQuiver A) S := by
+    dsimp [inducedQuiver, Matrix.toQuiver]
+    congr 1
+  have p_sub' : @Quiver.Path S (letI := Matrix.toQuiver A; inducedQuiver S) i' j' :=
+    hQ ▸ p_sub
   obtain ⟨p, hp⟩ := path_in_submatrix_to_original S p_sub'
   exact ⟨p, hp⟩
 

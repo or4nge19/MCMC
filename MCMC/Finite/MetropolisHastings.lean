@@ -16,11 +16,13 @@ theorem IsReversible.is_stationary {P : Matrix n n ℝ} {π : stdSimplex ℝ n}
   (hP_stoch : IsStochastic P) (h_rev : IsReversible P π) :
   IsStationary P π := by
   ext i
-  dsimp [IsStationary, transpose_apply]
   calc
-    ∑ j, P j i * π.val j
-      = ∑ j, π.val i * P i j := by
-        congr; ext j
+    (Pᵀ *ᵥ π.val) i
+      = ∑ j, Pᵀ i j * π.val j := by rw [mulVec_apply_eq_sum]
+    _ = ∑ j, P j i * π.val j := by simp [transpose_apply]
+    _ = ∑ j, π.val i * P i j := by
+        congr 1
+        ext j
         rw [mul_comm, h_rev i j, mul_comm]
     _ = π.val i * ∑ j, P i j := by rw [Finset.mul_sum]
     _ = π.val i := by rw [hP_stoch.2 i, mul_one]

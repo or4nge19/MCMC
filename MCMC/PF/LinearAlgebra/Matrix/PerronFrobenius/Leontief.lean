@@ -117,8 +117,8 @@ theorem tendsto_resolventPartialSums_apply
     Tendsto (fun N : ℕ => Matrix.resolventPartialSums A s N i j) atTop
       (nhds (resolvent A s i j)) := by
   have h_matrix := Matrix.tendsto_resolventPartialSums (A := A) hA_nonneg hs
-  have h_eval : Continuous fun M : Matrix n n ℝ => M i j := by
-    simpa using ((continuous_apply j).comp (continuous_apply i))
+  have h_eval : Continuous fun M : Matrix n n ℝ => M i j :=
+    (continuous_apply j).comp (continuous_apply i)
   exact (h_eval.tendsto _).comp h_matrix
 
 /--

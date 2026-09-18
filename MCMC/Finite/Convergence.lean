@@ -42,8 +42,8 @@ theorem LimitMatrix_absorbing (P : Matrix n n ℝ) (π : stdSimplex ℝ n) (h_st
     ext i j
     simp only [LimitMatrix, mul_apply]
     have h_stat_j := congrArg (fun v => v j) h_stat
-    simp [mulVec, transpose_apply] at h_stat_j
-    simpa [mul_comm] using h_stat_j
+    rw [mulVec_apply_eq_sum] at h_stat_j
+    simpa [transpose_apply, mul_comm] using h_stat_j
 
 /-! #### Convergence to Equilibrium (Matrix Convergence) -/
 
@@ -148,7 +148,8 @@ lemma IsPrimitive.has_spectral_gap [Nonempty n] {P : Matrix n n ℝ}
     funext j
     have := pow_stationary_mulVec (P := P) (k := m) h_stoch π hπ_stat
     have := congrArg (fun v => v j) this
-    simpa [T, mulVec, transpose_apply, Finset.mul_sum, mul_comm, mul_left_comm, mul_assoc] using this
+    rw [mulVec_apply_eq_sum] at this
+    simpa [T, transpose_apply, mul_comm] using this
   have h_tv_blocks :
       Matrix.tvDist (Matrix.rowDist (P^(q*k0)) i) π.val ≤ r^q := by
     clear h_entry_le_tv row_as_T
@@ -273,7 +274,7 @@ lemma IsPrimitive.has_spectral_gap [Nonempty n] {P : Matrix n n ℝ}
       have h2 : (0 : ℝ) < 2 := by norm_num
       have : (∑ t, |Matrix.rowDist (P^s) i₁ t - Matrix.rowDist (P^s) i₂ t|) / 2 ≤ 1 :=
         (div_le_iff h2).mpr (by simpa [one_mul] using hnum)
-      simpa [Matrix.tvDist] using this
+      simpa [f, Matrix.tvDist] using this
     have hnonempty : (Set.range f).Nonempty := by
       obtain ⟨i0, _⟩ := Finset.univ_nonempty (α := n)
       exact ⟨f ⟨i0, i0⟩, ⟨⟨i0, i0⟩, rfl⟩⟩
@@ -353,7 +354,9 @@ theorem converges_of_spectral_gap [Nonempty n] {P : Matrix n n ℝ} (_ : IsStoch
       refine ⟨b * k0, ?_⟩
       intro n hn
       exact (Nat.le_div_iff_mul_le hk0pos).mpr hn
-    simpa using h_rpow.comp h_div
+    refine (h_rpow.comp h_div).congr ?_
+    intro _
+    rfl
   refine tendsto_pi_nhds.mpr (fun i => ?_)
   refine tendsto_pi_nhds.mpr (fun j => ?_)
   have h_abs_bound :
@@ -424,8 +427,8 @@ lemma distribution_converges_to_stationarity [Nonempty n]
   --  We show (distributionAtTime P μ₀ k) i  →  π i.
   have h_entry_tendsto (j : n) :
       Tendsto (fun k : ℕ => (P ^ k) j i) atTop (𝓝 (PiLim j i)) := by
-    have h_eval : Continuous fun M : Matrix n n ℝ => M j i := by
-      simpa using ((continuous_apply i).comp (continuous_apply j))
+    have h_eval : Continuous fun M : Matrix n n ℝ => M j i :=
+      (continuous_apply i).comp (continuous_apply j)
     exact (h_eval.tendsto _).comp h_conv
   have h_term_tendsto (j : n) :
       Tendsto (fun k : ℕ => (P ^ k) j i * μ₀.val j) atTop

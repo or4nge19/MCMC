@@ -293,9 +293,8 @@ theorem exists_cyclic_partition_of_strongly_connected
       simpa [Nat.ModEq] using this
     exact h1.trans h2.symm
   have h_congr :
-      Nat.ModEq h (P j).length ((P i).length + 1) := by
-    dsimp [Nat.add_assoc]
-    exact Nat.ModEq.add_right_cancel' s.length hsum_congr
+      Nat.ModEq h (P j).length ((P i).length + 1) :=
+    Nat.ModEq.add_right_cancel' s.length hsum_congr
   let succMod : Fin h → Fin h := fun x => ⟨(x.val + 1) % h, Nat.mod_lt _ h_pos⟩
   apply Fin.ext
   simp [partition]

@@ -386,7 +386,6 @@ lemma isUnit_of_det_ne_zero' {n : Type*} [Fintype n] [DecidableEq n] (A : Matrix
     (LinearMap.det_toMatrix b f).symm ▸ h_det_f_is_unit
   have h_matrix_representation_is_unit : IsUnit (LinearMap.toMatrix b b f) :=
     (Matrix.isUnit_iff_isUnit_det _).mpr h_det_matrix_form_is_unit
-  simp only at h_matrix_representation_is_unit
   have h_toMatrix_eq_A : LinearMap.toMatrix b b f = A := by
     exact (LinearEquiv.eq_symm_apply (toMatrix b b)).mp rfl
   rw [h_toMatrix_eq_A] at h_matrix_representation_is_unit
@@ -460,28 +459,16 @@ lemma spectralRadius_le_nnnorm_of_mem_spectrum {A : Matrix n n ℝ} {μ : ℝ}
 
 lemma spectralRadius_lt_top {A : Matrix n n ℝ} :
     spectralRadius ℝ A < ⊤ := by
-  rw [spectralRadius]
+  rw [spectralRadius_eq_of_unital]
   apply iSup_lt_iff.mpr
   use ‖(Matrix.toLin' A).toContinuousLinearMap‖₊ + 1
   constructor
-  · exact ENNReal.coe_lt_top
-  · intro i
+  · exact ENNReal.add_lt_top.2 ⟨ENNReal.coe_lt_top, ENNReal.one_lt_top⟩
+  · intro μ
     apply iSup_le
     intro hi
-    exact ENNReal.coe_le_coe.mpr (le_trans (spectralRadius_le_nnnorm_of_mem_spectrum hi) (le_add_of_nonneg_right zero_le_one))
-
-lemma spectrum.nnnorm_le_nnnorm_of_mem {𝕜 A : Type*}
-    [NormedField 𝕜] [NormedRing A] [NormedAlgebra 𝕜 A] [CompleteSpace A] [NormOneClass A]
-    (a : A) {k : 𝕜} (hk : k ∈ spectrum 𝕜 a) : ‖k‖₊ ≤ ‖a‖₊ := by
-  have h_subset : spectrum 𝕜 a ⊆ Metric.closedBall 0 ‖a‖ :=
-    spectrum.subset_closedBall_norm a
-  have hk_in_ball : k ∈ Metric.closedBall 0 ‖a‖ := h_subset hk
-  have h_norm_le : ‖k‖ ≤ ‖a‖ := by
-    rw [Metric.mem_closedBall, dist_zero_right] at hk_in_ball
-    exact hk_in_ball
-  exact h_norm_le
-
-
+    exact ENNReal.coe_le_coe.mpr <|
+      le_trans (spectralRadius_le_nnnorm_of_mem_spectrum hi) (le_add_of_nonneg_right zero_le_one)
 
 lemma vecMul_eq_mulVec_transpose {n : Type*} [Fintype n] (A : Matrix n n ℝ) (v : n → ℝ) :
     v ᵥ* A = Aᵀ *ᵥ v := by
@@ -520,40 +507,22 @@ lemma Module.End.exists_eigenvector_of_mem_spectrum {K V : Type*}
   exact (sub_eq_zero.mp hv_mem).symm
 
 -- Core lemma: spectral radius is bounded by the operator norm
-lemma spectralRadius_le_nnnorm {𝕜 A : Type*} [NontriviallyNormedField 𝕜]
-     [NormedField 𝕜] [NormedRing A] [NormedAlgebra 𝕜 A] [CompleteSpace A] [NormOneClass A]
-    (a : A) :
-    spectralRadius 𝕜 a ≤ ↑‖a‖₊ := by
-  apply iSup_le
-  intro μ
-  apply iSup_le
-  intro hμ
-  have h_nnnorm_le : ‖μ‖₊ ≤ ‖a‖₊ := spectrum.nnnorm_le_nnnorm_of_mem a hμ
-  exact ENNReal.coe_le_coe.mpr h_nnnorm_le
-
--- Specialized version for continuous linear maps
-lemma spectralRadius_le_nnnorm_continuousLinearMap {E : Type*} [NormedAddCommGroup E]
-    [NormedSpace ℝ E] [CompleteSpace E] [NormOneClass (E →L[ℝ] E)] (T : E →L[ℝ] E) :
-    spectralRadius ℝ T ≤ ↑‖T‖₊ := by
-  exact spectralRadius_le_nnnorm T
+lemma spectralRadius_le_opNorm (A : Matrix n n ℝ) :
+    spectralRadius ℝ (Matrix.toLin' A) ≤ ↑‖(Matrix.toLin' A).toContinuousLinearMap‖₊ := by
+  rw [spectralRadius_eq_of_unital]
+  apply iSup₂_le
+  intro μ hμ
+  have hμ_matrix : μ ∈ spectrum ℝ A := by
+    rw [spectrum_eq_spectrum_toLin']
+    exact hμ
+  exact ENNReal.coe_le_coe.mpr (spectralRadius_le_nnnorm_of_mem_spectrum hμ_matrix)
 
 omit [DecidableEq n] in
 /-- The spectral radii of a matrix and its transpose are equal. -/
 lemma spectralRadius_eq_spectralRadius_transpose [DecidableEq n] (A : Matrix n n ℝ) :
     spectralRadius ℝ A = spectralRadius ℝ Aᵀ := by
-  unfold spectralRadius
-  rw [spectrum_eq_spectrum_transpose]
-
-lemma spectralRadius_le_opNorm (A : Matrix n n ℝ) :
-    spectralRadius ℝ (Matrix.toLin' A) ≤ ↑‖(Matrix.toLin' A).toContinuousLinearMap‖₊ := by
-  apply iSup_le
-  intro μ
-  apply iSup_le
-  intro hμ
-  have hμ_matrix : μ ∈ spectrum ℝ A := by
-    rw [spectrum_eq_spectrum_toLin']
-    exact hμ
-  exact ENNReal.coe_le_coe.mpr (spectralRadius_le_nnnorm_of_mem_spectrum hμ_matrix)
+  rw [spectralRadius_eq_of_unital A, spectralRadius_eq_of_unital Aᵀ,
+    spectrum_eq_spectrum_transpose]
 
 lemma spectralRadius_finite (A : Matrix n n ℝ) :
     spectralRadius ℝ (Matrix.toLin' A) ≠ ⊤ := by
@@ -592,8 +561,8 @@ theorem spectralRadius_stochastic_le_one {A : Matrix n n ℝ}
   have h_norm_le_one : ‖L‖ ≤ 1 := by
     apply ContinuousLinearMap.opNorm_le_bound _ (zero_le_one)
     intro v
-    dsimp
     rw [one_mul]
+    change ‖A *ᵥ v‖ ≤ ‖v‖
     exact norm_mulVec_le_of_row_stochastic h_stochastic h_nonneg v
   have h_spectral_le_norm : spectralRadius ℝ (Matrix.toLin' A) ≤ ↑‖L‖₊ :=
     spectralRadius_le_opNorm A

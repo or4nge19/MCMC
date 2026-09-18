@@ -1,4 +1,5 @@
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+import Mathlib.Analysis.SpecialFunctions.Exponential
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Multiplicity
 
 /-!
@@ -290,20 +291,40 @@ theorem mlPerronRoot_is_spectral_bound
 
 section ExponentialPositivity
 
-open scoped Matrix.Norms.Operator
+open scoped Nat
+
+omit [Nonempty n] in
+private lemma summable_matrix_expSeries (A : Matrix n n ℝ) :
+    Summable fun k : ℕ => ((k ! : ℝ)⁻¹ • A ^ k : Matrix n n ℝ) := by
+  refine Pi.summable.mpr fun i => Pi.summable.mpr fun j => ?_
+  letI : NormedAddCommGroup (Matrix n n ℝ) := Matrix.linftyOpNormedAddCommGroup
+  letI : NormedRing (Matrix n n ℝ) := Matrix.linftyOpNormedRing
+  letI : NormedAlgebra ℝ (Matrix n n ℝ) := Matrix.linftyOpNormedAlgebra
+  have hnorm : Summable fun k : ℕ => ‖(k ! : ℝ)⁻¹ • A ^ k‖ :=
+    NormedSpace.norm_expSeries_summable' (𝕂 := ℝ) (𝔸 := Matrix n n ℝ) A
+  refine Summable.of_norm_bounded hnorm fun k => ?_
+  set M := ((k ! : ℝ)⁻¹ • A ^ k : Matrix n n ℝ)
+  have h1 : ‖M i j‖₊ ≤ ∑ j' : n, ‖M i j'‖₊ :=
+    Finset.single_le_sum (f := fun j' : n => ‖M i j'‖₊)
+      (fun _ _ => bot_le) (Finset.mem_univ j)
+  have h2 : ∑ j' : n, ‖M i j'‖₊ ≤
+      Finset.univ.sup (fun i' : n => ∑ j' : n, ‖M i' j'‖₊) :=
+    Finset.le_sup (f := fun i' : n => ∑ j' : n, ‖M i' j'‖₊) (Finset.mem_univ i)
+  let s : NNReal := Finset.univ.sup (fun i' : n => ∑ j' : n, ‖M i' j'‖₊)
+  have hle : (‖M i j‖₊ : ℝ) ≤ (s : ℝ) := NNReal.coe_le_coe.mpr (h1.trans h2)
+  simpa [Real.norm_eq_abs, Matrix.linfty_opNorm_def, s] using hle
 
 omit [Nonempty n] in
 private lemma exp_entry_eq_tsum (A : Matrix n n ℝ) (t : ℝ) (i j : n) :
     exp (t • A) i j =
       ∑' k : ℕ, (((k.factorial : ℝ)⁻¹) • ((t • A) ^ k) : Matrix n n ℝ) i j := by
-  rw [NormedSpace.exp_eq_tsum ℝ]
-  let φ : Matrix n n ℝ →L[ℝ] ℝ :=
-    (Matrix.entryLinearMap ℝ ℝ i j).toContinuousLinearMap
-  change φ (∑' k : ℕ, (((k.factorial : ℝ)⁻¹) • ((t • A) ^ k) : Matrix n n ℝ)) = _
-  rw [ContinuousLinearMap.map_tsum]
-  · rfl
-  · simpa [NormedSpace.expSeries_apply_eq] using
-      (NormedSpace.expSeries_summable (𝕂 := ℝ) (𝔸 := Matrix n n ℝ) (t • A))
+  have hs := summable_matrix_expSeries (t • A)
+  have hx : exp (t • A) = ∑' k : ℕ, ((k ! : ℝ)⁻¹ • (t • A) ^ k : Matrix n n ℝ) :=
+    congr_fun (NormedSpace.exp_eq_tsum (𝕂 := ℝ) (𝔸 := Matrix n n ℝ)) (t • A)
+  have hsum :
+      HasSum (fun k : ℕ => ((k ! : ℝ)⁻¹ • (t • A) ^ k : Matrix n n ℝ)) (exp (t • A)) :=
+    hx ▸ hs.hasSum
+  exact (Pi.hasSum.mp (Pi.hasSum.mp hsum i) j).tsum_eq.symm
 
 omit [Nonempty n] in
 /-- An irreducible nonnegative matrix has strictly positive exponential entries at positive times. -/
@@ -316,13 +337,8 @@ private theorem exp_pos_of_irreducible
     fun k => (((k.factorial : ℝ)⁻¹) • ((t • A) ^ k) : Matrix n n ℝ) i j
   change 0 < ∑' k : ℕ, f k
   have hf_summable : Summable f := by
-    let φ : Matrix n n ℝ →L[ℝ] ℝ :=
-      (Matrix.entryLinearMap ℝ ℝ i j).toContinuousLinearMap
-    change Summable fun k : ℕ =>
-      φ ((((k.factorial : ℝ)⁻¹) • ((t • A) ^ k) : Matrix n n ℝ))
-    apply ContinuousLinearMap.summable φ
-    simpa [NormedSpace.expSeries_apply_eq] using
-      (NormedSpace.expSeries_summable (𝕂 := ℝ) (𝔸 := Matrix n n ℝ) (t • A))
+    have hs := summable_matrix_expSeries (t • A)
+    simpa [f] using Pi.summable.mp (Pi.summable.mp hs i) j
   have hf_nonneg : ∀ k, 0 ≤ f k := by
     intro k
     exact mul_nonneg (inv_nonneg.mpr (Nat.cast_nonneg _)) <|

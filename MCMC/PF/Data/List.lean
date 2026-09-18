@@ -32,11 +32,11 @@ lemma dropLast_append_singleton {l : List α} {a : α} (h : l.length > 0) :
   | nil => simp at h
   | cons hd tl ih =>
     cases tl with
-    | nil => simp only [concat_eq_append, cons_append, nil_append, dropLast_cons₂,
+    | nil => simp only [concat_eq_append, cons_append, nil_append, dropLast_cons_cons,
       dropLast_singleton]
     | cons tl_hd tl_tl => simp_all only [List.length_cons, gt_iff_lt, lt_add_iff_pos_left, add_pos_iff, Nat.lt_one_iff,
       pos_of_gt, or_true, _root_.List.concat_eq_append, List.cons_append, forall_const, Nat.ofNat_pos,
-      List.dropLast_cons₂]
+      List.dropLast_cons_cons]
 
 lemma length_pos_of_append_singleton (l : List α) (a : α) : (l ++ [a]).length > 0 := by
   simp only [length_append, length_cons, length_nil, zero_add, gt_iff_lt, lt_add_iff_pos_left,
@@ -55,11 +55,6 @@ lemma exists_mem_split {l : List α} {x : α} (h : x ∈ l) :
     · rcases ih h' with ⟨l₁, l₂, rfl⟩
       use y :: l₁, l₂
       simp only [List.cons_append]
-
-lemma dropLast_cons_cons (a b : α) (l : List α) : (a :: b :: l).dropLast = a :: (b :: l).dropLast := by
-  have h : (a :: b :: l).length > 0 := by simp only [List.length_cons, gt_iff_lt,
-    lt_add_iff_pos_left, add_pos_iff, Nat.ofNat_pos, or_true]
-  rw [@List.dropLast_cons₂]
 
 lemma append_left_cancel {l₁ l₂ l₃ : List α} (h_len : l₁.length = l₂.length)
     (h : l₁ ++ l₃ = l₂ ++ l₃) : l₁ = l₂ := by
@@ -345,17 +340,14 @@ lemma findIdx_go_succ' {α : Type*} (p : α → Bool) (l : List α) (n : Nat) :
   | nil => rfl
   | cons hd tl ih =>
     simp only [findIdx.go]
-    by_cases h_p : p hd = true
-    · rw [bif_of_true h_p, bif_of_true h_p]
-    · have h_p_false : p hd = false := by rw [Bool.not_eq_true] at h_p; exact h_p
-      rw [bif_of_false h_p_false, bif_of_false h_p_false]
-      exact ih (n+1)
+    split_ifs
+    · rfl
+    · exact ih (n + 1)
 
 /-- Helper lemma: the findIdx.go function with accumulator 1 returns the result of findIdx plus 1 -/
 lemma findIdx_go_succ {α : Type*} (p : α → Bool) (l : List α) :
-  findIdx.go p l 1 = findIdx p l + 1 := by
-  unfold findIdx
-  exact findIdx_go_succ' p l 0
+  findIdx.go p l 1 = findIdx p l + 1 :=
+  findIdx_go_succ' p l 0
 
 omit [DecidableEq α] in
 /-- Helper lemma: Boolean equality is false iff the terms are not equal -/
@@ -366,13 +358,8 @@ omit [DecidableEq α] in
 /-- Helper lemma for index computation with head != x -/
 lemma idxOf_cons_of_ne [DecidableEq α] {hd : α} {tl : List α} {x : α} (h_neq : hd ≠ x) :
   idxOf x (hd :: tl) = idxOf x tl + 1 := by
-  dsimp only [idxOf, findIdx]
-  simp only [findIdx.go]
-  have h_eq_false : (hd == x) = false := by
-    rw [beq_eq_false_iff_ne]
-    exact h_neq
-  rw [bif_of_false h_eq_false]
-  exact findIdx_go_succ (fun y => y == x) tl
+  have : (hd == x) = false := beq_eq_false_iff_ne.mpr h_neq
+  simp [idxOf_cons, this]
 
 -- This helper lemma addresses many of the beq_iff_eq rewrite failures
 lemma not_beq_eq_true_iff_ne {a b : α} : ¬(a == b) = true ↔ a ≠ b := by
@@ -380,58 +367,13 @@ lemma not_beq_eq_true_iff_ne {a b : α} : ¬(a == b) = true ↔ a ≠ b := by
   rw [beq_eq_false_iff_ne]
 
 /-- If the index of `x` is less than the length of `l`, then `x` is in `l`. -/
-lemma mem_of_idxOf_lt_length {l : List α} {x : α} (h : idxOf x l < l.length) : x ∈ l := by
-  induction l with
-  | nil => simp only [idxOf_nil, le_refl, Nat.eq_of_le_zero, length_nil, lt_self_iff_false] at h
-  | cons hd tl ih =>
-    dsimp [idxOf, findIdx, length] at h
-    simp only [findIdx.go] at h
-    by_cases h_eq : hd == x
-    · simp only [h_eq, le_refl, zero_add, cond_true, Nat.eq_of_le_zero, lt_add_iff_pos_left] at h
-      rw [beq_iff_eq] at h_eq
-      simp only [h_eq, mem_cons, true_or]
-    · simp only [h_eq, zero_add, cond_false] at h
-      have h_neq : hd ≠ x := by
-        simp_all only [beq_iff_eq, ne_eq, not_false_eq_true]
-      have h_tl : idxOf x tl < tl.length := by
-        dsimp only [idxOf] at h ⊢
-        rw [findIdx_go_succ] at h
-        exact Nat.lt_of_succ_lt_succ h
-      have h_mem : x ∈ tl := ih h_tl
-      simp only [mem_cons, h_mem, or_true]
+lemma mem_of_idxOf_lt_length {l : List α} {x : α} (h : idxOf x l < l.length) : x ∈ l :=
+  idxOf_lt_length_iff.mp h
 
 /-- If `x` is in `l`, then getting the element at index `idxOf x l` gives `x`. -/
 lemma get_idxOf_of_mem {l : List α} {x : α} (h : x ∈ l) :
   l.get ⟨idxOf x l, idxOf_lt_length_of_mem h⟩ = x := by
-  induction l with
-  | nil => simp only [not_mem_nil] at h
-  | cons hd tl ih =>
-    by_cases h_eq : hd = x
-    · subst h_eq
-      have h_idx : idxOf hd (hd :: tl) = 0 := by
-        dsimp [idxOf, findIdx]
-        simp only [findIdx.go]
-        simp only [BEq.rfl, le_refl, zero_add, cond_true, Nat.eq_of_le_zero]
-      simp only [h_idx, get_eq_getElem, getElem_cons_zero]
-    · simp only [mem_cons] at h
-      cases h with
-      | inl h_hd =>
-        subst h_hd
-        contradiction
-      | inr h_tl =>
-        have ih' := ih h_tl
-        have h_idxOf : idxOf x (hd :: tl) = idxOf x tl + 1 := idxOf_cons_of_ne h_eq
-        have hl : idxOf x tl < tl.length := idxOf_lt_length_of_mem h_tl
-        have hl' : idxOf x tl + 1 < (hd :: tl).length := by
-          rw [length_cons]
-          exact Nat.add_lt_add_right hl 1
-        have helper : (hd :: tl).get ⟨idxOf x (hd :: tl), idxOf_lt_length_of_mem (mem_cons.mpr (Or.inr h_tl))⟩ =
-                      (hd :: tl).get ⟨idxOf x tl + 1, hl'⟩ := by
-          congr
-        have h_getElem : (hd :: tl).get ⟨idxOf x tl + 1, hl'⟩ = tl.get ⟨idxOf x tl, hl⟩ := by
-          simp only [get_eq_getElem]
-          apply getElem_cons_succ
-        exact Eq.trans helper (Eq.trans h_getElem ih')
+  simp [get_eq_getElem]
 
 omit [DecidableEq α] in
 /-- If `l.get i = x`, then `idxOf x l ≤ i.val`. -/
@@ -442,31 +384,15 @@ lemma idxOf_le_of_get_eq [DecidableEq α] {l : List α} {x : α} {i : Fin l.leng
   | cons hd tl ih =>
     cases i using Fin.cases with
     | zero =>
-      dsimp only [idxOf, findIdx, length_cons, Fin.val_zero]
-      simp only [findIdx.go]
-      have : hd = x := by
-        simp only [get_eq_getElem] at h
-        exact h
-      rw [beq_iff_eq.mpr this]
-      simp only [cond_true]
-      exact Nat.zero_le 0
+      simp [get_eq_getElem] at h
+      have : (hd == x) = true := beq_iff_eq.mpr h
+      simp [idxOf_cons, this]
     | succ j =>
-      dsimp only [idxOf, findIdx, length_cons, Fin.val_succ]
-      simp only [findIdx.go]
-      by_cases h_hd_eq : hd == x
-      · simp only [h_hd_eq, cond_true]
-        exact Nat.zero_le j.val.succ
-      · simp only [h_hd_eq, cond_false]
-        have h_tl : tl.get j = x := by
-          simp only [get_eq_getElem] at h
-          exact h
-        have ih' := ih h_tl
-        have h_idx : findIdx.go (fun y => y == x) tl 1 = idxOf x tl + 1 := by
-          unfold idxOf at ih'
-          exact findIdx_go_succ (fun y => y == x) tl
-        calc
-          findIdx.go (fun y => y == x) tl 1 = idxOf x tl + 1 := h_idx
-          _ ≤ j.val + 1 := Nat.add_le_add_right ih' 1
+      simp [get_eq_getElem] at h
+      simp [idxOf_cons]
+      split_ifs
+      · exact Nat.zero_le _
+      · exact Nat.add_le_add_right (ih (by simpa using h)) 1
 
 /-- If v is in a list but not equal to a, then a is not in the singleton list containing v. -/
 lemma not_mem_implies_ne {α} [DecidableEq α] {v a : α} {l : List α} :
@@ -655,25 +581,6 @@ is one greater than `findIdx` on the tail.
 -/
 lemma findIdx_cons_of_ne {p : α → Bool} {hd : α} {tl : List α} (h : p hd = false) :
     findIdx p (hd :: tl) = 1 + findIdx p tl := by
-  unfold findIdx
-  unfold findIdx.go
-  rw [h]
-  induction tl with
-  | nil =>
-    simp only [findIdx.go, zero_add, cond_false, add_zero]
-  | cons hd' tl' ih =>
-    simp only [findIdx.go, zero_add, Nat.reduceAdd, cond_false]
-    by_cases h' : p hd' = true
-    · simp only [h', cond_true, le_refl, Nat.eq_of_le_zero, add_zero]
-    · simp only [h', cond_false]
-      induction tl' with
-      | nil => simp only [findIdx.go, Nat.reduceAdd]
-      | cons a l ih' =>
-        simp [findIdx.go]
-        by_cases ha : p a = true
-        · simp only [ha, cond_true, Nat.reduceAdd]
-        · simp only [ha, cond_false]
-          rw [Nat.one_add]
-          exact findIdx_go_succ' p l 2
+  simp [findIdx_cons, h, Nat.add_comm]
 
 end List

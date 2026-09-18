@@ -139,7 +139,7 @@ theorem weaklyErgodicRatio_of_tendsto_rows_to_positive
   constructor
   · exact hj.eventually <|
       (isOpen_lt continuous_const continuous_id).mem_nhds (v.2 s)
-  · simpa [div_self (v.2 s).ne'] using hi.div hj (v.2 s).ne'
+  · simpa [Pi.div_def, div_self (v.2 s).ne'] using hi.div hj (v.2 s).ne'
 
 end Ergodicity
 
