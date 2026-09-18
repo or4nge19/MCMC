@@ -332,14 +332,11 @@ lemma tvDist_contract [Nonempty n]
     simp; grind
   have hLHS : tvDist (fun j => ∑ k, p k * P k j) (fun j => ∑ k, q k * P k j)
             = (∑ j, |a j|) / 2 := by
-    simp only [tvDist, a, r, sub_eq_add_neg]
+    simp only [tvDist]
     congr 1
-    dsimp [sum_neg_distrib, sum_add_distrib]
+    refine Finset.sum_congr rfl fun j _ => ?_
     congr 1
-    ext j
-    dsimp [sum_add_distrib, mul_neg, sum_neg_distrib]
-    ring_nf
-    simp
+    simp [a, r, sub_mul, sum_sub_distrib]
   have hR_r : tvDist p q = (∑ k, |r k|) / 2 := by
     simp [tvDist, r]
   have hcoef : (g kmax - g kmin) / 2 ≤ dobrushinCoeff P := by
@@ -394,7 +391,10 @@ lemma dobrushinCoeff_mul [DecidableEq n] (P Q : Matrix n n ℝ)
     have hcontract :
         tvDist (rowDist (P * Q) i) (rowDist (P * Q) i')
           ≤ dobrushinCoeff Q * tvDist (rowDist P i) (rowDist P i') := by
-      simpa [rowDist, Matrix.mul_apply] using
+      have hrow (i : n) : rowDist (P * Q) i = fun j => ∑ k, rowDist P i k * Q k j := by
+        ext j
+        simp [rowDist, Matrix.mul_apply]
+      simpa [hrow i, hrow i'] using
         (tvDist_contract (P := Q) (p := rowDist P i) (q := rowDist P i') (hp1 := hp1) (hq1 := hq1))
     -- bound tvDist among rows of P by δ(P)
     let fP : (n × n) → ℝ := fun p => tvDist (rowDist P p.1) (rowDist P p.2)

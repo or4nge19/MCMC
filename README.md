@@ -26,7 +26,7 @@ Open the folder in VS Code for interactive proofs.
   - `MetropolisHastings.lean`: Metropolis–Hastings kernel
   - `Gibbs.lean`: Gibbs sampling
 - `MCMC/PF/`
-  - `aux.lean`: auxiliary lemmas
+  - `Auxiliary.lean`: auxiliary lemmas
   - `LinearAlgebra/Matrix/PerronFrobenius/`: PF and spectral/JNF files
     - core: `Defs`, `Irreducible`, `Primitive`, `Aperiodic`, `CollatzWielandt`, `Multiplicity`,`Dominance`
     - stochastic/sampling: `Stochastic.lean`

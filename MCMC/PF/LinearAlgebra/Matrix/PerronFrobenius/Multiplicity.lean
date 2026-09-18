@@ -18,13 +18,13 @@ lemma perronRoot_smul_abs_le_mulVec_abs_of_eigenvector
     (perronRoot A • fun i => |w i|) i = perronRoot A * |w i| := by simp
     _ = |perronRoot A * w i| := by rw [abs_mul, abs_of_pos hr_pos]
     _ = |(A *ᵥ w) i| := by rw [hw_eig]; simp
-    _ = |∑ j, A i j * w j| := by simp [mulVec_apply]
+    _ = |∑ j, A i j * w j| := by simp [mulVec_apply_eq_sum]
     _ ≤ ∑ j, |A i j * w j| := by
       simpa using Finset.abs_sum_le_sum_abs (s := (Finset.univ : Finset n))
         (f := fun j => A i j * w j)
     _ = ∑ j, A i j * |w j| := by
       simp_rw [abs_mul, abs_of_nonneg (hA_nonneg i _)]
-    _ = (A *ᵥ (fun i => |w i|)) i := by simp [mulVec_apply]
+    _ = (A *ᵥ (fun i => |w i|)) i := by simp [mulVec_apply_eq_sum]
 
 /-- For an irreducible matrix, absolute values of a nonzero Perron eigenvector are positive
 and still form a Perron eigenvector. -/
@@ -124,7 +124,7 @@ lemma LinearMap.ker_pow_eq_ker_of_ker_sq_eq_ker
         simpa [LinearMap.mem_ker] using hx'
       have : f x ∈ LinearMap.ker f := by simpa [ih] using this
       rw [← h_stable]
-      simpa [LinearMap.mem_ker] using this
+      simpa [LinearMap.mem_ker, pow_two] using this
     · intro x hx
       have : (f ^ (m + 1)) (f x) = 0 := by simp_all
       simpa [pow_succ] using this
@@ -146,13 +146,13 @@ lemma geometric_multiplicity_one_of_irreducible
   intro w
   constructor
   · intro hw_E_r
-    have hw_eig : f w = r • w := by
-      simpa [f, r] using (Module.End.mem_eigenspace_iff.mp (by assumption))
+    have hw_eig : toLin' A w = perronRoot A • w :=
+      Module.End.mem_eigenspace_iff.mp hw_E_r
     by_cases hw_zero : w = 0
     · subst hw_zero
       exact Submodule.zero_mem _
     · have hAw_eig : A *ᵥ w = perronRoot A • w := by
-        simpa [f, r, toLin'_apply] using hw_eig
+        rwa [← toLin'_apply]
       exact perron_eigenvector_mem_span_of_positive_eigenvector
         hA_irred hA_nonneg hr_pos hv_pos hv_eig_mat hAw_eig hw_zero
   · intro hw
@@ -255,10 +255,12 @@ lemma algebraic_multiplicity_one_of_irreducible
     · exact le_iSup_of_le 1 (by simp [pow_one])
   calc
     Module.End.maxGenEigenspace f r
-      = ⨆ k, LinearMap.ker (g ^ k) := by
-        simp [Module.End.maxGenEigenspace, Module.End.genEigenspace, g]; rfl
+      = ⨆ k : ℕ, Module.End.genEigenspace f r k :=
+        (Module.End.iSup_genEigenspace_eq f r).symm
+    _ = ⨆ k, LinearMap.ker (g ^ k) := by
+        simp_rw [Module.End.genEigenspace_nat, g, Module.End.one_eq_id]
     _ = LinearMap.ker g := h_sup_eq
     _ = Module.End.eigenspace f r := by
-        simp [Module.End.eigenspace, g]; rw [@Module.End.genEigenspace_one]; rfl
+        simp [Module.End.eigenspace, Module.End.genEigenspace_one, g, Module.End.one_eq_id]
 
 end Matrix

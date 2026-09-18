@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
-import MCMC.PF.aux
+import MCMC.PF.Auxiliary
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Data.Real.Archimedean
 import MCMC.PF.Topology.Compactness.ExtremeValueUSC
@@ -204,16 +204,9 @@ omit [Nonempty n] in
 lemma eq_iInf_of_nonempty (v : n → ℝ) (h : {i | 0 < v i}.toFinset.Nonempty) :
     collatzWielandtFn A v =
       ⨅ i : {i | 0 < v i}, (A *ᵥ v) i / v i := by
-  rw [collatzWielandtFn_eq_inf' A h]
-  rw [Finset.inf'_eq_ciInf h]
-  let s : Set n := {i | 0 < v i}
-  rw [← Set.toFinite_toFinset s]
-  simpa [s] using
-    ((Set.toFinite s).subtypeEquivToFinset.symm.iInf_congr
-      (f := fun i : {i // i ∈ (Set.toFinite s).toFinset} => (A *ᵥ v) i / v i)
-      (g := fun i : {i // i ∈ s} => (A *ᵥ v) i / v i) <| by
-        rintro ⟨i, hi⟩
-        rfl)
+  rw [collatzWielandtFn_eq_inf' A h, Finset.inf'_eq_ciInf h]
+  exact Equiv.iInf_congr
+    (Equiv.subtypeEquivRight fun i => Set.mem_toFinset (s := {i | 0 < v i})) fun _ => rfl
 
 omit [Nonempty n] in
 /-- If r ≤ 0 and r is the infimum of non-negative ratios, then r = 0. -/
@@ -459,7 +452,7 @@ lemma row_sum_of_similarity_transformed_matrix [DecidableEq n]
   intro i
   let B := Matrix.diagonal (v⁻¹) * A * Matrix.diagonal v
   have row_sum_eq : ∑ j, B i j = (B *ᵥ (fun _ => 1)) i := by
-    simp only [mulVec_apply, mul_one]
+    simp [mulVec_apply_eq_sum]
   rw [row_sum_eq]
   have h_B_eig := ones_eigenvector_of_similarity_transform hv_pos h_eig
   rw [h_B_eig]
@@ -688,7 +681,7 @@ lemma collatzWielandtFn_of_ones_is_pos [DecidableEq n]
   rw [h_inf_eq]
   apply Finset.inf'_pos Finset.univ_nonempty
   intro i _
-  simp_rw [mulVec_apply, x_ones, mul_one, div_one]
+  simp_rw [mulVec_apply_eq_sum, x_ones, mul_one, div_one]
   exact row_sum_pos_of_irreducible_nonneg hA_irred hA_nonneg i
 
 /-- The Perron root is positive for an irreducible nonnegative matrix: the Collatz–Wielandt value at

@@ -62,9 +62,9 @@ theorem isUnit_one_sub_smul_and_tsum_pow_eq_inv_of_tendsto_zero
 The matrix exponential series is summable termwise.
 -/
 theorem summable_matrixExpSeries {A : Matrix n n ℂ} (t : ℂ) :
-    Summable (fun k : ℕ => (t ^ k / (Nat.factorial k : ℂ)) • A ^ k) := by
-  simpa [NormedSpace.expSeries_apply_eq, smul_pow, div_eq_mul_inv, smul_smul, mul_comm] using
-    (NormedSpace.expSeries_summable (𝕂 := ℂ) (𝔸 := Matrix n n ℂ) (t • A))
+    Summable (fun k : ℕ => (t ^ k / (Nat.factorial k : ℂ)) • A ^ k) :=
+  (NormedSpace.expSeries_summable' (𝕂 := ℂ) (𝔸 := Matrix n n ℂ) (t • A)).congr fun k => by
+    rw [div_eq_mul_inv, mul_comm (t ^ k), ← smul_smul, ← smul_pow]
 
 end AppendixB
 

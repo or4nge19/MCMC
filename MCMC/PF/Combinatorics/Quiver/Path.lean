@@ -628,7 +628,7 @@ theorem exists_decomp_of_mem_vertices_prop
             x ∉ p₂.vertices.tail := by
         intro hxe; subst hxe
         exact ⟨pPrev.cons e, Path.nil, by simp [comp_nil],
-          by grind [vertices_nil]⟩
+          by simp [vertices_nil]⟩
       -- Case 2 : `x` occurs in the prefix (and **is not** the final vertex).
       have h_case₂ :
           x ∈ pPrev.vertices → x ≠ (pPrev.cons e).end →
