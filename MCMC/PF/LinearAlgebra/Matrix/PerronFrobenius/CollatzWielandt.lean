@@ -6,8 +6,9 @@ Authors: Matteo Cipollina
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Lemmas
 import MCMC.PF.Auxiliary
 import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Real.Archimedean
-import MCMC.PF.Topology.Compactness.ExtremeValueUSC
+import Mathlib.Algebra.Order.AbsoluteValue.Basic
+import Mathlib.Data.Rat.Floor
+import Mathlib.Topology.Semicontinuity.Basic
 
 /-!
 # Collatz–Wielandt function and the Perron root
@@ -93,7 +94,7 @@ lemma collatzWielandtFn_eq_inf' (A : Matrix n n ℝ) {x : n → ℝ}
     collatzWielandtFn A x =
       ({i | 0 < x i}.toFinset).inf' hx (fun i => (A *ᵥ x) i / x i) := by
   dsimp [collatzWielandtFn]
-  rw [dif_pos hx]
+  rw [dite_eq_left hx]
 
 omit [Nonempty n] in
 private def posSupportNeighborhood (x : n → ℝ) : Set (n → ℝ) :=
@@ -198,7 +199,7 @@ theorem exists_maximizer (A : Matrix n n ℝ) :
   have h_nonempty : (stdSimplex ℝ n).Nonempty := stdSimplex_nonempty
   have h_usc : UpperSemicontinuousOn (collatzWielandtFn A) (stdSimplex ℝ n) :=
     upperSemicontinuousOn A
-  exact IsCompact.exists_max_on_usco h_compact h_nonempty h_usc
+  exact h_usc.exists_isMaxOn h_nonempty h_compact
 
 omit [Nonempty n] in
 lemma eq_iInf_of_nonempty (v : n → ℝ) (h : {i | 0 < v i}.toFinset.Nonempty) :
@@ -285,7 +286,7 @@ lemma bddAbove [DecidableEq n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ 
   have h_le_ratio : collatzWielandtFn A x ≤ (A *ᵥ x) m / x m :=
     le_ratio (A := A) m h_xm_pos
   have h_ratio_le : (A *ᵥ x) m / x m ≤ Finset.univ.sup' Finset.univ_nonempty (fun k ↦ ∑ l, A k l) := by
-    rw [mulVec_apply, div_le_iff h_xm_pos]
+    rw [mulVec_apply_eq_sum, div_le_iff₀ h_xm_pos]
     refine le_trans (sum_mul_le_sum_mul_const_of_forall_le (fun j => A m j) x m
       (fun j => hA_nonneg m j) h_xm_max) ?_
     apply mul_le_mul_of_nonneg_right _ (le_of_lt h_xm_pos)
@@ -308,7 +309,7 @@ lemma collatzWielandtFn_smul [DecidableEq n] {c : ℝ} (hc : 0 < c)
   have h_supp_eq : {i | 0 < (c • x) i}.toFinset = S := by
     ext i
     simp [S, smul_eq_mul, mul_pos_iff_of_pos_left hc]
-  rw [dif_pos (h_supp_eq.symm ▸ hS_nonempty), dif_pos hS_nonempty]
+  rw [dite_eq_left (h_supp_eq.symm ▸ hS_nonempty), dite_eq_left hS_nonempty]
   refine inf'_congr (Eq.symm h_supp_eq ▸ hS_nonempty) h_supp_eq ?_
   intro i hi
   simp only [mulVec_smul, smul_eq_mul, Pi.smul_apply]
@@ -339,7 +340,7 @@ theorem eq_eigenvalue_of_positive_eigenvector [DecidableEq n] [Nonempty n]
       have h_support_nonempty : ({i | 0 < v i} : Set n).Nonempty := by
         rcases h_supp_nonempty with ⟨i, hi⟩
         exact ⟨i, by simpa [Set.mem_toFinset] using hi⟩
-      letI : Nonempty {i | 0 < v i} := Set.Nonempty.to_subtype h_support_nonempty
+      let : Nonempty {i | 0 < v i} := Set.Nonempty.to_subtype h_support_nonempty
       show (⨅ _ : {i | 0 < v i}, r) = r
       exact ciInf_const (ι := {i | 0 < v i}) (a := r)
 
@@ -383,7 +384,7 @@ lemma le_eigenvalue_of_left_eigenvector [DecidableEq n]
     exact dotProduct_le_dotProduct_of_nonneg_left' (fun i => (hu_pos i).le) h_le_mulVec
   have h_dot_le :
       (collatzWielandtFn A w) * (u ⬝ᵥ w) ≤ r * (u ⬝ᵥ w) := by
-    simpa [dotProduct_mulVec, h_eig, dotProduct_smul_left, dotProduct_smul,
+    simpa [dotProduct_mulVec, h_eig, smul_dotProduct, dotProduct_smul,
       smul_eq_mul] using h_intermediate
   have h_dot_pos : 0 < u ⬝ᵥ w :=
     dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hw_nonneg hw_ne_zero
@@ -470,7 +471,7 @@ lemma le_of_max_le_row_sum [DecidableEq n]
   have h_le_k := h_le_Bx k
   simp only [Pi.smul_apply, smul_eq_mul] at h_le_k
   have h_Bx_le : (B *ᵥ x) k ≤ r * x k := by
-    rw [mulVec_apply]
+    rw [mulVec_apply_eq_sum]
     calc
       ∑ j, B k j * x j
           ≤ (∑ j, B k j) * x k :=
@@ -652,7 +653,7 @@ theorem le_of_subinvariant [DecidableEq n]
   obtain ⟨i, hi⟩ := exists_pos_of_ne_zero hw_nonneg hw_ne_zero
   let S := {j | 0 < w j}.toFinset
   have hS_nonempty : S.Nonempty := ⟨i, by simp [S]; exact hi⟩
-  rw [collatzWielandtFn, dif_pos hS_nonempty]
+  rw [collatzWielandtFn, dite_eq_left hS_nonempty]
   apply Finset.le_inf'
   intro j hj
   have hw_j_pos : 0 < w j := by simpa [S] using hj
@@ -672,7 +673,7 @@ lemma collatzWielandtFn_of_ones_is_pos [DecidableEq n]
     obtain ⟨i, hi⟩ := Finset.univ_nonempty (α := n)
     exact ⟨i, by simp [x_ones]⟩
   dsimp [collatzWielandtFn]
-  rw [dif_pos h_supp_nonempty]
+  rw [dite_eq_left h_supp_nonempty]
   have h_supp_ones : {i | 0 < x_ones i}.toFinset = Finset.univ := by
     ext a; simp [x_ones, zero_lt_one]
   have h_inf_eq : ({i | 0 < x_ones i}.toFinset.inf' h_supp_nonempty fun i ↦ (A *ᵥ x_ones) i / x_ones i) =

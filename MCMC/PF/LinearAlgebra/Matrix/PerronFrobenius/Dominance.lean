@@ -103,7 +103,8 @@ lemma norm_eigenvector_is_eigenvector_of_triangle_eq
   calc
     (A *ᵥ fun i => ‖x i‖) i
         = ∑ j, A i j * ‖x j‖ := by simp [mulVec_apply_eq_sum]
-    _   = ∑ j, ‖(A i j : ℂ)‖ * ‖x j‖ := by simp_rw [Complex.norm_ofReal, abs_of_nonneg (hA_nonneg _ _)]
+    _   = ∑ j, ‖(A i j : ℂ)‖ * ‖x j‖ := by
+          simp_rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (hA_nonneg _ _)]
     _   = ∑ j, ‖(A i j : ℂ) * x j‖ := by simp_rw [norm_mul]
     _   = ‖∑ j, (A i j : ℂ) * x j‖ := (h_triangle_eq i).symm
     _   = ‖((A.map (algebraMap ℝ ℂ)) *ᵥ x) i‖ := by simp; rfl
@@ -198,7 +199,7 @@ theorem exists_eigenvector_of_mem_spectrum
     ∃ x, x ≠ 0 ∧ (A'.map (algebraMap ℝ ℂ)) *ᵥ x = μ • x := by
   let B := A'.map (algebraMap ℝ ℂ)
   have h_spec : μ ∈ spectrum ℂ (toLin' B) := by
-    rwa [spectrum.Matrix_toLin'_eq_spectrum]
+    rwa [spectrum_toLin']
   rcases Module.End.exists_eigenvector_of_mem_spectrum h_spec with ⟨x, hx_ne_zero, hx_eig⟩
   refine ⟨x, hx_ne_zero, ?_⟩
   have h_mul_eq := hx_eig
@@ -217,7 +218,7 @@ lemma sum_component_norms_eq_perron_power_norm
     mulVec_pow_eq_smul_pow_of_mulVec_smul h_x_abs_eig k
   calc ∑ l, ‖((A ^ k) m l : ℂ) * x l‖
     = ∑ l, |(A ^ k) m l| * ‖x l‖ := by
-        simp_rw [norm_mul, Complex.norm_ofReal]
+        simp_rw [norm_mul, Complex.norm_real, Real.norm_eq_abs]
     _ = ∑ l, (A ^ k) m l * ‖x l‖ := by
       simp_rw [abs_of_pos (hAk_pos m _)]
     _ = ((A ^ k) *ᵥ (fun i ↦ ‖x i‖)) m := by simp [mulVec_apply_eq_sum]
@@ -351,8 +352,7 @@ lemma dotProduct_left_perron_sub_eq_zero
     {A : Matrix n n ℝ} {u y : n → ℝ}
     (hu_left_eig : u ᵥ* A = perronRoot A • u) :
     u ⬝ᵥ (A *ᵥ y - perronRoot A • y) = 0 := by
-  rw [dotProduct_sub, dotProduct_mulVec, hu_left_eig, dotProduct_smul_left,
-    dotProduct_smul, smul_eq_mul, sub_self]
+  rw [dotProduct_sub, dotProduct_mulVec, hu_left_eig, smul_dotProduct, dotProduct_smul, sub_self]
 
 /--
 If for a non-negative, irreducible matrix `A`, there exists
@@ -371,7 +371,7 @@ lemma perron_root_le_of_subinvariant
     exists_positive_left_perron_eigenvector hA_irred hA_nonneg
   have h_dot_le : u ⬝ᵥ (A *ᵥ y) ≤ u ⬝ᵥ (s • y) :=
     dotProduct_le_dotProduct_of_nonneg_left' (fun i => (hu_pos i).le) h_subinv
-  rw [dotProduct_mulVec, hu_left_eig, dotProduct_smul_left, dotProduct_smul] at h_dot_le
+  rw [dotProduct_mulVec, hu_left_eig, smul_dotProduct, smul_eq_mul, dotProduct_smul] at h_dot_le
   have h_dot_pos : 0 < u ⬝ᵥ y := dotProduct_pos_of_pos_of_nonneg_ne_zero hu_pos hy_nonneg hy_ne_zero
   exact le_of_mul_le_mul_right h_dot_le h_dot_pos
 
@@ -421,7 +421,7 @@ theorem eigenvalue_abs_le_perron_root
     {μ : ℂ} (h_is_eigenvalue : μ ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ))) :
     ‖μ‖ ≤ perronRoot A := by
   let B := A.map (algebraMap ℝ ℂ)
-  have h_spec : μ ∈ spectrum ℂ (toLin' B) := by rwa [spectrum.Matrix_toLin'_eq_spectrum]
+  have h_spec : μ ∈ spectrum ℂ (toLin' B) := by rwa [spectrum_toLin']
   rcases Module.End.exists_eigenvector_of_mem_spectrum h_spec with ⟨x, hx_ne_zero, hx_eig_lin⟩
   have hx_eig : B *ᵥ x = μ • x := by rwa [toLin'_apply] at hx_eig_lin
   let x_abs := fun i => ‖x i‖
@@ -471,7 +471,7 @@ lemma mem_spectrum_of_eigenvalue
       hv_ne_zero⟩
   have h_mem_f : μ ∈ spectrum K f :=
     mem_spectrum_of_hasEigenvector h_has_eigvec
-  simpa [f, spectrum.Matrix_toLin'_eq_spectrum] using h_mem_f
+  simpa [f, spectrum_toLin'] using h_mem_f
 
 /-- The Perron root of an irreducible, non-negative matrix is an eigenvalue. -/
 theorem perron_root_is_eigenvalue (hA_irred : A.IsIrreducible) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
@@ -492,7 +492,7 @@ theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg :
   · intro μ hμ
     have hμ_complex : (μ : ℂ) ∈ spectrum ℂ (A.map (algebraMap ℝ ℂ)) := by
       have hμ_lin : μ ∈ spectrum ℝ (toLin' A) := by
-        simpa [spectrum.Matrix_toLin'_eq_spectrum] using hμ
+        simpa [spectrum_toLin'] using hμ
       obtain ⟨v, hv_ne_zero, hv_eig⟩ :=
         Module.End.exists_eigenvector_of_mem_spectrum hμ_lin
       let v_complex : n → ℂ := fun i => (v i : ℂ)
@@ -513,7 +513,7 @@ theorem perron_root_is_spectral_radius (hA_irred : A.IsIrreducible) (hA_nonneg :
           congrArg (fun x : ℝ => (x : ℂ)) h_eq
       exact mem_spectrum_of_eigenvalue hvc_ne_zero hvc_eig
     have h_bound := eigenvalue_abs_le_perron_root hA_irred hA_nonneg hμ_complex
-    rwa [Complex.norm_ofReal] at h_bound
+    rwa [Complex.norm_real, Real.norm_eq_abs] at h_bound
 
 /-- For an irreducible nonnegative real matrix, the spectral radius as an extended nonnegative real
 agrees with the norm of the Perron root. -/
@@ -620,7 +620,8 @@ lemma triangle_equality_of_norm_eq_perron_root
     _ = (A *ᵥ x_abs) i := by rw [h_x_abs_eig]
     _ = ∑ j, A i j * x_abs j := by simp [mulVec_apply_eq_sum]
     _ = ∑ j, ‖(A i j : ℂ) * x j‖ := by
-        simp_rw [x_abs, norm_mul, norm_ofReal, abs_of_nonneg (hA_nonneg _ _)]
+        simp_rw [x_abs, norm_mul, Complex.norm_real, Real.norm_eq_abs,
+          abs_of_nonneg (hA_nonneg _ _)]
 
 /--
 If `|x|` is a positive eigenvector of an irreducible non-negative matrix `A`, then for any `i`,
@@ -656,7 +657,8 @@ lemma sum_s_ne_zero_of_triangle_eq {A : Matrix n n ℝ} (hA_irred : A.IsIrreduci
   have h_norm_s_zero : ‖∑ j, (A i j : ℂ) * x j‖ = 0 := by rw [hs_zero]; exact norm_zero
   have h_sum_norm_zero : ∑ j, ‖(A i j : ℂ) * x j‖ = 0 := h_triangle_eq i ▸ h_norm_s_zero
   have h_sum_A_x_abs_zero : ∑ j, A i j * x_abs j = 0 := by
-    simpa [norm_mul, norm_ofReal, abs_of_nonneg (hA_nonneg _ _)] using h_sum_norm_zero
+    simpa [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (hA_nonneg _ _)] using
+      h_sum_norm_zero
   have h_Ax_abs_i_zero : (A *ᵥ x_abs) i = 0 := by simpa [mulVec_apply_eq_sum]
   have h_pos := mulVec_x_abs_pos_of_irreducible hA_irred
       (by
@@ -714,7 +716,7 @@ lemma reference_phase_norm_one {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible)
     (j₀ : n) :
     ‖x j₀ / ↑‖x j₀‖‖ = 1 := by
   have h_pos := norm_entries_pos_of_irreducible_abs_perron_eigenvector hA_irred h_x_abs_eig hx_ne_zero j₀
-  simp_rw [norm_div, Complex.norm_ofReal, abs_of_nonneg (norm_nonneg _)]
+  simp_rw [norm_div, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
   exact div_self h_pos.ne'
 
 /--
@@ -738,7 +740,7 @@ lemma IsIrreducible.exists_pos_entry_in_row {A : Matrix n n ℝ} (hA_irred : A.I
   have h_row_zero : ∀ j, A i j = 0 := fun j =>
     le_antisymm (h_no_pos j) (hA_irred.nonneg i j)
   obtain ⟨_, j₀, _⟩ := Matrix.Irreducible.exists_pos_entry (A := A) hA_irred
-  letI : Quiver n := toQuiver A
+  let : Quiver n := toQuiver A
   have hconn := hA_irred.connected i j₀
   obtain ⟨p, hp_pos⟩ := hconn
   have h_pos : p.length > 0 := hp_pos
@@ -757,7 +759,7 @@ lemma phase_eq_of_positive_real_multiple {z w : ℂ} {c : ℝ}
   have hc0 : (c : ℂ) ≠ 0 := ofReal_ne_zero.mpr h_c_pos.ne'
   have hw_pos : 0 < ‖w‖ := norm_pos_iff.mpr h_w_ne_zero
   have hnorm : ‖z‖ = c * ‖w‖ := by
-    rw [h_eq, norm_mul, norm_ofReal, abs_of_nonneg h_c_pos.le]
+    rw [h_eq, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg h_c_pos.le]
   have hzℂ : (↑‖z‖ : ℂ) = (c : ℂ) * ↑‖w‖ := by
     rw [← ofReal_mul, hnorm]
   calc
@@ -841,7 +843,7 @@ lemma sum_norm_weighted_row_eq_mulVec_norm
     ∑ j, ‖(A i j : ℂ) * x j‖ = ∑ j, A i j * ‖x j‖ := by
       refine Finset.sum_congr rfl ?_
       intro j _
-      rw [norm_mul, norm_ofReal, abs_of_nonneg (hA_nonneg i j)]
+      rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (hA_nonneg i j)]
     _ = (A *ᵥ (fun j => ‖x j‖)) i := by simp [mulVec_apply_eq_sum]
 
 /-- In the specific context of the Perron-Frobenius theorem, if we have an irreducible

@@ -76,7 +76,7 @@ theorem mulVec_nonneg {n : Type*} [Fintype n] {A : Matrix n n ℝ} (hA : ∀ i j
 theorem exists_pos_of_sum_one_of_nonneg {n : Type*} [Fintype n] [Nonempty n] {x : n → ℝ}
     (hsum : ∑ i, x i = 1) (hnonneg : ∀ i, 0 ≤ x i) : ∃ j, 0 < x j := by
   by_contra h
-  push_neg at h
+  push Not at h
   have h_all_zero : ∀ i, x i = 0 := by
     intro i
     exact le_antisymm (h i) (hnonneg i)
@@ -85,11 +85,10 @@ theorem exists_pos_of_sum_one_of_nonneg {n : Type*} [Fintype n] [Nonempty n] {x 
   have : 1 = 0 := by linarith
   exact absurd this (by norm_num)
 
--- Matrix power multiplication
-theorem pow_mulVec_succ {n : Type*} [Fintype n] [Nonempty n] [DecidableEq n] {A : Matrix n n ℝ} (k : ℕ) (x : n → ℝ) :
-    (A^(k+1)).mulVec x = A.mulVec ((A^k).mulVec x) := by
-  simp only [mulVec_mulVec]
-  rw [pow_succ']
+@[deprecated "use `pow_succ'` and `Matrix.mulVec_mulVec`" (since := "2026-10-17")]
+theorem pow_mulVec_succ {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℝ} (k : ℕ)
+    (x : n → ℝ) : (A ^ (k + 1)) *ᵥ x = A *ᵥ ((A ^ k) *ᵥ x) := by
+  rw [mulVec_mulVec, pow_succ']
 
 
 /-!
@@ -119,7 +118,7 @@ lemma card_gt_one_of_nonempty_ne {α : Type*} [Fintype α] [DecidableEq α] [Non
     have h_card_ne_one : Fintype.card α ≠ 1 := ne_of_gt h
     have : ∃ j, j ≠ i := by
       by_contra h_all_eq
-      push_neg at h_all_eq
+      push Not at h_all_eq
       have : ∀ x : α, x = i := h_all_eq
       have h_card_eq_one : Fintype.card α = 1 := by
         rw [Fintype.card_eq_one_iff]
@@ -157,7 +156,7 @@ theorem sum_pos_of_mem {α : Type*} {s : Finset α} {f : α → ℝ}
 theorem exists_mem_of_sum_pos {α : Type*} {s : Finset α} {f : α → ℝ}
     (h_pos : 0 < ∑ a ∈ s, f a) (h_nonneg : ∀ a ∈ s, 0 ≤ f a) :
     ∃ a ∈ s, 0 < f a := by
-  by_contra h; push_neg at h
+  by_contra h; push Not at h
   have h_zero : ∀ a ∈ s, f a = 0 := fun a ha => le_antisymm (h a ha) (h_nonneg a ha)
   have h_sum_zero : ∑ a ∈ s, f a = 0 := by rw [sum_eq_zero_iff_of_nonneg h_nonneg]; exact h_zero
   linarith
@@ -189,7 +188,7 @@ lemma isClosed_stdSimplex' {n : Type*} [Fintype n] : IsClosed (stdSimplex ℝ n)
   have h_set_eq : {x : n → ℝ | ∀ i, 0 ≤ x i} = ⋂ i, {x | 0 ≤ x i} := by ext; simp
   rw [← h_set_eq] at h₁
   have h₂ : IsClosed {x : n → ℝ | ∑ i, x i = 1} :=
-    isClosed_eq (continuous_finset_sum _ (fun i _ ↦ continuous_apply i)) continuous_const
+    isClosed_eq (continuous_finsetSum _ (fun i _ ↦ continuous_apply i)) continuous_const
   exact IsClosed.inter h₁ h₂
 
 lemma abs_le_of_le_of_neg_le {x y : ℝ} (h_le : x ≤ y) (h_neg_le : -x ≤ y) : |x| ≤ y := by
@@ -281,14 +280,11 @@ lemma Set.toFinset_nonempty_iff {α : Type*} [Fintype α] [DecidableEq α] (s : 
     obtain ⟨x, hx⟩ := h
     exact ⟨x, Set.mem_toFinset.mpr hx⟩
 
-/-- Division inequality: a / b ≤ c ↔ a ≤ c * b when b > 0. -/
-lemma div_le_iff {a b c : ℝ} (hb : 0 < b) : a / b ≤ c ↔ a ≤ c * b := by
-  rw [@le_iff_le_iff_lt_iff_lt]
-  exact lt_div_iff₀ hb
+@[deprecated div_le_iff₀ (since := "2026-10-17")] alias div_le_iff := div_le_iff₀
 
-/-- For real numbers, if `0 < b`, then `a ≤ c * b ↔ a / b ≤ c`. -/
-lemma le_div_iff {a b c : ℝ} (hb : 0 < b) : a ≤ c * b ↔ a / b ≤ c := by
-  rw [←div_le_iff hb]
+@[deprecated div_le_iff₀ (since := "2026-10-17")]
+lemma le_div_iff {a b c : ℝ} (hb : 0 < b) : a ≤ c * b ↔ a / b ≤ c :=
+  (div_le_iff₀ hb).symm
 
 /-- The ratio (A *ᵥ v) i / v i is nonnegative when A has nonnegative entries and v is nonnegative -/
 lemma ratio_nonneg [Fintype n] (A : Matrix n n ℝ) (hA_nonneg : ∀ i j, 0 ≤ A i j) {v : n → ℝ}
@@ -322,13 +318,10 @@ lemma bddAbove_iff_exists_upperBound {s : Set α} : BddAbove s ↔ ∃ b, ∀ x 
 
 end ConditionallyCompleteLinearOrder
 
-/--
-The definition of the `i`-th component of a matrix-vector product.
-This is standard in Mathlib and often available via `simp`.
--/
+@[deprecated Matrix.mulVec_apply_eq_sum (since := "2026-10-17")]
 lemma mulVec_apply {n : Type*} [Fintype n] {A : Matrix n n ℝ} {v : n → ℝ} (i : n) :
-  (A *ᵥ v) i = ∑ j, A i j * v j :=
-rfl
+    (A *ᵥ v) i = ∑ j, A i j * v j :=
+  mulVec_apply_eq_sum A v i
 
 /-- If `c = a / b` with `b ≠ 0`, then `a = c * b`. -/
 lemma eq_mul_of_eq_div {a b c : ℝ} (hb : b ≠ 0) (h : c = a / b) : a = c * b := by
@@ -369,7 +362,7 @@ lemma sup'_le_sup'_of_le {α β : Type*} [SemilatticeSup α] {s t : Finset β}
 -- A non-zero function must be non-zero at some point.
 lemma Function.exists_ne_zero_of_ne_zero {α β} [Zero β] {f : α → β} (h : f ≠ (fun _ => 0)) : ∃ i, f i ≠ 0 := by
   by_contra hf
-  push_neg at hf
+  push Not at hf
   apply h
   ext x
   exact hf x
@@ -418,7 +411,7 @@ lemma Nat.eq_one_or_one_lt (n : ℕ) (hn : n ≠ 0) : n = 1 ∨ 1 < n := by
   · exact Or.inl rfl
   · exact Or.inr (Nat.succ_lt_succ (Nat.succ_pos _))
 
-/-- For a finite type, the infimum over the type is attained at some element. -/
+@[deprecated exists_eq_ciInf_of_finite (since := "2026-10-17")]
 lemma exists_eq_iInf {α : Type*} [Fintype α] [Nonempty α] (f : α → ℝ) : ∃ i, f i = ⨅ j, f j :=
   exists_eq_ciInf_of_finite
 
@@ -427,16 +420,12 @@ lemma le_csSup_of_mem {α : Type*} {f : α → ℝ} {s : Set α} (hs_bdd : BddAb
   f y ≤ sSup (f '' s) :=
 le_csSup hs_bdd (Set.mem_image_of_mem f hy)
 
-lemma div_lt_iff {a b c : ℝ} (hc : 0 < c) : b / c < a ↔ b < a * c :=
-  lt_iff_lt_of_le_iff_le (by exact le_div_iff₀ hc)
+@[deprecated div_lt_iff₀ (since := "2026-10-17")] alias div_lt_iff := div_lt_iff₀
 
-
---lemma lt_div_iff (hc : 0 < c) : a < b / c ↔ a * c < b :=
---  lt_iff_lt_of_le_iff_le (div_le_iff hc)
-
+@[deprecated Finset.smul_sum (since := "2026-10-17")]
 lemma smul_sum (α : Type*) [Fintype α] (r : ℝ) (f : α → ℝ) :
-    r • (∑ i, f i) = ∑ i, r • f i := by
-  simp only [smul_eq_mul, Finset.mul_sum]
+    r • (∑ i, f i) = ∑ i, r • f i :=
+  Finset.smul_sum
 
 lemma ones_norm_mem_simplex [Fintype n] [Nonempty n] :
   (fun _ => (Fintype.card n : ℝ)⁻¹) ∈ stdSimplex ℝ n := by
@@ -474,8 +463,8 @@ lemma ne_zero_of_mem_stdSimplex
   have h_sum_one : (∑ i, x i) = 1 := hx.2
   linarith
 
-lemma Real.le_sSup {s : Set ℝ} {y : ℝ} (h_mem : y ∈ s) (h_bdd : BddAbove s) :
-    y ≤ sSup s :=
+@[deprecated le_csSup (since := "2026-10-17")]
+lemma Real.le_sSup {s : Set ℝ} {y : ℝ} (h_mem : y ∈ s) (h_bdd : BddAbove s) : y ≤ sSup s :=
   le_csSup h_bdd h_mem
 
 /-- The supremum of the image of `s` under `f` equals the indexed supremum over the subtype. -/
@@ -512,7 +501,7 @@ lemma dotProduct_pos_of_pos_of_nonneg_ne_zero {n : Type*} [Fintype n] [Decidable
   simp [dotProduct]
   have h_exists_pos : ∃ i, 0 < v i := by
     by_contra h
-    push_neg at h
+    push Not at h
     have h_all_zero : ∀ i, v i = 0 := fun i =>
       le_antisymm (h i) (hv_nonneg i)
     have h_zero : v = 0 := funext h_all_zero
@@ -524,18 +513,15 @@ lemma dotProduct_pos_of_pos_of_nonneg_ne_zero {n : Type*} [Fintype n] [Decidable
   have h_pos : 0 < u i * v i := mul_pos (hu_pos i) hi
   exact sum_pos_of_mem h_nonneg i hi_mem h_pos
 
-/-- Dot‐product is linear in the first argument. -/
-lemma dotProduct_smul_left {n : Type*} [Fintype n]
-    (c : ℝ) (v w : n → ℝ) :
-    (c • v) ⬝ᵥ w = c * (v ⬝ᵥ w) := by
-  unfold dotProduct
-  simp [smul_eq_mul, Finset.mul_sum, mul_comm, mul_left_comm]
+@[deprecated smul_dotProduct (since := "2026-10-17")]
+lemma dotProduct_smul_left {n : Type*} [Fintype n] (c : ℝ) (v w : n → ℝ) :
+    (c • v) ⬝ᵥ w = c * (v ⬝ᵥ w) :=
+  smul_dotProduct c v w
 
-/-- The dot product is linear in the right argument. -/
-lemma dotProduct_smul_right {n : Type*} [Fintype n]
-    (c : ℝ) (v w : n → ℝ) :
-    v ⬝ᵥ (c • w) = c * (v ⬝ᵥ w) := by
-  simp [dotProduct, smul_eq_mul, Finset.mul_sum, mul_left_comm]
+@[deprecated dotProduct_smul (since := "2026-10-17")]
+lemma dotProduct_smul_right {n : Type*} [Fintype n] (c : ℝ) (v w : n → ℝ) :
+    v ⬝ᵥ (c • w) = c * (v ⬝ᵥ w) :=
+  dotProduct_smul c v w
 
 /--
 If `u` is a non-negative vector and `v ≤ w` component-wise, then `u ⬝ᵥ v ≤ u ⬝ᵥ w`.
@@ -550,44 +536,23 @@ lemma dotProduct_le_dotProduct_of_nonneg {n : Type*} [Fintype n] {u v w : n → 
   intro i _
   exact mul_le_mul_of_nonneg_left (h_le i) (hu_nonneg i)
 
-/--
-The dot product is "associative" with matrix-vector multiplication, in the sense
-that `v ⬝ᵥ (A *ᵥ w) = (Aᵀ *ᵥ v) ⬝ᵥ w`. This is a consequence of the definition of
-the matrix transpose and dot product.
--/
-lemma dotProduct_mulVec_assoc {n : Type*} [Fintype n] [DecidableEq n]
-    (A : Matrix n n ℝ) (v w : n → ℝ) :
+@[deprecated "use `Matrix.dotProduct_mulVec` and `Matrix.mulVec_transpose`" (since := "2026-10-17")]
+lemma dotProduct_mulVec_assoc {n : Type*} [Fintype n] (A : Matrix n n ℝ) (v w : n → ℝ) :
     v ⬝ᵥ (A *ᵥ w) = (Aᵀ *ᵥ v) ⬝ᵥ w := by
-  simp only [dotProduct, mulVec, transpose_apply, Finset.mul_sum, Finset.sum_mul]
-  rw [Finset.sum_comm]
-  simp [mul_comm, mul_left_comm]
+  rw [dotProduct_mulVec, mulVec_transpose]
 
--- Matrix-vector multiplication component
-theorem matrix_mulVec_component {n : Type*} [Fintype n] [DecidableEq n]
-    (A : Matrix n n ℝ) (v : n → ℝ) (j : n) :
-    (A *ᵥ v) j = ∑ i, A j i * v i := by
-  simp [Matrix.mulVec]; rfl
+@[deprecated mulVec_apply_eq_sum (since := "2026-10-17")]
+alias matrix_mulVec_component := mulVec_apply_eq_sum
 
-/--
-The dot product `v ⬝ᵥ (A *ᵥ w)` can be rewritten by moving the matrix `A`
-to the other argument, where it becomes its transpose `Aᵀ`.
--/
+@[deprecated "use `Matrix.dotProduct_mulVec` and `Matrix.mulVec_transpose`" (since := "2026-10-17")]
 lemma transpose_mulVec {n : Type*} [Fintype n] (A : Matrix n n ℝ) (v w : n → ℝ) :
     v ⬝ᵥ (A *ᵥ w) = (Aᵀ *ᵥ v) ⬝ᵥ w := by
-  classical
-  simp only [dotProduct, mulVec_apply, transpose_apply,
-        Finset.mul_sum, Finset.sum_mul];
-  rw [Finset.sum_comm]
-  simp [mul_comm, mul_left_comm]
+  rw [dotProduct_mulVec, mulVec_transpose]
 
-/--
-Commutativity property for dot product with matrix-vector multiplication.
-For vectors `u`, `v` and matrix `A`: `u ⬝ᵥ (A *ᵥ v) = (A *ᵥ u) ⬝ᵥ v`.
-This follows from the fact that `u ⬝ᵥ (A *ᵥ v) = u ᵥ* A ⬝ᵥ v = (Aᵀ *ᵥ u) ⬝ᵥ v`.
--/
+@[deprecated "use `Matrix.dotProduct_mulVec` and `Matrix.mulVec_transpose`" (since := "2026-10-17")]
 lemma dotProduct_mulVec_comm {n : Type*} [Fintype n] (u v : n → ℝ) (A : Matrix n n ℝ) :
     u ⬝ᵥ (A *ᵥ v) = (Aᵀ *ᵥ u) ⬝ᵥ v := by
-  rw [dotProduct_mulVec, vecMul_eq_mulVec_transpose]
+  rw [dotProduct_mulVec, mulVec_transpose]
 
 -- This could be a general lemma in the Matrix API
 lemma diagonal_mulVec_ones [DecidableEq n][Fintype n] (d : n → ℝ) :

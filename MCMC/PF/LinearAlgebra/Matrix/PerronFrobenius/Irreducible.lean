@@ -50,13 +50,13 @@ theorem Irreducible.add_one (h_irred : A.IsIrreducible) : (1 + A).IsIrreducible 
   constructor
   · exact fun i j => Matrix.one_add_apply_nonneg h_irred.nonneg i j
   · intro i j
-    letI : Quiver n := toQuiver A
+    let : Quiver n := toQuiver A
     obtain ⟨pA, hpA_pos⟩ := h_irred.connected i j
     let pA' : @Quiver.Path n (toQuiver A) i j := pA
     obtain ⟨pB, hp_len⟩ := pathToQuiverOfForallPosImpPos
       (A := A) (B := B) (fun {u v} huv => by
         simpa [B] using one_add_pos_of_pos h_irred.nonneg huv) pA'
-    letI : Quiver n := toQuiver B
+    let : Quiver n := toQuiver B
     exact ⟨pB, by simpa [hp_len.down] using hpA_pos⟩
 
 /-
@@ -88,7 +88,7 @@ lemma eigenvector_is_positive_of_irreducible_aux [Fintype n]
     (hv_nonneg : ∀ i, 0 ≤ v i) (hv_ne_zero : v ≠ 0) :
     ∀ i, 0 < v i := by
   by_contra h_has_zero
-  push_neg at h_has_zero
+  push Not at h_has_zero
   obtain ⟨i₀, hi₀_zero⟩ := h_has_zero
   have hi₀_eq_zero : v i₀ = 0 := le_antisymm hi₀_zero (hv_nonneg i₀)
   obtain ⟨j, i, vj_zero, vi_pos, h_Aji_pos⟩ :=
@@ -113,7 +113,7 @@ omit [Fintype n] [DecidableEq n] in
 /-- An irreducible matrix has a positive entry. -/
 lemma Irreducible.exists_pos_entry [Nonempty n] (hA_irred : A.IsIrreducible) :
     ∃ i j : n, 0 < A i j := by
-  letI : Quiver n := toQuiver A
+  let : Quiver n := toQuiver A
   exact Nonempty.elim ‹Nonempty n› fun i₀ => by
     obtain ⟨p, hp_pos⟩ := hA_irred.connected i₀ i₀
     rcases Quiver.Path.path_decomposition_first_edge p hp_pos with

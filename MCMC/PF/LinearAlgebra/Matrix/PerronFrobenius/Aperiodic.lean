@@ -1,115 +1,96 @@
+import Mathlib.Basic.Real.Basic
+import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
 import MCMC.PF.Combinatorics.Quiver.Cyclic
-import MCMC.PF.Combinatorics.Quiver.Path
 
-open Quiver
+/-!
+# Aperiodic matrices
+
+Index of imprimitivity of a real matrix and aperiodicity (irreducible with index of
+imprimitivity `1`), following mathlib PR #39926.
+
+## Main definitions
+
+* `Matrix.indexOfImprimitivity A`: the index of imprimitivity of the positive-edge quiver of `A`.
+* `Matrix.IsAperiodic A`: `A` is irreducible and its index of imprimitivity is `1`.
+
+## Main results
+
+* `Matrix.period_eq_one_of_primitive`: every vertex of the quiver of a primitive matrix has
+  period `1`.
+* `Matrix.primitive_implies_irreducible_and_aperiodic`: a primitive matrix is aperiodic.
+-/
 
 namespace Matrix
+
 open Quiver
-variable {n : Type*} [DecidableEq n]
-variable {A : Matrix n n ℝ}
+
+variable {n : Type*} [DecidableEq n] {A : Matrix n n ℝ}
 
 /-! # Aperiodic matrices -/
 
-/-- A matrix is aperiodic if it is irreducible and its positive-edge quiver is aperiodic. -/
-def IsAperiodic (A : Matrix n n ℝ) : Prop :=
-  IsIrreducible A ∧ Quiver.IsAperiodic (toQuiver A)
+variable (A) in
+/-- The index of imprimitivity of `A`, i.e. of its positive-edge quiver `toQuiver A`. For an
+irreducible matrix this is the common period of all vertices. -/
+noncomputable def indexOfImprimitivity [Nonempty n] : ℕ :=
+  letI : Quiver n := toQuiver A
+  Quiver.indexOfImprimitivity n
+
+variable (A) in
+/-- A matrix is aperiodic if it is irreducible and its index of imprimitivity is `1`. -/
+def IsAperiodic [Nonempty n] : Prop :=
+  IsIrreducible A ∧ indexOfImprimitivity A = 1
 
 omit [DecidableEq n] in
 /-- Aperiodicity implies irreducibility. -/
-theorem IsAperiodic.isIrreducible {A : Matrix n n ℝ} (hA : IsAperiodic A) :
-    IsIrreducible A :=
+theorem IsAperiodic.isIrreducible [Nonempty n] (hA : IsAperiodic A) : IsIrreducible A :=
   hA.1
 
 omit [DecidableEq n] in
 /-- Aperiodicity of a matrix is aperiodicity of its positive-edge quiver. -/
-theorem IsAperiodic.quiver_isAperiodic {A : Matrix n n ℝ} (hA : IsAperiodic A) :
-    Quiver.IsAperiodic (toQuiver A) :=
+theorem IsAperiodic.quiver_isAperiodic [Nonempty n] (hA : IsAperiodic A) :
+    letI : Quiver n := toQuiver A
+    Quiver.IsAperiodic n :=
   hA.2
 
 omit [DecidableEq n] in
-/--
-For an irreducible matrix, aperiodicity is equivalent to the period-one condition at any chosen
-vertex of the positive-edge quiver.
--/
-theorem isAperiodic_iff_period_eq_one
-    (hA_irred : IsIrreducible A) (i : n) :
-    IsAperiodic A ↔ (letI : Quiver n := toQuiver A; Quiver.period i = 1) := by
-  constructor
-  · intro hA
-    exact Quiver.isAperiodic_iff_period_eq_one (G := toQuiver A) hA_irred.connected i |>.mp hA.2
-  · intro hi
-    exact ⟨hA_irred, Quiver.isAperiodic_iff_period_eq_one (G := toQuiver A) hA_irred.connected i |>.mpr hi⟩
+/-- For an irreducible matrix, aperiodicity is equivalent to the period-one condition at any chosen
+vertex of the positive-edge quiver. -/
+theorem isAperiodic_iff_period_eq_one [Nonempty n] (hA_irred : IsIrreducible A) (i : n) :
+    IsAperiodic A ↔ (letI : Quiver n := toQuiver A; Quiver.period i = 1) :=
+  (and_iff_right hA_irred).trans
+    (@Quiver.isAperiodic_iff_period_eq_one n (toQuiver A) _ hA_irred.connected i)
 
-/--
-For a primitive nonnegative matrix, every vertex of the positive-edge quiver has period `1`.
--/
-theorem period_eq_one_of_primitive
-    [Fintype n]
+/-- For a primitive nonnegative matrix, every vertex of the positive-edge quiver has period `1`. -/
+theorem period_eq_one_of_primitive [Fintype n]
     (hA_nonneg : ∀ i j, 0 ≤ A i j) (h_prim : IsPrimitive A) (i0 : n) :
     letI : Quiver n := toQuiver A
     Quiver.period i0 = 1 := by
-  let G := toQuiver A
-  letI : Quiver n := G
-  rcases h_prim with ⟨_h_nonneg, ⟨k, hk_pos, hk_pos_entries⟩⟩
-  have hP' : ∀ v : n, Nonempty { p : Path i0 v // p.length = k } := by
-    intro v
-    have : 0 < (A ^ k) i0 v := hk_pos_entries i0 v
-    exact (Matrix.pow_apply_pos_iff_nonempty_path (A := A) hA_nonneg k i0 v).mp this
-  have hP_i0 : Nonempty { p : Path i0 i0 // p.length = k } := hP' i0
-  rcases hP_i0 with ⟨p0, hp0⟩
-  have hp0_pos : 0 < p0.length := by simpa [hp0] using hk_pos
-  obtain ⟨j, e0, s, _, _⟩ := Quiver.Path.path_decomposition_first_edge p0 hp0_pos
-  rcases hP' j with ⟨Pj, hPj⟩
-  rcases hP' i0 with ⟨Pi0, hPi0⟩
-  have c1_mem : (Pj.comp s).length ∈ Quiver.CycleLengths (i := i0) := by
-    have hpos : 0 < (Pj.comp s).length := by
-      have : 0 < k := hk_pos
-      have hle : k ≤ k + s.length := Nat.le_add_right _ _
-      have : 0 < k + s.length := Nat.lt_of_lt_of_le this hle
-      simpa [Path.length_comp, hPj, Nat.add_comm] using this
-    exact ⟨hpos, ⟨Pj.comp s, rfl⟩⟩
-  have c2_mem :
-      (((Path.nil : Path i0 i0).cons e0).comp (s.comp Pi0)).length ∈ Quiver.CycleLengths (i := i0) := by
-    have hpos : 0 < (((Path.nil : Path i0 i0).cons e0).comp (s.comp Pi0)).length := by
-      have : 0 < k + 1 + s.length := Nat.pos_of_neZero (k + 1 + s.length)
-      simp [Path.length_comp, Path.length_cons, Path.length_nil, hPi0, Nat.add_comm, Nat.add_left_comm]
-    exact ⟨hpos, ⟨((Path.nil : Path i0 i0).cons e0).comp (s.comp Pi0), rfl⟩⟩
-  have len_c1 : (Pj.comp s).length = k + s.length := by
-    simp [Path.length_comp, hPj]
-  have len_c2 :
-      (((Path.nil : Path i0 i0).cons e0).comp (s.comp Pi0)).length = k + 1 + s.length := by
-    simp [Path.length_comp, Path.length_cons, Path.length_nil, hPi0, Nat.add_assoc, Nat.add_comm,
-      Nat.add_left_comm]
-  have hdiv1 : Quiver.period (i := i0) ∣ (Pj.comp s).length :=
-    Quiver.divides_cycle_length (i := i0) c1_mem
-  have hdiv2 :
-      Quiver.period (i := i0) ∣ (((Path.nil : Path i0 i0).cons e0).comp (s.comp Pi0)).length :=
-    Quiver.divides_cycle_length (i := i0) c2_mem
-  have : Quiver.period (i := i0) ∣ 1 := by
-    have hdiff_div :
-        Quiver.period (i := i0) ∣
-          (((Path.nil : Path i0 i0).cons e0).comp (s.comp Pi0)).length - (Pj.comp s).length := by
-      exact Nat.dvd_sub hdiv2 hdiv1
-    have hdiff :
-        (((Path.nil : Path i0 i0).cons e0).comp (s.comp Pi0)).length - (Pj.comp s).length = 1 := by
-      rw [len_c2, len_c1]
-      simp only [Nat.add_assoc, Nat.add_sub_add_left, Nat.add_sub_cancel]
-    rw [hdiff] at hdiff_div
-    exact hdiff_div
-  exact Nat.dvd_one.mp this
+  let : Quiver n := toQuiver A
+  obtain ⟨_, k, hk_pos, hk⟩ := h_prim
+  have hP (v : n) : Nonempty {p : Path i0 v // p.length = k} :=
+    (pow_apply_pos_iff_nonempty_path hA_nonneg k i0 v).mp (hk i0 v)
+  obtain ⟨⟨p, hp⟩⟩ := hP i0
+  obtain ⟨c, -, q, hq, -⟩ := p.eq_toPath_comp_of_length_eq_succ (n := k - 1) (by lia)
+  obtain ⟨⟨r, hr⟩⟩ := hP c
+  have h1 : period i0 ∣ (r.comp q).length :=
+    period_dvd_of_mem_cycleLengths ⟨by simp only [Path.length_comp]; lia, r.comp q, rfl⟩
+  have h2 : period i0 ∣ (p.comp p).length :=
+    period_dvd_of_mem_cycleLengths (length_comp_mem_cycleLengths p p (hp ▸ hk_pos))
+  have hlen : (p.comp p).length = (r.comp q).length + 1 := by
+    simp only [Path.length_comp]
+    lia
+  exact Nat.dvd_one.mp ((Nat.dvd_add_right h1).mp (hlen ▸ h2))
 
 /-- Frobenius (forward direction): A primitive matrix is irreducible and aperiodic. -/
-theorem primitive_implies_irreducible_and_aperiodic
-    [Fintype n] [Nonempty n] (hA_nonneg : ∀ i j, 0 ≤ A i j) :
-    IsPrimitive A → IsAperiodic A := by
-  intro h_prim
-  have h_irred : IsIrreducible A := (Matrix.IsPrimitive.isIrreducible (A := A) h_prim)
-  obtain ⟨i0, _⟩ := Finset.univ_nonempty (α := n)
-  exact ⟨h_irred, ⟨i0, period_eq_one_of_primitive hA_nonneg h_prim i0⟩⟩
+theorem primitive_implies_irreducible_and_aperiodic [Fintype n] [Nonempty n]
+    (hA_nonneg : ∀ i j, 0 ≤ A i j) :
+    IsPrimitive A → IsAperiodic A := fun h_prim ↦
+  ⟨h_prim.isIrreducible, period_eq_one_of_primitive hA_nonneg h_prim _⟩
 
 /-! # Frobenius Normal Form -/
 
-/-- Predicate: `P` is a permutation matrix (entries are 1 on a single position in each row given by a permutation, 0 elsewhere). -/
+/-- Predicate: `P` is a permutation matrix (entries are 1 on a single position in each row given
+by a permutation, 0 elsewhere). -/
 def IsPermutationMatrix (P : Matrix n n ℝ) : Prop :=
   ∃ σ : Equiv.Perm n, ∀ i j, P i j = if σ i = j then 1 else 0
 

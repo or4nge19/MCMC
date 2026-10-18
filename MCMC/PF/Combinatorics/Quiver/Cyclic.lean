@@ -1,311 +1,341 @@
-import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
-import Mathlib.Data.Nat.Find
+import Mathlib.Combinatorics.Quiver.ConnectedComponent
+import Mathlib.Algebra.Group.Subgroup.Basic
+import Mathlib.Algebra.Ring.Divisibility.Basic
+import Mathlib.Algebra.Ring.Int.Defs
 import Mathlib.Data.Nat.ModEq
-
-namespace Quiver
-variable {V : Type*} [Quiver V]
+import Mathlib.Order.Lattice.Nat
 
 /-!
-# Periodicity and aperiodicity in quivers
+# Quiver periodicity and aperiodicity
 
-This file develops the basic periodicity API for quivers via cycle lengths and periods.
+The *period* of a vertex `i` of a quiver is the greatest common divisor of the lengths of the
+cycles at `i`, realised as the least positive element of the subgroup of `ℤ` that those lengths
+generate. In a strongly connected quiver the period does not depend on the vertex, and is called
+the *index of imprimitivity*; a quiver is *aperiodic* when it equals `1`.
 
-The fundamental invariant is `period i`, attached to a vertex `i`. For strongly connected quivers,
-`period_constant_of_strongly_connected` shows that the period is independent of the vertex. The
-predicate `IsAperiodic` is then expressed by the existence of a vertex of period `1`.
+This file follows mathlib PR #39913 (`Mathlib/Combinatorics/Quiver/Cyclic.lean`).
+
+## Main definitions
+
+* `Quiver.cycleLengths i`: the lengths of the positive-length cycles at `i`.
+* `Quiver.period i`: the period of `i`, i.e. the gcd of `Quiver.cycleLengths i`.
+* `Quiver.indexOfImprimitivity V`: the common period of the vertices of a strongly connected
+  quiver.
+* `Quiver.IsAperiodic V`: predicate for the index of imprimitivity to be `1`.
+* `Quiver.IsCyclicPartition f`: predicate for `f` to send each edge from one class to the next,
+  cyclically.
+
+## Main statements
+
+* `Quiver.period_dvd_of_mem_cycleLengths` and `Quiver.dvd_period`: `period i` is the greatest
+  common divisor of the cycle lengths at `i`.
+* `Quiver.exists_forall_ge_mem_cycleLengths`: aperiodicity is cofinite, i.e. if `period i = 1`
+  then every sufficiently large natural number is a cycle length at `i`.
+* `Quiver.period_eq_of_isSStronglyConnected`: in a strongly connected quiver all vertices have
+  the same period.
+* `Quiver.exists_isCyclicPartition`: a strongly connected quiver admits a cyclic partition into
+  `indexOfImprimitivity V` classes.
+
+## References
+
+* [E. Seneta, *Non-negative Matrices and Markov Chains*][seneta2006]
+
+## Tags
+
+quiver, aperiodic, primitive matrix, Perron–Frobenius theorem
 -/
 
--- Definition for the set of lengths of cycles at a vertex i.
--- We require positive length for cycles relevant to periodicity.
-def CycleLengths (i : V) : Set ℕ := {k | k > 0 ∧ ∃ p : Path i i, p.length = k}
+namespace Quiver
 
-/-- The set of common divisors of all cycle lengths at `i`. (If there are no cycles this is all
-  of `ℕ`, so the least element is `0`.) -/
-def commonDivisorsSet (i : V) : Set ℕ := {d | ∀ k ∈ CycleLengths i, d ∣ k}
+variable {V : Type*} [Quiver V] {i j : V} {a b k m : ℕ}
 
-lemma one_mem_commonDivisorsSet (i : V) :
-  1 ∈ commonDivisorsSet i := by
-  intro k hk; exact one_dvd _
+/-! ### Cycle lengths -/
 
-lemma commonDivisorsSet_nonempty (i : V) : (commonDivisorsSet i).Nonempty :=
-  ⟨1, one_mem_commonDivisorsSet i⟩
+/-- The lengths of the positive-length cycles at a vertex `i`. -/
+def cycleLengths (i : V) : Set ℕ := {k | 0 < k ∧ ∃ p : Path i i, p.length = k}
 
-/-- The period of a vertex `i`: the least common divisor of all cycle lengths at `i`.
+@[deprecated cycleLengths (since := "2026-10-17")] alias CycleLengths := cycleLengths
 
-If there are no cycles, this is `0` (since then `commonDivisorsSet i = Set.univ`). -/
-noncomputable def period (i : V) : ℕ :=
-by
-  letI : DecidablePred fun d : ℕ => d ∈ commonDivisorsSet i := Classical.decPred _
-  exact Nat.find (commonDivisorsSet_nonempty (i := i))
+lemma mem_cycleLengths_iff : k ∈ cycleLengths i ↔ 0 < k ∧ ∃ p : Path i i, p.length = k := Iff.rfl
 
-/-- `period i` is the least element of the set of common divisors of all cycle lengths at `i`. -/
-lemma period_min (i : V) :
-    period i ∈ commonDivisorsSet i ∧
-      ∀ m ∈ commonDivisorsSet i, period i ≤ m := by
-  classical
-  refine ⟨?mem, ?least⟩
-  · simpa [period] using (Nat.find_spec (commonDivisorsSet_nonempty (i := i)))
-  · intro m hm
-    simpa [period] using (Nat.find_min' (commonDivisorsSet_nonempty (i := i)) hm)
+/-- Cycle lengths at a vertex are closed under addition: concatenate the two cycles. -/
+lemma add_mem_cycleLengths (ha : a ∈ cycleLengths i) (hb : b ∈ cycleLengths i) :
+    a + b ∈ cycleLengths i := by
+  obtain ⟨ha, p, rfl⟩ := ha
+  obtain ⟨hb, q, rfl⟩ := hb
+  exact ⟨by lia, p.comp q, by simp [Path.length_comp]⟩
 
-/-- Basic characterization of `period`: divisibility plus minimality.
-    TODO: it may be needed a more rigorous characterization-/
-lemma period_spec (i : V) :
-  (∀ k ∈ CycleLengths i, period i ∣ k) ∧
-  (∀ m, (∀ k ∈ CycleLengths i, m ∣ k) → period i ≤ m) := by
-  have h := period_min i
-  refine ⟨?div, ?min⟩
-  · intro k hk
-    exact h.1 k hk
-  · intro m hm
-    exact h.2 m hm
+lemma const_mul_mem_cycleLengths (ha : a ∈ cycleLengths i) (hm : 0 < m) :
+    m * a ∈ cycleLengths i := by
+  induction m with
+  | zero => lia
+  | succ k ih =>
+    rcases Nat.eq_zero_or_pos k with rfl | hk
+    · simpa using ha
+    · simpa [Nat.succ_mul] using add_mem_cycleLengths (ih hk) ha
 
-lemma period_mem_commonDivisorsSet (i : V) :
-    period i ∈ commonDivisorsSet i :=
-  (period_min i).1
+lemma mul_const_mem_cycleLengths (ha : a ∈ cycleLengths i) (hm : 0 < m) :
+    a * m ∈ cycleLengths i :=
+  Nat.mul_comm m a ▸ const_mul_mem_cycleLengths ha hm
 
-lemma period_le_of_commonDivisor (i : V) {m : ℕ}
-    (hm : ∀ k ∈ CycleLengths i, m ∣ k) :
-    period i ≤ m :=
-  (period_spec i).2 _ hm
+/-- A cycle obtained by composing `p` with a positive-length path `s` back to the base point. -/
+lemma length_comp_mem_cycleLengths {v : V} (p : Path i v) (s : Path v i) (hs : 0 < s.length) :
+    (p.comp s).length ∈ cycleLengths i :=
+  ⟨lt_of_lt_of_le hs (by simp [Path.length_comp]), p.comp s, rfl⟩
 
-lemma divides_cycle_length {i : V} {k : ℕ}
-    (hk : k ∈ CycleLengths i) :
-    period i ∣ k :=
-  (period_spec i).1 _ hk
+@[deprecated length_comp_mem_cycleLengths (since := "2026-10-17")]
+alias mem_CycleLengths_of_comp_right := length_comp_mem_cycleLengths
 
--- The period divides every cycle length (corollary of `period_spec`).
-lemma period_divides_cycle_lengths (i : V) :
-  ∀ {k}, k ∈ CycleLengths i → period i ∣ k := by
-  intro k hk
-  exact (period_spec i).1 k hk
+@[deprecated length_comp_mem_cycleLengths (since := "2026-10-17")]
+lemma mem_CycleLengths_of_cons_comp_right {v w : V} (p : Path i v) (e : v ⟶ w) (s : Path w i)
+    (hs_pos : 0 < s.length) : ((p.cons e).comp s).length ∈ cycleLengths i :=
+  length_comp_mem_cycleLengths _ s hs_pos
 
--- If the set of cycle lengths is non-empty, the period is positive.
-lemma period_pos_of_nonempty_cycles (i : V) (h_nonempty : (CycleLengths i).Nonempty) :
-    period i > 0 := by
-  rcases h_nonempty with ⟨k, hk⟩
-  have hk_pos : k > 0 := hk.1
-  have hdiv : period i ∣ k := (period_spec i).1 k hk
-  have hk_ne_zero : k ≠ 0 := (Nat.pos_iff_ne_zero.mp hk_pos)
-  rcases hdiv with ⟨t, ht⟩
-  have hper_ne_zero : period i ≠ 0 := by
-    intro hzero
-    have : k = 0 := by simpa [hzero] using ht
-    exact hk_ne_zero this
-  exact Nat.pos_of_ne_zero hper_ne_zero
+/-! ### The period of a vertex -/
 
-/-- If `k ≤ a + (b + c)` and `a + b + c = d`, then `k ≤ d` (reassociate the upper bound). -/
-private lemma le_of_le_add_add_eq (k a b c d : ℕ) (h : k ≤ a + (b + c)) (he : a + b + c = d) :
-    k ≤ d := by
-  rwa [← he, Nat.add_assoc]
+/-- The additive subgroup of `ℤ` generated by the cycle lengths at `i`. -/
+def cycleSubgroup (i : V) : AddSubgroup ℤ :=
+  AddSubgroup.closure (((↑) : ℕ → ℤ) '' cycleLengths i)
 
-/--
-**Theorem: In a strongly connected quiver, the period is the same for all vertices**.
--/
-theorem period_constant_of_strongly_connected (h_sc : Quiver.IsSStronglyConnected V) :
-  ∀ i j : V, period i = period j := by
-  intro i j
-  rcases h_sc i j with ⟨p, hp_pos⟩
-  rcases h_sc j i with ⟨q, hq_pos⟩
-  have h_div_j : ∀ k ∈ CycleLengths j, period i ∣ k := by
-    intro k hk
-    rcases hk with ⟨hk_pos, ⟨c, hc_len⟩⟩
-    let t : ℕ := (p.comp q).length
-    have ht_pos : 0 < t := by
-      have : p.length ≤ (p.comp q).length := by
-        simp [Path.length_comp]
-      exact lt_of_lt_of_le hp_pos this
-    have ht_mem : t ∈ CycleLengths i := by
-      refine ⟨ht_pos, ?_⟩
-      refine ⟨p.comp q, rfl⟩
-    have h_dvd_t : period i ∣ t := (period_spec i).1 _ ht_mem
-    let t' : ℕ := ((p.comp c).comp q).length
-    have ht'_pos : 0 < t' := by
-      have hle1 : k ≤ k + q.length := Nat.le_add_right _ _
-      have hle2 : k + q.length ≤ p.length + (k + q.length) := Nat.le_add_left _ _
-      have hle : k ≤ p.length + (k + q.length) := le_trans hle1 hle2
-      have : p.length + k + q.length = t' := by
-        simp [t', Path.length_comp, hc_len, Nat.add_assoc, Nat.add_comm]
-      have hle' : k ≤ t' := le_of_le_add_add_eq k p.length k q.length t' hle this
-      exact lt_of_lt_of_le hk_pos hle'
-    have ht'_mem : t' ∈ CycleLengths i := by
-      refine ⟨ht'_pos, ?_⟩
-      refine ⟨(p.comp c).comp q, rfl⟩
-    have h_dvd_t' : period i ∣ t' := (period_spec i).1 _ ht'_mem
-    have : period i ∣ t + k := by
-      have h_eq : t' = t + k := by
-        simp [t, t', Path.length_comp, hc_len, Nat.add_assoc, Nat.add_comm]
-      simpa [h_eq]
-        using h_dvd_t'
-    have hk_div : period i ∣ k := (Nat.dvd_add_right h_dvd_t).1 this
-    exact hk_div
-  have h_le_ji : period j ≤ period i := period_le_of_commonDivisor j h_div_j
-  have h_div_i : ∀ k ∈ CycleLengths i, period j ∣ k := by
-    intro k hk
-    rcases hk with ⟨hk_pos, ⟨c, hc_len⟩⟩
-    let t : ℕ := (q.comp p).length
-    have ht_pos : 0 < t := by
-      have : q.length ≤ (q.comp p).length := by
-        simp [Path.length_comp]
-      exact lt_of_lt_of_le hq_pos this
-    have ht_mem : t ∈ CycleLengths j := by
-      refine ⟨ht_pos, ?_⟩
-      refine ⟨q.comp p, rfl⟩
-    have h_dvd_t : period j ∣ t := (period_spec j).1 _ ht_mem
-    let t' : ℕ := ((q.comp c).comp p).length
-    have ht'_pos : 0 < t' := by
-      have hle1 : k ≤ k + p.length := Nat.le_add_right _ _
-      have hle2 : k + p.length ≤ q.length + (k + p.length) := Nat.le_add_left _ _
-      have hle : k ≤ q.length + (k + p.length) := le_trans hle1 hle2
-      have : q.length + k + p.length = t' := by
-        simp [t', Path.length_comp, hc_len, Nat.add_comm, Nat.add_left_comm]
-      have hle' : k ≤ t' := le_of_le_add_add_eq k q.length k p.length t' hle this
-      exact lt_of_lt_of_le hk_pos hle'
-    have ht'_mem : t' ∈ CycleLengths j := by
-      refine ⟨ht'_pos, ?_⟩
-      refine ⟨(q.comp c).comp p, rfl⟩
-    have h_dvd_t' : period j ∣ t' := (period_spec j).1 _ ht'_mem
-    have : period j ∣ t + k := by
-      have h_eq : t' = t + k := by
-        simp [t, t', Path.length_comp, hc_len, Nat.add_comm, Nat.add_left_comm]
-      simpa [h_eq] using h_dvd_t'
-    exact (Nat.dvd_add_right h_dvd_t).1 this
-  have h_le_ij : period i ≤ period j := period_le_of_commonDivisor i h_div_i
-  exact le_antisymm h_le_ij h_le_ji
+lemma cast_mem_cycleSubgroup (hk : k ∈ cycleLengths i) : (k : ℤ) ∈ cycleSubgroup i :=
+  AddSubgroup.subset_closure ⟨k, hk, rfl⟩
 
-/-- A quiver is aperiodic if some vertex has period `1`. -/
-def IsAperiodic (G : Quiver V) : Prop := by
-  letI : Quiver V := G
-  exact ∃ i : V, period i = 1
+lemma cycleSubgroup_eq_bot (h : cycleLengths i = ∅) : cycleSubgroup i = ⊥ := by
+  simp [cycleSubgroup, h]
 
-omit [Quiver V] in
-/-- Unpack `Quiver.IsAperiodic` as the existence of a period-one vertex. -/
-theorem IsAperiodic.exists_period_eq_one {G : Quiver V} (hG : IsAperiodic G) :
-    letI : Quiver V := G
+/-- The period of a vertex `i`: the greatest common divisor of the lengths of the cycles at `i`,
+realised as the least positive element of the subgroup of `ℤ` that they generate.
+
+If there are no cycles at `i` this is `0`. -/
+noncomputable def period (i : V) : ℕ := sInf {n | 0 < n ∧ (n : ℤ) ∈ cycleSubgroup i}
+
+lemma period_eq_zero (h : cycleLengths i = ∅) : period i = 0 :=
+  Nat.sInf_eq_zero.2 <| Or.inr <| Set.eq_empty_of_forall_notMem fun n hn ↦ by
+    simp [cycleSubgroup_eq_bot h] at hn
+    lia
+
+lemma period_pos (h : (cycleLengths i).Nonempty) : 0 < period i := by
+  obtain ⟨k, hk⟩ := h
+  exact (Nat.sInf_mem (s := {n : ℕ | 0 < n ∧ (n : ℤ) ∈ cycleSubgroup i})
+    ⟨k, hk.1, cast_mem_cycleSubgroup hk⟩).1
+
+lemma period_pos_iff : 0 < period i ↔ (cycleLengths i).Nonempty := by
+  refine ⟨fun h ↦ Set.nonempty_iff_ne_empty.2 fun h' ↦ ?_, period_pos⟩
+  rw [period_eq_zero h'] at h
+  exact lt_irrefl 0 h
+
+lemma period_eq_zero_iff : period i = 0 ↔ cycleLengths i = ∅ := by
+  rw [← Set.not_nonempty_iff_eq_empty, ← period_pos_iff, Nat.pos_iff_ne_zero, not_not]
+
+/-- The period lies in the subgroup generated by the cycle lengths. -/
+lemma cast_period_mem_cycleSubgroup (i : V) : (period i : ℤ) ∈ cycleSubgroup i := by
+  rcases Set.eq_empty_or_nonempty (cycleLengths i) with h | ⟨k, hk⟩
+  · simp [period_eq_zero h]
+  · exact (Nat.sInf_mem (s := {n : ℕ | 0 < n ∧ (n : ℤ) ∈ cycleSubgroup i})
+      ⟨k, hk.1, cast_mem_cycleSubgroup hk⟩).2
+
+/-- The period divides every element of the subgroup generated by the cycle lengths. -/
+lemma period_dvd_of_mem_cycleSubgroup {x : ℤ} (hx : x ∈ cycleSubgroup i) :
+    (period i : ℤ) ∣ x := by
+  rcases Set.eq_empty_or_nonempty (cycleLengths i) with h | h
+  · rw [cycleSubgroup_eq_bot h, AddSubgroup.mem_bot] at hx
+    simp [hx]
+  have hp : (0 : ℤ) < (period i : ℤ) := by exact_mod_cast period_pos h
+  have hr : x % (period i : ℤ) ∈ cycleSubgroup i := by
+    simpa [Int.emod_def, mul_comm, Int.zsmul_eq_mul] using
+      sub_mem hx (AddSubgroup.zsmul_mem _ (cast_period_mem_cycleSubgroup i) (x / (period i : ℤ)))
+  refine Int.dvd_of_emod_eq_zero (le_antisymm (not_lt.1 fun h0 ↦ ?_) (Int.emod_nonneg x hp.ne'))
+  have h1 : period i ≤ (x % (period i : ℤ)).toNat :=
+    Nat.sInf_le ⟨by lia, by simpa [Int.toNat_of_nonneg h0.le] using hr⟩
+  have h2 := Int.emod_lt_of_pos x hp
+  lia
+
+/-- The period divides every cycle length. -/
+lemma period_dvd_of_mem_cycleLengths (hk : k ∈ cycleLengths i) : period i ∣ k := by
+  exact_mod_cast period_dvd_of_mem_cycleSubgroup (cast_mem_cycleSubgroup hk)
+
+@[deprecated period_dvd_of_mem_cycleLengths (since := "2026-10-17")]
+alias divides_cycle_length := period_dvd_of_mem_cycleLengths
+
+@[deprecated period_dvd_of_mem_cycleLengths (since := "2026-10-17")]
+alias period_divides_cycle_lengths := period_dvd_of_mem_cycleLengths
+
+/-- Universal property: every common divisor of the cycle lengths divides the period. This is what
+makes `period` the *greatest* common divisor. -/
+lemma dvd_period (hm : ∀ k ∈ cycleLengths i, m ∣ k) : m ∣ period i := by
+  have key : ∀ x ∈ cycleSubgroup i, (m : ℤ) ∣ x := by
+    intro x hx
+    induction hx using AddSubgroup.closure_induction with
+    | mem y hy => obtain ⟨k, hk, rfl⟩ := hy; exact_mod_cast hm k hk
+    | zero => simp
+    | add a b _ _ ha hb => exact dvd_add ha hb
+    | neg a _ ha => exact (dvd_neg).2 ha
+  exact_mod_cast key _ (cast_period_mem_cycleSubgroup i)
+
+/-- `m` divides the period iff it divides every cycle length. -/
+lemma dvd_period_iff : m ∣ period i ↔ ∀ k ∈ cycleLengths i, m ∣ k :=
+  ⟨fun h _ hk ↦ h.trans (period_dvd_of_mem_cycleLengths hk), dvd_period⟩
+
+/-- Every common divisor of the cycle lengths is at most the period, provided a cycle exists. -/
+lemma le_period (hm : ∀ k ∈ cycleLengths i, m ∣ k) (h : (cycleLengths i).Nonempty) :
+    m ≤ period i :=
+  Nat.le_of_dvd (period_pos h) (dvd_period hm)
+
+@[deprecated period_pos (since := "2026-10-17")]
+alias period_pos_of_nonempty_cycles := period_pos
+
+/-! ### Aperiodicity is cofinite -/
+
+/-- `cycleLengths i ∪ {0}` is closed under addition. -/
+lemma add_eq_zero_or_add_mem_cycleLengths (ha : a = 0 ∨ a ∈ cycleLengths i)
+    (hb : b = 0 ∨ b ∈ cycleLengths i) : a + b = 0 ∨ a + b ∈ cycleLengths i := by
+  rcases ha with rfl | ha <;> rcases hb with rfl | hb
+  · simp
+  · simpa using Or.inr hb
+  · simpa using Or.inr ha
+  · exact Or.inr (add_mem_cycleLengths ha hb)
+
+/-- Every element of the subgroup generated by the cycle lengths is a difference of two elements
+of `cycleLengths i ∪ {0}`. -/
+lemma exists_sub_repr_of_mem_cycleSubgroup {x : ℤ} (hx : x ∈ cycleSubgroup i) :
+    ∃ p q : ℕ, (p = 0 ∨ p ∈ cycleLengths i) ∧ (q = 0 ∨ q ∈ cycleLengths i) ∧
+      x = (p : ℤ) - (q : ℤ) := by
+  induction hx using AddSubgroup.closure_induction with
+  | mem y hy => obtain ⟨k, hk, rfl⟩ := hy; exact ⟨k, 0, Or.inr hk, Or.inl rfl, by simp⟩
+  | zero => exact ⟨0, 0, Or.inl rfl, Or.inl rfl, by simp⟩
+  | add a b _ _ ha hb =>
+    obtain ⟨p₁, q₁, hp₁, hq₁, rfl⟩ := ha
+    obtain ⟨p₂, q₂, hp₂, hq₂, rfl⟩ := hb
+    exact ⟨p₁ + p₂, q₁ + q₂, add_eq_zero_or_add_mem_cycleLengths hp₁ hp₂,
+      add_eq_zero_or_add_mem_cycleLengths hq₁ hq₂, by push_cast; lia⟩
+  | neg a _ ha => obtain ⟨p, q, hp, hq, rfl⟩ := ha; exact ⟨q, p, hq, hp, by lia⟩
+
+/-- If the period at `i` is `1`, then either `1` is itself a cycle length, or there are two
+cycles at `i` whose lengths are consecutive. -/
+lemma exists_consecutive_of_period_eq_one (h : period i = 1) :
+    1 ∈ cycleLengths i ∨ ∃ q ∈ cycleLengths i, q + 1 ∈ cycleLengths i := by
+  obtain ⟨p, q, hp, hq, hpq⟩ := exists_sub_repr_of_mem_cycleSubgroup
+    (h ▸ cast_period_mem_cycleSubgroup i : ((1 : ℕ) : ℤ) ∈ cycleSubgroup i)
+  have hp1 : p = q + 1 := by lia
+  have hpmem : p ∈ cycleLengths i := hp.resolve_left (by lia)
+  rcases hq with rfl | hq
+  · exact Or.inl (by simpa [hp1] using hpmem)
+  · exact Or.inr ⟨q, hq, hp1 ▸ hpmem⟩
+
+/-- **Aperiodicity is cofinite**: if the period at `i` is `1`, then every sufficiently large
+natural number is the length of a cycle at `i`. -/
+theorem exists_forall_ge_mem_cycleLengths (h : period i = 1) :
+    ∃ N, ∀ n, N ≤ n → n ∈ cycleLengths i := by
+  rcases exists_consecutive_of_period_eq_one h with h1 | ⟨q, hq, hq1⟩
+  · exact ⟨1, fun n hn ↦ by simpa using const_mul_mem_cycleLengths h1 (m := n) (by lia)⟩
+  refine ⟨q * q, fun n hn ↦ ?_⟩
+  have hq0 : 0 < q := hq.1
+  have hk : q ≤ n / q := (Nat.le_div_iff_mul_le hq0).2 hn
+  have hrk : n % q ≤ n / q := (Nat.mod_lt _ hq0).le.trans hk
+  have hsplit : (n / q - n % q) * q + n % q * (q + 1) = n := by
+    rw [Nat.mul_succ, ← Nat.add_assoc, ← Nat.add_mul, Nat.sub_add_cancel hrk]
+    exact Nat.div_add_mod' n q
+  rw [← hsplit]
+  rcases Nat.eq_zero_or_pos (n % q) with hr0 | hr0
+  · simpa [hr0] using const_mul_mem_cycleLengths hq (m := n / q) (by lia)
+  rcases Nat.eq_zero_or_pos (n / q - n % q) with hd0 | hd0
+  · simpa [hd0] using const_mul_mem_cycleLengths hq1 hr0
+  · exact add_mem_cycleLengths (const_mul_mem_cycleLengths hq hd0)
+      (const_mul_mem_cycleLengths hq1 hr0)
+
+/-! ### Strongly connected quivers -/
+
+/-- Half of `period_eq_of_isSStronglyConnected`: a round trip `i ⟶ j ⟶ i` transports every cycle
+at `j` to a cycle at `i`, so `period i` divides every cycle length at `j`. -/
+lemma period_dvd_of_round_trip (p : Path i j) (q : Path j i) (hpq : 0 < (p.comp q).length)
+    (hk : k ∈ cycleLengths j) : period i ∣ k := by
+  obtain ⟨hk0, c, rfl⟩ := hk
+  have h1 : period i ∣ (p.comp q).length :=
+    period_dvd_of_mem_cycleLengths ⟨hpq, p.comp q, rfl⟩
+  have h2 : period i ∣ (p.comp q).length + c.length := by
+    refine period_dvd_of_mem_cycleLengths ⟨?_, (p.comp c).comp q, ?_⟩ <;>
+      simp only [Path.length_comp] at hpq ⊢ <;> lia
+  exact (Nat.dvd_add_right h1).1 h2
+
+/-- In a strongly connected quiver the period is the same at every vertex. -/
+theorem period_eq_of_isSStronglyConnected (hsc : IsSStronglyConnected V) (i j : V) :
+    period i = period j := by
+  obtain ⟨p, hp⟩ := hsc i j
+  obtain ⟨q, hq⟩ := hsc j i
+  have hpq : 0 < (p.comp q).length := lt_of_lt_of_le hp (by simp [Path.length_comp])
+  have hqp : 0 < (q.comp p).length := lt_of_lt_of_le hq (by simp [Path.length_comp])
+  exact Nat.dvd_antisymm
+    (dvd_period fun _ hk ↦ period_dvd_of_round_trip p q hpq hk)
+    (dvd_period fun _ hk ↦ period_dvd_of_round_trip q p hqp hk)
+
+@[deprecated period_eq_of_isSStronglyConnected (since := "2026-10-17")]
+alias period_constant_of_strongly_connected := period_eq_of_isSStronglyConnected
+
+variable (V) in
+/-- The index of imprimitivity of a quiver: the common period of its vertices.
+
+If the quiver is not strongly connected, vertices may have different periods; the value is then
+the period of an arbitrary vertex (a junk value). -/
+noncomputable def indexOfImprimitivity [Nonempty V] : ℕ := period (Classical.arbitrary V)
+
+variable (V) in
+/-- A quiver is aperiodic if its index of imprimitivity is `1`. -/
+def IsAperiodic [Nonempty V] : Prop := indexOfImprimitivity V = 1
+
+lemma indexOfImprimitivity_eq_period [Nonempty V] (hsc : IsSStronglyConnected V) (i : V) :
+    indexOfImprimitivity V = period i :=
+  period_eq_of_isSStronglyConnected hsc _ i
+
+lemma indexOfImprimitivity_pos [Nonempty V] (hsc : IsSStronglyConnected V) :
+    0 < indexOfImprimitivity V := by
+  obtain ⟨p, hp⟩ := hsc (Classical.arbitrary V) (Classical.arbitrary V)
+  exact period_pos ⟨p.length, hp, p, rfl⟩
+
+lemma indexOfImprimitivity_dvd [Nonempty V] (hsc : IsSStronglyConnected V)
+    (hk : k ∈ cycleLengths i) : indexOfImprimitivity V ∣ k := by
+  rw [indexOfImprimitivity_eq_period hsc i]
+  exact period_dvd_of_mem_cycleLengths hk
+
+/-- An aperiodic quiver has a vertex of period `1`. -/
+theorem IsAperiodic.exists_period_eq_one [Nonempty V] (h : IsAperiodic V) :
     ∃ i : V, period i = 1 :=
-  hG
+  ⟨Classical.arbitrary V, h⟩
 
-omit [Quiver V] in
-/--
-In a strongly connected quiver, aperiodicity forces every vertex to have period `1`.
--/
-theorem IsAperiodic.period_eq_one {G : Quiver V}
-    (h_sc : @Quiver.IsSStronglyConnected V G) (hG : IsAperiodic G) (i : V) :
-    letI : Quiver V := G
-    period i = 1 := by
-  letI : Quiver V := G
-  rcases hG with ⟨j, hj⟩
-  rw [period_constant_of_strongly_connected h_sc i j, hj]
+/-- In a strongly connected quiver, aperiodicity forces every vertex to have period `1`. -/
+theorem IsAperiodic.period_eq_one [Nonempty V] (hsc : IsSStronglyConnected V)
+    (h : IsAperiodic V) (i : V) : period i = 1 :=
+  indexOfImprimitivity_eq_period hsc i ▸ h
 
-omit [Quiver V] in
-/--
-For a strongly connected quiver, aperiodicity is equivalent to the period-one condition at any
-chosen vertex.
--/
-theorem isAperiodic_iff_period_eq_one {G : Quiver V}
-    (h_sc : @Quiver.IsSStronglyConnected V G) (i : V) :
-    IsAperiodic G ↔ (letI : Quiver V := G; period i = 1) := by
-  constructor
-  · intro hG
-    exact Quiver.IsAperiodic.period_eq_one h_sc hG i
-  · intro hi
-    letI : Quiver V := G
-    exact ⟨i, hi⟩
+/-- For a strongly connected quiver, aperiodicity is equivalent to the period-one condition at any
+chosen vertex. -/
+theorem isAperiodic_iff_period_eq_one [Nonempty V] (hsc : IsSStronglyConnected V) (i : V) :
+    IsAperiodic V ↔ period i = 1 := by
+  rw [IsAperiodic, indexOfImprimitivity_eq_period hsc i]
 
-/-! # Cyclic Structure and Frobenius Normal Form -/
+/-! ### Cyclic partitions -/
 
-/-- A cyclic partition of the vertices with period h.
-    The partition is represented by a map from V to Fin h.
-    Edges only go from one class to the next one cyclically.
-    We define the successor within `Fin h` by modular addition of 1 (staying in `Fin h`). -/
-def IsCyclicPartition {h : ℕ} (h_pos : h > 0) (partition : V → Fin h) : Prop :=
-  let succMod : Fin h → Fin h := fun x => ⟨(x.val + 1) % h, Nat.mod_lt _ h_pos⟩
-  ∀ i j : V, Nonempty (i ⟶ j) → partition j = succMod (partition i)
+/-- A cyclic partition of the vertices into `h` classes: every edge goes from one class to the
+next one cyclically. -/
+def IsCyclicPartition {h : ℕ} (f : V → Fin h) : Prop :=
+  ∀ i j : V, Nonempty (i ⟶ j) → (f j : ℕ) = ((f i : ℕ) + 1) % h
 
-/-- If the right factor of a composed path has positive length, the composed cycle at `i`
-belongs to `CycleLengths i`. -/
-lemma mem_CycleLengths_of_comp_right {i v : V}
-    (p : Path i v) (s : Path v i) (hs_pos : 0 < s.length) :
-    (p.comp s).length ∈ CycleLengths i := by
-  have hpos : 0 < (p.comp s).length := by
-    -- 0 < s.length ≤ p.length + s.length = (p.comp s).length
-    have hle : s.length ≤ p.length + s.length := by
-      have := Nat.le_add_left s.length p.length
-      simp
-    exact lt_of_lt_of_le hs_pos (by simp [Path.length_comp])
-  exact ⟨hpos, ⟨p.comp s, rfl⟩⟩
-
-/-- Variant: if we first extend a path by a single edge using `cons` and then compose on the right
-with a positive-length path back to the base, we still get a cycle length in `CycleLengths`. -/
-lemma mem_CycleLengths_of_cons_comp_right {i v w : V}
-    (p : Path i v) (e : v ⟶ w) (s : Path w i) (hs_pos : 0 < s.length) :
-    (((p.cons e).comp s).length) ∈ CycleLengths i :=
-  mem_CycleLengths_of_comp_right (p := p.cons e) (s := s) hs_pos
-
-/--
-A strongly connected quiver with positive period at a chosen base vertex admits a cyclic partition.
--/
-theorem exists_cyclic_partition_of_strongly_connected
-    (i0 : V) (h_sc : Quiver.IsSStronglyConnected V) (h_pos : period i0 > 0) :
-    ∃ partition : V → Fin (period i0), IsCyclicPartition h_pos partition := by
-  let h := period i0
-  change ∃ partition : V → Fin h, IsCyclicPartition h_pos partition
-  -- for each vertex, we choose a positive-length path from i₀ to it
-  have hpaths : ∀ v : V, ∃ p : Path i0 v, 0 < p.length := fun v => h_sc i0 v
-  let chosen : ∀ v : V, { p : Path i0 v // 0 < p.length } :=
-    fun v => ⟨Classical.choose (hpaths v), Classical.choose_spec (hpaths v)⟩
-  let P : ∀ v : V, Path i0 v := fun v => (chosen v).1
-  have hPpos : ∀ v : V, (P v).length > 0 := fun v => (chosen v).2
-  -- we define the partition by taking path lengths modulo h
-  let partition : V → Fin h := fun v => ⟨(P v).length % h, Nat.mod_lt _ h_pos⟩
-  refine ⟨partition, ?_⟩
-  dsimp [IsCyclicPartition]
-  intro i j hij
-  rcases hij with ⟨e⟩
-  obtain ⟨s, hs_pos⟩ := h_sc j i0
-  have hc1_mem : ((P j).comp s).length ∈ CycleLengths i0 :=
-    mem_CycleLengths_of_comp_right (p := P j) (s := s) hs_pos
-  have hc2_mem : (((P i).cons e).comp s).length ∈ CycleLengths i0 :=
-    mem_CycleLengths_of_cons_comp_right (p := P i) (e := e) (s := s) hs_pos
-  have hdvd1 : h ∣ ((P j).comp s).length := by
-    have : period i0 ∣ ((P j).comp s).length :=
-      (divides_cycle_length (i := i0) (k := ((P j).comp s).length)) hc1_mem
-    simpa [h] using this
-  have hdvd2 : h ∣ (((P i).cons e).comp s).length := by
-    have : period i0 ∣ (((P i).cons e).comp s).length :=
-      (divides_cycle_length (i := i0) (k := (((P i).cons e).comp s).length)) hc2_mem
-    simpa [h] using this
-  have len_c1 :
-      ((P j).comp s).length = (P j).length + s.length := by
-    simp [Path.length_comp]
-  have len_c2 :
-      (((P i).cons e).comp s).length = (P i).length + 1 + s.length := by
-    simp [Path.length_comp, Path.length_cons, Nat.add_assoc]
-  have hsum_congr :
-      Nat.ModEq h ((P j).length + s.length) ((P i).length + 1 + s.length) := by
-    have h1 : Nat.ModEq h ((P j).length + s.length) 0 := by
-      have : ((P j).length + s.length) % h = 0 := by
-        simpa [len_c1] using Nat.mod_eq_zero_of_dvd hdvd1
-      simpa [Nat.ModEq] using this
-    have h2 : Nat.ModEq h ((P i).length + 1 + s.length) 0 := by
-      have : ((P i).length + 1 + s.length) % h = 0 := by
-        simpa [len_c2] using Nat.mod_eq_zero_of_dvd hdvd2
-      simpa [Nat.ModEq] using this
-    exact h1.trans h2.symm
-  have h_congr :
-      Nat.ModEq h (P j).length ((P i).length + 1) :=
-    Nat.ModEq.add_right_cancel' s.length hsum_congr
-  let succMod : Fin h → Fin h := fun x => ⟨(x.val + 1) % h, Nat.mod_lt _ h_pos⟩
-  apply Fin.ext
-  simp [partition]
-  calc
-    (P j).length % h
-        = ((P i).length + 1) % h := by
-          simpa [Nat.ModEq] using h_congr
-    _   = ((P i).length % h + 1 % h) % h := by
-          rw [Nat.add_mod]
-    _   = ((P i).length % h + 1) % h := by
-          by_cases h1 : h = 1
-          all_goals aesop
+/-- A strongly connected quiver admits a cyclic partition into `indexOfImprimitivity V` classes. -/
+theorem exists_isCyclicPartition [Nonempty V] (hsc : IsSStronglyConnected V) :
+    ∃ f : V → Fin (indexOfImprimitivity V), IsCyclicPartition f := by
+  set h := indexOfImprimitivity V
+  have hpos : 0 < h := indexOfImprimitivity_pos hsc
+  choose P _hP using fun v ↦ hsc (Classical.arbitrary V) v
+  refine ⟨fun v ↦ ⟨(P v).length % h, Nat.mod_lt _ hpos⟩, fun i j hij ↦ ?_⟩
+  obtain ⟨e⟩ := hij
+  obtain ⟨s, hs⟩ := hsc j (Classical.arbitrary V)
+  have h1 : h ∣ (P j).length + s.length := by
+    simpa [Path.length_comp] using
+      indexOfImprimitivity_dvd hsc (length_comp_mem_cycleLengths (P j) s hs)
+  have h2 : h ∣ (P i).length + 1 + s.length := by
+    simpa [Path.length_comp, Nat.add_assoc] using
+      indexOfImprimitivity_dvd hsc (length_comp_mem_cycleLengths ((P i).cons e) s hs)
+  have := ((Nat.modEq_zero_iff_dvd).2 h1).trans ((Nat.modEq_zero_iff_dvd).2 h2).symm
+  simpa [Nat.ModEq, Nat.add_mod_right, Nat.mod_mod_of_dvd] using
+    this.add_right_cancel' s.length
 
 end Quiver

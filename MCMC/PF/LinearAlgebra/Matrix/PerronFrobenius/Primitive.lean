@@ -158,7 +158,7 @@ lemma perron_root_pos_of_primitive
 theorem exists_positive_eigenvector_of_primitive
   (hA_prim : IsPrimitive A) (hA_nonneg : ∀ i j, 0 ≤ A i j) :
   ∃ (r : ℝ) (v : n → ℝ), r > 0 ∧ (∀ i, v i > 0) ∧ A *ᵥ v = r • v := by
-  haveI : Nonempty (stdSimplex ℝ n) :=
+  have : Nonempty (stdSimplex ℝ n) :=
     ⟨⟨_, ones_norm_mem_simplex⟩⟩
   obtain ⟨v, hvS, hvM⟩ := CollatzWielandt.exists_maximizer (A := A)
   let r := collatzWielandtFn A v

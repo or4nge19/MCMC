@@ -486,7 +486,7 @@ theorem IsReversible.is_stationary' {P : Matrix n n ℝ} {π : stdSimplex ℝ n}
     IsStationary P π := by
   rw [isStationary_iff_invariant P π hP]
   rw [isReversible_iff_kernel_reversible P π hP] at h_rev
-  haveI : IsMarkovKernel (matrixToKernel P hP) := matrixToKernel_isMarkov P hP
+  have : IsMarkovKernel (matrixToKernel P hP) := matrixToKernel_isMarkov P hP
   exact h_rev.invariant
 
 

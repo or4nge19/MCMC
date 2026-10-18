@@ -1,8 +1,10 @@
 import Mathlib.Algebra.Lie.OfAssociative
 import Mathlib.Analysis.InnerProductSpace.Basic
+import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.Normed.Algebra.Spectrum
 import Mathlib.Analysis.RCLike.Lemmas
-import Mathlib.Data.Real.StarOrdered
+import Mathlib.Analysis.Real.Sqrt
+import Mathlib.Tactic.ContinuousFunctionalCalculus
 import Mathlib.LinearAlgebra.Eigenspace.Basic
 import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
 import Mathlib.RingTheory.DedekindDomain.Dvr
@@ -103,7 +105,7 @@ LinearMap.charpoly_toMatrix (b : Basis ι R M) f : (Matrix.toMatrix b b f).charp
 LinearMap.minpoly_dvd_charpoly {K V} [Field K] [FiniteDimensional K V] (f : End K V).
 spectrum R a (for a : A in an R-algebra A).
 spectrum.mem_iff : μ ∈ spectrum R a ↔ ¬IsUnit (algebraMap R A μ - a).
-Matrix.spectrum_eq_spectrum_toLin' (A : Matrix n n ℝ).
+Matrix.spectrum_toLin' (A : Matrix n n R) : spectrum R A.toLin' = spectrum R A.
 Module.End.hasEigenvalue_iff_mem_spectrum {f : End K V} {μ : K}.
 Matrix.mem_spectrum_iff_isRoot_charpoly (A : Matrix n n ℝ) (μ : ℝ).
 Module.End.HasEigenvalue (f : End R M) (μ : R) : Prop.
@@ -150,11 +152,10 @@ lemma convex_stdSimplex : Convex ℝ (stdSimplex ℝ n) :=
 ## Spectral Properties of Matrices
 -/
 
-/-- The spectrum of a matrix `A` is equal to the spectrum of its corresponding linear map
-`Matrix.toLin' A`. -/
+@[deprecated spectrum_toLin' (since := "2026-10-17")]
 lemma spectrum_eq_spectrum_toLin' (A : Matrix n n ℝ) :
-    spectrum ℝ A = spectrum ℝ (Matrix.toLin' A) := by
-  exact Eq.symm (AlgEquiv.spectrum_eq (Matrix.toLinAlgEquiv (Pi.basisFun ℝ n)) A)
+    spectrum ℝ A = spectrum ℝ (Matrix.toLin' A) :=
+  (spectrum_toLin' A).symm
 
 /-- The determinant of `μ • 1 - A` is the evaluation of the characteristic polynomial of `A` at `μ`. -/
 lemma det_smul_sub_eq_eval_charpoly (A : Matrix n n ℝ) (μ : ℝ) :
@@ -167,21 +168,18 @@ lemma det_smul_sub_eq_eval_charpoly (A : Matrix n n ℝ) (μ : ℝ) :
   rw [← eval_charpoly A μ]
 
 
-/-- A matrix and its transpose have the same spectrum. -/
-lemma spectrum_eq_spectrum_transpose (A : Matrix n n ℝ) :
-    spectrum ℝ A = spectrum ℝ Aᵀ := by
-  ext μ
-  rw [mem_spectrum_iff_isRoot_charpoly, mem_spectrum_iff_isRoot_charpoly, charpoly_transpose]
+@[deprecated spectrum_transpose (since := "2026-10-17")]
+lemma spectrum_eq_spectrum_transpose (A : Matrix n n ℝ) : spectrum ℝ A = spectrum ℝ Aᵀ :=
+  (spectrum_transpose A).symm
 
 /-!
 ## Determinant, Kernel, and Invertibility
 -/
 open Module
 
-/-- The determinant of a matrix equals the determinant of its associated linear map. -/
-lemma det_toLin' (A : Matrix n n ℝ) : det A = LinearMap.det (toLin' A) := by
-  rw [← LinearMap.det_toMatrix' (toLin' A)]
-  simp [LinearMap.toMatrix'_toLin']
+@[deprecated LinearMap.det_toLin' (since := "2026-10-17")]
+lemma det_toLin' (A : Matrix n n ℝ) : det A = LinearMap.det (toLin' A) :=
+  (LinearMap.det_toLin' A).symm
 
 /-!
 # Perron-Frobenius Theory for Matrices
@@ -199,22 +197,6 @@ lemma ker_ne_bot_of_not_injective {K V : Type*} [Field K] [AddCommGroup V] [Modu
     {f : V →ₗ[K] V} (h : ¬Function.Injective f) : LinearMap.ker f ≠ ⊥ := by
   contrapose! h
   rw [← LinearMap.ker_eq_bot]
-  exact h
-
-lemma LinearMap.isUnit_iff_bijective {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
-    [FiniteDimensional K V] (f : V →ₗ[K] V) : IsUnit f ↔ Function.Bijective f := by
-  constructor
-  · intro h_unit
-    exact (Module.End.isUnit_iff f).mp h_unit
-  · intro h_bij
-    rw [LinearMap.isUnit_iff_ker_eq_bot]
-    rw [LinearMap.ker_eq_bot]
-    exact h_bij.1
-
-lemma LinearMap.injective_of_isUnit {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
-    [FiniteDimensional K V] {f : V →ₗ[K] V} (h : IsUnit f) : Function.Injective f := by
-  rw [← LinearMap.ker_eq_bot]
-  rw [← LinearMap.isUnit_iff_ker_eq_bot]
   exact h
 
 /-- If the kernel of a linear endomorphism on a finite-dimensional vector space is non-trivial,
@@ -277,14 +259,14 @@ lemma ker_toLin'_ne_bot_iff_det_eq_zero (A : Matrix n n ℝ) :
     LinearMap.ker (toLin' A) ≠ ⊥ ↔ det A = 0 := by
   constructor
   · intro h_ker_ne_bot
-    rw [det_toLin']
+    rw [← LinearMap.det_toLin']
     have h_not_inj : ¬Function.Injective (toLin' A) := by
       rwa [← LinearMap.ker_eq_bot]
     exact det_eq_zero_of_not_injective h_not_inj
   · intro h_det_zero
     by_contra h_ker_eq_bot
     rw [LinearMap.ker_eq_bot] at h_ker_eq_bot
-    rw [det_toLin'] at h_det_zero
+    rw [← LinearMap.det_toLin'] at h_det_zero
     have h_det_ne_zero : LinearMap.det (toLin' A) ≠ 0 := by
       by_contra h_zero
       exact not_injective_of_det_eq_zero h_zero h_ker_eq_bot
@@ -293,7 +275,7 @@ lemma ker_toLin'_ne_bot_iff_det_eq_zero (A : Matrix n n ℝ) :
 /-- A real number `μ` is an eigenvalue of a matrix `A` if and only if `det(μ • 1 - A) = 0`. -/
 lemma hasEigenvalue_toLin'_iff_det_sub_eq_zero (A : Matrix n n ℝ) (μ : ℝ) :
     Module.End.HasEigenvalue (toLin' A) μ ↔ det (μ • 1 - A) = 0 := by
-  rw [Module.End.hasEigenvalue_iff_mem_spectrum, ← spectrum_eq_spectrum_toLin',
+  rw [Module.End.hasEigenvalue_iff_mem_spectrum, spectrum_toLin',
     mem_spectrum_iff_isRoot_charpoly, Polynomial.IsRoot.def, det_smul_sub_eq_eval_charpoly]
 
 /-! ## Spectral Radius Theory for Matrices -/
@@ -309,19 +291,6 @@ lemma not_isUnit_iff_eq_zero {R : Type*} [Field R] [Nontrivial R] (a : R) :
     cases h with
     | inl h0 => rw [h0]; exact not_isUnit_zero
     | inr hnon => exact hnon
-
-lemma LinearMap.bijective_iff_ker_eq_bot_and_range_eq_top {R : Type*} [Field R] {M : Type*}
-    [AddCommGroup M] [Module R M] (f : M →ₗ[R] M) :
-    Function.Bijective f ↔ LinearMap.ker f = ⊥ ∧ LinearMap.range f = ⊤ := by
-  constructor
-  · intro h
-    constructor
-    · exact LinearMap.ker_eq_bot_of_injective h.1
-    · exact LinearMap.range_eq_top_of_surjective _ h.2
-  · intro ⟨h_ker, h_range⟩
-    constructor
-    · exact LinearMap.ker_eq_bot.mp h_ker
-    · exact LinearMap.range_eq_top.mp h_range
 
 lemma ker_ne_bot_of_det_eq_zero (A : Matrix n n ℝ) :
     LinearMap.det (Matrix.toLin' A) = 0 → LinearMap.ker (Matrix.toLin' A) ≠ ⊥ := by
@@ -350,13 +319,8 @@ lemma injective_iff_bijective_toLin' (A : Matrix n n ℝ) :
 
 -- Bijective linear maps are units
 lemma bijective_iff_isUnit_toLin' (A : Matrix n n ℝ) :
-    Function.Bijective (Matrix.toLin' A) ↔ IsUnit (Matrix.toLin' A) := by
-  haveI : FiniteDimensional ℝ (n → ℝ) := by infer_instance
-  rw [LinearMap.bijective_iff_ker_eq_bot_and_range_eq_top]
-  have h_equiv : LinearMap.range (Matrix.toLin' A) = ⊤ ↔ LinearMap.ker (Matrix.toLin' A) = ⊥ :=
-    Iff.symm LinearMap.ker_eq_bot_iff_range_eq_top
-  rw [h_equiv, and_self]
-  rw [LinearMap.isUnit_iff_ker_eq_bot]
+    Function.Bijective (Matrix.toLin' A) ↔ IsUnit (Matrix.toLin' A) :=
+  (Module.End.isUnit_iff _).symm
 
 lemma isUnit_of_det_ne_zero (A : Matrix n n ℝ) (h_det_ne_zero : LinearMap.det (Matrix.toLin' A) ≠ 0) :
     IsUnit (Matrix.toLin' A) := by
@@ -367,15 +331,10 @@ lemma isUnit_of_det_ne_zero (A : Matrix n n ℝ) (h_det_ne_zero : LinearMap.det 
   exact h_det_ne_zero h_det_zero
 
 
--- An algebra equivalence preserves the property of being a unit.
+@[deprecated MulEquiv.isUnit_map (since := "2026-10-17")]
 lemma AlgEquiv.isUnit_map_iff {R A B : Type*} [CommSemiring R] [Ring A] [Ring B]
-    [Algebra R A] [Algebra R B] (e : A ≃ₐ[R] B) (x : A) :
-    IsUnit (e x) ↔ IsUnit x := by
-  constructor
-  · intro h_ex_unit
-    simp_all only [MulEquiv.isUnit_map]
-  · intro h_x_unit
-    simp_all only [MulEquiv.isUnit_map]
+    [Algebra R A] [Algebra R B] (e : A ≃ₐ[R] B) (x : A) : IsUnit (e x) ↔ IsUnit x :=
+  MulEquiv.isUnit_map e
 
 lemma isUnit_of_det_ne_zero' {n : Type*} [Fintype n] [DecidableEq n] (A : Matrix n n ℝ) (h_det_ne_zero : LinearMap.det (Matrix.toLin' A) ≠ 0) :
     IsUnit (Matrix.toLin' A) := by
@@ -393,7 +352,7 @@ lemma isUnit_of_det_ne_zero' {n : Type*} [Fintype n] [DecidableEq n] (A : Matrix
   have h_isUnit_toLin : IsUnit (Matrix.toLin' A) := by
           let e : Matrix n n ℝ ≃ₐ[ℝ] Module.End ℝ (n → ℝ) := Matrix.toLinAlgEquiv (Pi.basisFun ℝ n)
           change IsUnit (e A)
-          rw [AlgEquiv.isUnit_map_iff e A]
+          rw [MulEquiv.isUnit_map e]
           exact h_matrix_representation_is_unit
   exact (bijective_iff_isUnit_toLin' A).mpr h_isUnit_toLin
 
@@ -404,11 +363,8 @@ lemma det_eq_zero_of_ker_ne_bot' (A : Matrix n n ℝ) :
   have h_isUnit_det : IsUnit (LinearMap.det (Matrix.toLin' A)) :=
     isUnit_iff_ne_zero.mpr h_det_ne_zero
   have h_isUnit_map : IsUnit (Matrix.toLin' A) := isUnit_of_det_ne_zero A h_det_ne_zero
-  have h_bijective : Function.Bijective (Matrix.toLin' A) := by
-    rw [LinearMap.bijective_iff_ker_eq_bot_and_range_eq_top]
-    constructor
-    · exact (LinearMap.isUnit_iff_ker_eq_bot (Matrix.toLin' A)).mp h_isUnit_map
-    · exact (LinearMap.isUnit_iff_range_eq_top (toLin' A)).mp h_isUnit_map
+  have h_bijective : Function.Bijective (Matrix.toLin' A) :=
+    (Module.End.isUnit_iff _).mp h_isUnit_map
   exact LinearMap.ker_eq_bot_of_injective h_bijective.1
 
 lemma det_eq_zero_iff_exists_nontrivial_ker (A : Matrix n n ℝ) :
@@ -439,7 +395,7 @@ lemma spectralRadius_le_nnnorm_of_mem_spectrum {A : Matrix n n ℝ} {μ : ℝ}
     (hμ : μ ∈ spectrum ℝ A) : ‖μ‖₊ ≤ ‖(Matrix.toLin' A).toContinuousLinearMap‖₊ := by
   have h_eigenvalue : ∃ v : n → ℝ, v ≠ 0 ∧ Matrix.mulVec A v = μ • v := by
     rw [spectrum.mem_iff, Matrix.isUnit_iff_isUnit_det, isUnit_iff_ne_zero] at hμ
-    push_neg at hμ
+    push Not at hμ
     have : Matrix.det (algebraMap ℝ (Matrix n n ℝ) μ - A) = 0 := hμ
     rw [Algebra.algebraMap_eq_smul_one, Matrix.det_eq_zero_iff_exists_nontrivial_ker] at this
     obtain ⟨v, hv_ne_zero, hv_ker⟩ := this
@@ -512,17 +468,14 @@ lemma spectralRadius_le_opNorm (A : Matrix n n ℝ) :
   rw [spectralRadius_eq_of_unital]
   apply iSup₂_le
   intro μ hμ
-  have hμ_matrix : μ ∈ spectrum ℝ A := by
-    rw [spectrum_eq_spectrum_toLin']
-    exact hμ
+  have hμ_matrix : μ ∈ spectrum ℝ A := spectrum_toLin' A ▸ hμ
   exact ENNReal.coe_le_coe.mpr (spectralRadius_le_nnnorm_of_mem_spectrum hμ_matrix)
 
 omit [DecidableEq n] in
-/-- The spectral radii of a matrix and its transpose are equal. -/
-lemma spectralRadius_eq_spectralRadius_transpose [DecidableEq n] (A : Matrix n n ℝ) :
-    spectralRadius ℝ A = spectralRadius ℝ Aᵀ := by
-  rw [spectralRadius_eq_of_unital A, spectralRadius_eq_of_unital Aᵀ,
-    spectrum_eq_spectrum_transpose]
+@[deprecated spectralRadius_transpose (since := "2026-10-17")]
+lemma spectralRadius_eq_spectralRadius_transpose (A : Matrix n n ℝ) :
+    spectralRadius ℝ A = spectralRadius ℝ Aᵀ :=
+  (spectralRadius_transpose A).symm
 
 lemma spectralRadius_finite (A : Matrix n n ℝ) :
     spectralRadius ℝ (Matrix.toLin' A) ≠ ⊤ := by
@@ -601,7 +554,7 @@ lemma support_nonempty_of_ne_zero {v : n → ℝ}
   have h_all_nonpos : ∀ i, v i ≤ 0 := by
     intro i
     by_contra hi_pos
-    push_neg at hi_pos
+    push Not at hi_pos
     have hi_in_support : i ∈ supportFinset v := by
       simp [supportFinset, Finset.mem_filter]
       exact hi_pos
@@ -623,7 +576,7 @@ lemma exists_pos_of_sum_pos {ι : Type*} [Fintype ι] {f : ι → ℝ}
     (h_nonneg : ∀ i, 0 ≤ f i) (h_sum_pos : 0 < ∑ i, f i) :
     ∃ i, 0 < f i := by
   by_contra h_not_exists
-  push_neg at h_not_exists
+  push Not at h_not_exists
   have h_all_zero : ∀ i, f i = 0 := by
     intro i
     exact le_antisymm (h_not_exists i) (h_nonneg i)
@@ -647,14 +600,11 @@ characteristic polynomial. -/
 lemma isRoot_of_hasEigenvalue {A : Matrix n n ℝ} {μ : ℝ}
     (h_eig : Module.End.HasEigenvalue (toLin' A) μ) :
     (charpoly A).IsRoot μ := by
-  rw [← mem_spectrum_iff_isRoot_charpoly, spectrum_eq_spectrum_toLin']
+  rw [← mem_spectrum_iff_isRoot_charpoly, ← spectrum_toLin']
   exact Module.End.hasEigenvalue_iff_mem_spectrum.mp h_eig
 
-/-- The spectrum of a matrix `A` is equal to the spectrum of its corresponding linear map
-`Matrix.toLin' A`. -/
-theorem spectrum.Matrix_toLin'_eq_spectrum {R n : Type*} [CommRing R] [Fintype n] [DecidableEq n] (A : Matrix n n R) :
-    spectrum R (Matrix.toLin' A) = spectrum R A := by
-  exact AlgEquiv.spectrum_eq (Matrix.toLinAlgEquiv (Pi.basisFun R n)) A
+@[deprecated spectrum_toLin' (since := "2026-10-17")]
+alias spectrum.Matrix_toLin'_eq_spectrum := spectrum_toLin'
 end Matrix
 
 /-- If a linear map `f` has an eigenvector `v` for an eigenvalue `μ`, then `μ` is in the spectrum of `f`. -/

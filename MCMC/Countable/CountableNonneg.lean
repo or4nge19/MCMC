@@ -119,7 +119,7 @@ theorem exists_unique_rInvariantMeasure_of_rRecurrent
 /--
 Asymptotic Perron-Frobenius limit theorem under `R`-recurrence and aperiodicity.
 -/
-theorem limit_of_rRecurrent_of_aperiodic
+theorem limit_of_rRecurrent_of_aperiodic [Nonempty α]
     {T : InfMatrix α} (hT_aper : IsAperiodic T)
     {i₀ i j : α} (hR_pos : 0 < rParam T i₀) (hR_lt_top : rParam T i₀ < ⊤)
     {x y : α → ℝ} (hx : IsRInvariantMeasure T i₀ x) (hy : IsRInvariantVector T i₀ y)
