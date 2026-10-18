@@ -4,16 +4,16 @@ Formalization of:
 - finite-state Markov chains (kernels, total variation, convergence),
 - basic MCMC algorithms (Gibbs, Metropolis–Hastings),
 - Perron–Frobenius theory and supporting spectral material,
+- the Krein–Rutman theorem on real Banach spaces (`MCMC/ToMathlib`, sorry-free),
 - groundwork for a general MCMC kernel interface (non-finite).
 
 ## Build
 
-Prerequisites: Lean 4 and Lake (elan recommended).
-- macOS:
-  ```bash
-  cd MCMC
-  lake build
-  ```
+Lean/Mathlib `v4.34.1` (elan recommended):
+```bash
+lake exe cache get
+lake build MCMC
+```
 Open the folder in VS Code for interactive proofs.
 
 ## Directory overview
@@ -31,6 +31,32 @@ Open the folder in VS Code for interactive proofs.
     - core: `Defs`, `Irreducible`, `Primitive`, `Aperiodic`, `CollatzWielandt`, `Multiplicity`,`Dominance`
     - stochastic/sampling: `Stochastic.lean`
 - `MCMC/Kernel/`: WIP general-state kernel interface
+- `MCMC/ToMathlib/`: Mathlib-ready additions at their Mathlib paths (below)
+
+## Krein–Rutman (`MCMC/ToMathlib`)
+
+Spectral radius of a real operator is `gelfandRadius T = lim ‖Tⁿ‖^{1/n}` (backport of
+mathlib #42607); cones are `ProperCone ℝ E`. Following Bourbaki, *Théories spectrales* III §6:
+- `KreinRutman/Compact.lean`: if `T` preserves a total salient cone and is quasi-compact
+  (`gelfandRadius (T ^ n - K) < gelfandRadius T ^ n`, `K` compact; compact `T` with `r > 0` is a
+  special case), `r = gelfandRadius T` is an isolated eigenvalue with an eigenvector in the cone
+  and a positive dual eigenfunctional.
+- `KreinRutman/StronglyPositive.lean`: strongly positive and primitive operators: interior
+  eigenvector, algebraic simplicity, spectral gap `gelfandRadius (T - r P) < r`, `(r⁻¹T)ⁿ → P`,
+  peripheral spectrum `{r}`; irreducible ones (`(1 + T)ᵏ` strongly positive): interior eigenvector
+  and algebraic simplicity.
+- `KreinRutman/OrderBounded.lean`: the same for cones with empty interior (`Lᵖ`, Jentzsch
+  kernels) under `u₀`-positivity `ψ x • u₀ ≤ T x ≤ (β‖x‖) • u₀`.
+- `KreinRutman/{FiniteDimensional,Order}.lean`, `CStarAlgebra/`: finite dimension
+  (Birkhoff–Vandergraft), ordered spaces and Banach lattices (`C(K)`, `Lᵖ`), positive and
+  completely positive maps of C⋆-algebras (Evans–Høegh-Krohn); `Analysis/Matrix/`: Perron–Frobenius
+  and convergence of primitive stochastic matrices.
+- Supporting theory: Riesz–Schauder, a local analytic Fredholm theorem, poles beyond the essential
+  spectral radius (`Normed/Operator/Compact/`), real-Banach complexification
+  (`TaylorComplexification`).
+
+Headline statements are checked against Mathlib-only specifications on branch
+`palomar-comparator`.
 
 ## Finite-state TV and Dobrushin (key results)
 
