@@ -35,3 +35,8 @@
 *.synctex.gz(busy)
 *.pdfsync
 .claude/skills/octo*
+## Local references and tool artifacts (not part of the library)
+/Mathlib*.md
+/README-BP.md
+/CONTRIBUTING.md
+/Project/
