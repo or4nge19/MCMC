@@ -57,7 +57,7 @@ lemma real_eq_re_smul_abs_of_complex_phase
   have h := congrArg Complex.re (congr_fun h_phase j)
   have : w j = c.re * ‖(w j : ℂ)‖ := by
     simpa [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im] using h
-  simpa [Pi.smul_apply, Complex.norm_ofReal, smul_eq_mul] using this
+  simpa [Pi.smul_apply, Complex.norm_real, Real.norm_eq_abs, smul_eq_mul] using this
 
 /-- Every nonzero Perron eigenvector lies in the line spanned by a fixed positive Perron eigenvector. -/
 lemma perron_eigenvector_mem_span_of_positive_eigenvector
@@ -90,12 +90,13 @@ lemma perron_eigenvector_mem_span_of_positive_eigenvector
     eigenvalue_is_perron_root_of_positive_eigenvector hB_irred hB_nonneg (by linarith)
       (show ∀ i, 0 < w_abs i from hw_abs_pos) (by simpa [toLin'_apply] using hw_abs_eig_B)
   have h_norm_eig : (B *ᵥ fun i => ‖wc i‖) = perronRoot B • (fun i => ‖wc i‖) := by
-    simpa [toLin'_apply, hrB_eq_perronB, wc, w_abs, Complex.norm_ofReal] using hw_abs_eig_B
+    simpa [toLin'_apply, hrB_eq_perronB, wc, w_abs, Complex.norm_real, Real.norm_eq_abs] using
+      hw_abs_eig_B
   obtain ⟨c, _, hc_eq⟩ := eigenvector_phase_aligned_of_primitive hB_prim hB_nonneg
     (by simpa [hrB_eq_perronB] using perronRoot_nonneg hB_nonneg) hwc_eig_B h_norm_eig
     (by
       intro i
-      simpa [wc, w_abs, Complex.norm_ofReal] using hw_abs_pos i)
+      simpa [wc, w_abs, Complex.norm_real, Real.norm_eq_abs] using hw_abs_pos i)
   have hw_eq : w = c.re • w_abs := by
     simpa [w_abs] using real_eq_re_smul_abs_of_complex_phase (by simpa [wc] using hc_eq)
   have hc_abs_eq_wabs : w_abs = c_abs • v := by simpa [w_abs] using hc_abs_eq
@@ -177,8 +178,7 @@ lemma dotProduct_sub_perron_id_apply_eq_zero
     {r : ℝ} {u w : n → ℝ} (hu : u ᵥ* A = r • u) :
     u ⬝ᵥ ((toLin' A - r • (LinearMap.id : (n → ℝ) →ₗ[ℝ] n → ℝ)) w) = 0 := by
   change u ⬝ᵥ (A *ᵥ w - r • w) = 0
-  rw [dotProduct_sub, dotProduct_mulVec, hu, dotProduct_smul_left,
-    dotProduct_smul, smul_eq_mul, sub_self]
+  rw [dotProduct_sub, dotProduct_mulVec, hu, smul_dotProduct, dotProduct_smul, sub_self]
 
 /-- For an irreducible nonnegative matrix, the kernel of `(A - rI)^2` is already
 the Perron eigenspace. -/
@@ -237,7 +237,7 @@ lemma algebraic_multiplicity_one_of_irreducible
       have : (g ^ 2) x = 0 := by
         simp [pow_two, hx0]
       simpa [LinearMap.mem_ker] using this
-  haveI : FiniteDimensional ℝ (n → ℝ) := by infer_instance
+  have : FiniteDimensional ℝ (n → ℝ) := by infer_instance
   have h_stabilize := LinearMap.ker_pow_eq_ker_of_ker_sq_eq_ker g h_ker_sq_eq_ker
   have h_sup_eq : ⨆ (k : ℕ), LinearMap.ker (g ^ k) = LinearMap.ker g := by
     apply le_antisymm

@@ -297,9 +297,9 @@ omit [Nonempty n] in
 private lemma summable_matrix_expSeries (A : Matrix n n ℝ) :
     Summable fun k : ℕ => ((k ! : ℝ)⁻¹ • A ^ k : Matrix n n ℝ) := by
   refine Pi.summable.mpr fun i => Pi.summable.mpr fun j => ?_
-  letI : NormedAddCommGroup (Matrix n n ℝ) := Matrix.linftyOpNormedAddCommGroup
-  letI : NormedRing (Matrix n n ℝ) := Matrix.linftyOpNormedRing
-  letI : NormedAlgebra ℝ (Matrix n n ℝ) := Matrix.linftyOpNormedAlgebra
+  let : NormedAddCommGroup (Matrix n n ℝ) := Matrix.linftyOpNormedAddCommGroup
+  let : NormedRing (Matrix n n ℝ) := Matrix.linftyOpNormedRing
+  let : NormedAlgebra ℝ (Matrix n n ℝ) := Matrix.linftyOpNormedAlgebra
   have hnorm : Summable fun k : ℕ => ‖(k ! : ℝ)⁻¹ • A ^ k‖ :=
     NormedSpace.norm_expSeries_summable' (𝕂 := ℝ) (𝔸 := Matrix n n ℝ) A
   refine Summable.of_norm_bounded hnorm fun k => ?_
@@ -342,8 +342,8 @@ private theorem exp_pos_of_irreducible
   have hf_nonneg : ∀ k, 0 ≤ f k := by
     intro k
     exact mul_nonneg (inv_nonneg.mpr (Nat.cast_nonneg _)) <|
-      pow_entrywise_nonneg (fun a b => mul_nonneg ht.le (hA_irred.nonneg a b)) k i j
-  letI : Quiver n := Matrix.toQuiver A
+      pow_apply_nonneg (fun a b => mul_nonneg ht.le (hA_irred.nonneg a b)) k i j
+  let : Quiver n := Matrix.toQuiver A
   obtain ⟨p, _hp_pos⟩ := hA_irred.connected i j
   have hpow_pos : 0 < (A ^ p.length) i j := by
     rw [Matrix.pow_apply_pos_iff_nonempty_path (A := A) hA_irred.nonneg p.length i j]
@@ -375,7 +375,7 @@ private lemma exists_path_of_exp_pos_of_nonneg_of_ne
     {i j : n} (hij : i ≠ j)
     (hpos : 0 < exp ((1 : ℝ) • A) i j) :
     (letI : Quiver n := Matrix.toQuiver A; ∃ p : Quiver.Path i j, 0 < p.length) := by
-  letI : Quiver n := Matrix.toQuiver A
+  let : Quiver n := Matrix.toQuiver A
   by_contra h_no
   push Not at h_no
   have hpow_zero : ∀ k : ℕ, (((1 : ℝ) • A) ^ k) i j = 0 := by
@@ -384,7 +384,7 @@ private lemma exists_path_of_exp_pos_of_nonneg_of_ne
     by_cases hk : k = 0
     · subst hk
       simp [hij]
-    · have hpow_nonneg : 0 ≤ (A ^ k) i j := pow_entrywise_nonneg hA_nonneg k i j
+    · have hpow_nonneg : 0 ≤ (A ^ k) i j := pow_apply_nonneg hA_nonneg k i j
       have hnotpos : ¬ 0 < (A ^ k) i j := by
         intro hpow_pos
         obtain ⟨p⟩ :=
@@ -410,7 +410,7 @@ private theorem isIrreducible_iff_forall_exp_pos_of_nonneg
   · intro h_exp
     refine ⟨hA_nonneg, ?_⟩
     intro i j
-    letI : Quiver n := Matrix.toQuiver A
+    let : Quiver n := Matrix.toQuiver A
     by_cases hij : i = j
     · subst hij
       obtain ⟨k, hki⟩ := exists_ne i

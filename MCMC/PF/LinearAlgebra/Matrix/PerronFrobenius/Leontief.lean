@@ -40,7 +40,7 @@ private lemma resolventPartialSums_le_succ
   rw [Matrix.add_apply]
   exact le_add_of_nonneg_right <|
     mul_nonneg (inv_nonneg.mpr hs_pos.le) <|
-      pow_entrywise_nonneg
+      pow_apply_nonneg
         (fun i j => mul_nonneg (inv_nonneg.mpr hs_pos.le) (hA_nonneg i j)) N i j
 
 /-- Entrywise, the finite Neumann sums are monotone for nonnegative matrices and positive `s`. -/
@@ -60,7 +60,7 @@ private lemma resolventPartialSums_nonneg
   refine Finset.sum_nonneg ?_
   intro k _
   exact mul_nonneg (inv_nonneg.mpr hs_pos.le) <|
-    pow_entrywise_nonneg
+    pow_apply_nonneg
       (fun i j => mul_nonneg (inv_nonneg.mpr hs_pos.le) (hA_nonneg i j)) k i j
 
 /-- Perron-root domination gives positivity of the scalar in the finite Neumann sums. -/
@@ -77,14 +77,14 @@ private lemma exists_pos_resolventPartialSums_of_irreducible
     {A : Matrix n n ℝ} (hA_irred : A.IsIrreducible) {s : ℝ} (hs_pos : 0 < s)
     (i j : n) :
     ∃ N, 0 < Matrix.resolventPartialSums A s N i j := by
-  letI : Quiver n := Matrix.toQuiver A
+  let : Quiver n := Matrix.toQuiver A
   obtain ⟨p, _hp_pos⟩ := hA_irred.connected i j
   refine ⟨p.length + 1, ?_⟩
   simp only [resolventPartialSums, Matrix.sum_apply]
   refine Finset.sum_pos' ?_ ?_
   · intro k _
     exact mul_nonneg (inv_nonneg.mpr hs_pos.le) <|
-      pow_entrywise_nonneg
+      pow_apply_nonneg
         (fun i j => mul_nonneg (inv_nonneg.mpr hs_pos.le) (hA_irred.nonneg i j)) k i j
   · refine ⟨p.length, Finset.mem_range.mpr (Nat.lt_succ_self _), ?_⟩
     have hpow_pos : 0 < (A ^ p.length) i j := by
@@ -286,7 +286,7 @@ theorem perronRoot_lt_of_exists_unique_pos_solution
     · obtain ⟨i, _⟩ := Finset.univ_nonempty (α := n)
       refine ⟨i, Finset.mem_univ i, ?_⟩
       exact mul_lt_mul_of_pos_left (hA_lt i) (hu_pos i)
-  rw [dotProduct_mulVec, hu_left_eig, dotProduct_smul_left, dotProduct_smul] at h_dot_lt
+  rw [dotProduct_mulVec, hu_left_eig, smul_dotProduct, smul_eq_mul, dotProduct_smul] at h_dot_lt
   have h_dot_pos : 0 < u ⬝ᵥ x := by
     apply Finset.sum_pos
     · intro i _

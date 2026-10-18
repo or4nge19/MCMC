@@ -1,0 +1,10 @@
+{
+  "built_at": "2026-08-18T12:47:21.891414+00:00",
+  "commit_sha": "5a93c41b1842d8a48adb78575370f893b6cf3894",
+  "embedding_dim": 512,
+  "embedding_model": "qwen/qwen3-embedding-8b",
+  "fetched_from": "server",
+  "source_ref": "main",
+  "source_repo": "https://github.com/or4nge19/MCMC.git",
+  "toolchain": "leanprover/lean4:v4.29.0"
+}

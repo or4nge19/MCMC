@@ -43,7 +43,7 @@ lemma eigenvector_no_zero_entries_of_primitive (hA_prim : IsPrimitive A) (_ : 0 
       | zero => simp
       | succ m ih =>
         calc (A ^ (m + 1)) *ᵥ z
-            = A *ᵥ (A ^ m *ᵥ z)        := by rw [pow_mulVec_succ]
+            = A *ᵥ (A ^ m *ᵥ z)        := by rw [pow_succ', mulVec_mulVec]
         _ = A *ᵥ (r ^ m • z)          := by rw [ih]
         _ = r ^ m • (A *ᵥ z)          := by rw [mulVec_smul]
         _ = r ^ m • (r • z)           := by rw [h_eig]

@@ -341,7 +341,7 @@ lemma tvDist_contract [Nonempty n]
     simp [tvDist, r]
   have hcoef : (g kmax - g kmin) / 2 ≤ dobrushinCoeff P := by
     have h2pos : (0 : ℝ) < 2 := by norm_num
-    rwa [div_le_iff h2pos, mul_comm]
+    rwa [div_le_iff₀ h2pos, mul_comm]
   have h_mul : (∑ j, |a j|) ≤ dobrushinCoeff P * ∑ k, |r k| := by
     have S_nonneg : 0 ≤ ∑ k, |r k| :=
       sum_nonneg (by
@@ -467,7 +467,7 @@ lemma dobrushinCoeff_pow [DecidableEq n] (P : Matrix n n ℝ) [Nonempty n] (hP :
             have h12 : (1 : ℝ) + 1 = 2 := by norm_num
             simpa [hsum_abs_one i, hsum_abs_one i'] using h12
           simpa [hx] using hbound
-        exact (div_le_iff h2).mpr (by simpa [one_mul] using hnum)
+        exact (div_le_iff₀ h2).mpr (by simpa [one_mul] using hnum)
       simpa [tvDist, rowDist] using this
     let fId : (n × n) → ℝ :=
       fun p => tvDist (rowDist (1 : Matrix n n ℝ) p.1) (rowDist (1 : Matrix n n ℝ) p.2)

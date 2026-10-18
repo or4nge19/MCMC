@@ -77,8 +77,8 @@ lemma path_in_submatrix_to_original {A : Matrix n n ℝ}
   letI : Quiver S := inducedQuiver S
   ∃ p' : @Path n (Matrix.toQuiver A) i.val j.val,
     ∀ k, k ∈ p'.activeVertices → k ∈ S := by
-  letI : Quiver n := Matrix.toQuiver A
-  letI : Quiver S := inducedQuiver S
+  let : Quiver n := Matrix.toQuiver A
+  let : Quiver S := inducedQuiver S
   let p' := (Subquiver.embedding S).mapPath p
   exact ⟨p', Subquiver.mapPath_embedding_vertices_in_set S p⟩
 
@@ -91,8 +91,8 @@ lemma path_exists_in_support_of_irreducible {A : Matrix n n ℝ}
   letI : Quiver n := Matrix.toQuiver A
   letI : Quiver S := inducedQuiver S
     ∃ p : Quiver.Path i j, ∀ k, k ∈ p.activeVertices → k ∈ S := by
-  letI : Quiver n := Matrix.toQuiver A
-  letI : Quiver S := inducedQuiver S
+  let : Quiver n := Matrix.toQuiver A
+  let : Quiver S := inducedQuiver S
   let i' : S := ⟨i, hi⟩
   let j' : S := ⟨j, hj⟩
   obtain ⟨p_sub, _hp_sub_pos⟩ := hS.connected i' j'
@@ -118,7 +118,7 @@ lemma positive_mul_vec_pos [Fintype n]
     exact mul_nonneg (le_of_lt (hA_pos i j)) (hx_nonneg j)
   · have : ∃ k, 0 < x k := by
       by_contra h_all_nonpos
-      push_neg at h_all_nonpos
+      push Not at h_all_nonpos
       have h_zero : x = 0 := funext (fun j => le_antisymm (h_all_nonpos j) (hx_nonneg j))
       exact hx_ne_zero h_zero
     rcases this with ⟨k, hk_pos⟩
@@ -145,21 +145,8 @@ lemma one_add_diag_pos [DecidableEq n] {A : Matrix n n ℝ} (h_diag : ∀ i, 0 �
   simp only [Matrix.add_apply, Matrix.one_apply_eq]
   linarith [h_diag i]
 
-/-- Powers of an entrywise nonnegative matrix are entrywise nonnegative. -/
-lemma pow_entrywise_nonneg [Fintype n] [DecidableEq n] {A : Matrix n n ℝ}
-    (hA : ∀ i j, 0 ≤ A i j) (k : ℕ) :
-    ∀ i j, 0 ≤ (A ^ k) i j := by
-  induction k with
-  | zero =>
-      intro i j
-      by_cases hij : i = j
-      · subst hij
-        simp
-      · simp [hij]
-  | succ k ih =>
-      intro i j
-      rw [pow_succ, Matrix.mul_apply]
-      exact Finset.sum_nonneg fun l _ => mul_nonneg (ih i l) (hA l j)
+@[deprecated pow_apply_nonneg (since := "2026-10-17")]
+alias pow_entrywise_nonneg := pow_apply_nonneg
 
 /-- If `∑ j, f j = 0` and every `f j` is nonnegative, then `f j = 0` for all `j`. -/
 lemma forall_eq_zero_of_finset_sum_eq_zero_of_nonneg {ι : Type*} [Fintype ι] {f : ι → ℝ}
@@ -259,13 +246,13 @@ lemma Irreducible.exists_edge_out {A : Matrix n n ℝ}
     (hA_irred : A.IsIrreducible)
     (S : Set n) (hS_ne_empty : S.Nonempty) (hS_ne_univ : S ≠ Set.univ) :
     ∃ (i : n) (_ : i ∈ S) (j : n) (_ : j ∉ S), 0 < A i j := by
-  letI : Quiver n := toQuiver A
+  let : Quiver n := toQuiver A
   obtain ⟨i, hi⟩ := hS_ne_empty
   obtain ⟨j, hj_compl⟩ := Set.nonempty_compl.mpr hS_ne_univ
   obtain ⟨p, _hp_pos⟩ := hA_irred.connected i j
   have hj : j ∉ S := by simpa using hj_compl
-  obtain ⟨u, v, e, _p₁, _p₂, hu_in_S, hv_not_in_S, _hp⟩ :=
-    Quiver.Path.exists_boundary_edge_from_set p S hi hj
+  obtain ⟨u, hu_in_S, v, hv_not_in_S, e, -⟩ :=
+    Quiver.Path.exists_mem_notMem_hom_path_path_of_notMem_mem p S hi hj
   exact ⟨u, hu_in_S, v, hv_not_in_S, e.down⟩
 
 /-- Let `S = {i | 0 < v i}` and `T = {i | v i = 0}` for a nonnegative vector `v`. If `A` is
@@ -325,13 +312,13 @@ lemma irreducible_one_element_implies_diagonal_pos [Fintype n]
     {A : Matrix n n ℝ} (hA_irred : IsIrreducible A)
     (h_card_one : Fintype.card n = 1) (i : n) :
     0 < A i i := by
-  letI : Quiver n := toQuiver A
+  let : Quiver n := toQuiver A
   obtain ⟨p, hp_pos⟩ := hA_irred.connected i i
   obtain ⟨j, p', e, rfl⟩ := Quiver.Path.path_decomposition_last_edge p hp_pos
   have h_sub : Subsingleton n := by
     rcases (Fintype.card_eq_one_iff).1 h_card_one with ⟨a, ha⟩
     exact ⟨fun x y => by simp [ha x, ha y]⟩
-  haveI : Subsingleton n := h_sub
+  have : Subsingleton n := h_sub
   have hji : j = i := Subsingleton.elim _ _
   have e_pos : 0 < A j i := e.down
   simpa [hji] using e_pos
@@ -352,7 +339,7 @@ lemma row_sum_pos_of_irreducible_nonneg [Fintype n] [Nonempty n]
       (h_zero_row i).symm ▸ irreducible_one_element_implies_diagonal_pos hA_irred h_card_one i
   · have h_card_gt_one : 1 < Fintype.card n :=
       Nat.lt_of_le_of_ne (Nat.succ_le_iff.mpr Fintype.card_pos) (Ne.symm h_card_one)
-    haveI : Nontrivial n := Fintype.one_lt_card_iff_nontrivial.1 h_card_gt_one
+    have : Nontrivial n := Fintype.one_lt_card_iff_nontrivial.1 h_card_gt_one
     obtain ⟨j, hj_pos⟩ := Matrix.IsIrreducible.exists_pos (A := A) hA_irred i
     exact lt_irrefl (0 : ℝ) <| (h_zero_row j).symm ▸ hj_pos
 
@@ -373,7 +360,7 @@ theorem irreducible_mulVec_ne_zero [Fintype n]
     have h0_irred : IsIrreducible (0 : Matrix n n ℝ) := by
       simpa [hA_eq_zero] using hA_irred
     obtain ⟨i₀, hi₀⟩ := pos_support_nonempty_of_nonneg_ne_zero hv_nonneg hv_ne_zero
-    letI : Nonempty n := ⟨i₀⟩
+    let : Nonempty n := ⟨i₀⟩
     have h_card_pos : 0 < Fintype.card n := Fintype.card_pos
     rcases Nat.eq_or_lt_of_le (Nat.one_le_of_lt h_card_pos) with h_card_one | h_card_gt_one
     · simpa using
@@ -414,7 +401,7 @@ theorem IsPrimitive.of_irreducible_pos_diagonal [Fintype n] [Nonempty n] [Decida
   · exact hA_nonneg
   · use k, hk_pos
     intro i j
-    letI : Quiver n := toQuiver A
+    let : Quiver n := toQuiver A
     rw [Matrix.pow_apply_pos_iff_nonempty_path (A := A) hA_nonneg k i j]
     obtain ⟨p_any, _hp_any_pos⟩ := hA_irred.connected i j
     obtain ⟨p_ij, hp_len_le⟩ :=

@@ -523,8 +523,8 @@ lemma get_not_mem_take {l : List α} (h_nodup : l.Nodup)
       simp only [nodup_cons] at h_nodup
       cases i with
       | zero =>
-          simp only [le_refl, take_zero, length_cons, Fin.zero_eta, get_eq_getElem, Fin.val_zero,
-            Nat.eq_of_le_zero, getElem_cons_zero, not_mem_nil, not_false_eq_true]
+          simp only [take_zero, length_cons, Fin.zero_eta, get_eq_getElem, Fin.val_zero,
+            getElem_cons_zero, not_mem_nil, not_false_eq_true]
       | succ i' =>
           have h_bounds' : i' < tl.length := by
             simpa [List.length_cons] using Nat.lt_of_succ_lt_succ h_bounds

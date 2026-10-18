@@ -191,7 +191,7 @@ lemma IsPrimitive.has_spectral_gap [Nonempty n] {P : Matrix n n ℝ}
               ≤ ∑ t, (|delta i0 t| + |π.val t|) := hsum_le
               _ = (∑ t, |delta i0 t|) + (∑ t, |π.val t|) := by rw [sum_add_distrib]
               _ = 2 := by rw [htwo]
-          exact (div_le_iff h2pos).mpr (by simpa [one_mul] using hnum)
+          exact (div_le_iff₀ h2pos).mpr (by simpa [one_mul] using hnum)
         simpa [Matrix.tvDist] using this
       have h_row_eq : Matrix.rowDist (P^(0*k0)) i0 = delta i0 := by
         ext t
@@ -273,7 +273,7 @@ lemma IsPrimitive.has_spectral_gap [Nonempty n] {P : Matrix n n ℝ}
           _ = (2 : ℝ) := by norm_num
       have h2 : (0 : ℝ) < 2 := by norm_num
       have : (∑ t, |Matrix.rowDist (P^s) i₁ t - Matrix.rowDist (P^s) i₂ t|) / 2 ≤ 1 :=
-        (div_le_iff h2).mpr (by simpa [one_mul] using hnum)
+        (div_le_iff₀ h2).mpr (by simpa [one_mul] using hnum)
       simpa [f, Matrix.tvDist] using this
     have hnonempty : (Set.range f).Nonempty := by
       obtain ⟨i0, _⟩ := Finset.univ_nonempty (α := n)
@@ -438,7 +438,7 @@ lemma distribution_converges_to_stationarity [Nonempty n]
       Tendsto (fun k : ℕ => ∑ j, (P ^ k) j i * μ₀.val j)
               atTop (𝓝 (∑ j, PiLim j i * μ₀.val j)) := by
     simpa using
-      tendsto_finset_sum
+      tendsto_finsetSum
         (s := (Finset.univ : Finset n))
         (fun j _ ↦ h_term_tendsto j)
   have h_left :
@@ -492,7 +492,7 @@ theorem ergodic_theorem_lln [Nonempty n]
         Tendsto (fun k : ℕ => μₖ k i * f i) atTop (𝓝 (π.val i * f i)) := by
       exact (tendsto_pi_nhds.mp this i).mul tendsto_const_nhds
     simpa [a_k, L, Expectation] using
-      tendsto_finset_sum
+      tendsto_finsetSum
         (s := (Finset.univ : Finset n))
         (fun i _ ↦ h_term i)
   have h_cesaro :

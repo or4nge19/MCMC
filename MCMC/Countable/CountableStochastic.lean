@@ -1,4 +1,4 @@
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import MCMC.PF.Combinatorics.Quiver.Cyclic
@@ -127,7 +127,7 @@ entry.
 theorem IsIrreducible.exists_pos [Nontrivial α] {P : InfMatrix α} (hP : IsIrreducible P) (i : α) :
     ∃ j, 0 < P i j := by
   obtain ⟨j, hj⟩ := exists_ne i
-  letI : Quiver α := toQuiver P
+  let : Quiver α := toQuiver P
   obtain ⟨p, hp⟩ := hP.connected i j
   clear hj
   induction p with
@@ -165,56 +165,51 @@ abbrev IsIrreducible (P : InfMatrix α) : Prop :=
   InfMatrix.IsIrreducible P
 
 /--
-An infinite matrix is aperiodic if it is irreducible and its positive-edge quiver is aperiodic.
+An infinite matrix is aperiodic if it is irreducible and its positive-edge quiver is aperiodic,
+i.e. has index of imprimitivity `1`.
 -/
-def IsAperiodic (P : InfMatrix α) : Prop :=
-  IsIrreducible P ∧ Quiver.IsAperiodic (InfMatrix.toQuiver P)
+def IsAperiodic [Nonempty α] (P : InfMatrix α) : Prop :=
+  IsIrreducible P ∧ (letI : Quiver α := InfMatrix.toQuiver P; Quiver.IsAperiodic α)
 
 omit [DecidableEq α] in
 /-- Aperiodicity implies irreducibility. -/
-theorem IsAperiodic.isIrreducible {P : InfMatrix α} (hP : IsAperiodic P) :
+theorem IsAperiodic.isIrreducible [Nonempty α] {P : InfMatrix α} (hP : IsAperiodic P) :
     IsIrreducible P :=
   hP.1
 
 omit [DecidableEq α] in
 /-- Aperiodicity of an infinite matrix is aperiodicity of its positive-edge quiver. -/
-theorem IsAperiodic.quiver_isAperiodic {P : InfMatrix α} (hP : IsAperiodic P) :
-    Quiver.IsAperiodic (InfMatrix.toQuiver P) :=
+theorem IsAperiodic.quiver_isAperiodic [Nonempty α] {P : InfMatrix α} (hP : IsAperiodic P) :
+    letI : Quiver α := InfMatrix.toQuiver P
+    Quiver.IsAperiodic α :=
   hP.2
 
 omit [DecidableEq α] in
 /-- An aperiodic infinite matrix has a period-one vertex in its positive-edge quiver. -/
-theorem IsAperiodic.exists_period_eq_one {P : InfMatrix α} (hP : IsAperiodic P) :
+theorem IsAperiodic.exists_period_eq_one [Nonempty α] {P : InfMatrix α} (hP : IsAperiodic P) :
     letI : Quiver α := InfMatrix.toQuiver P
     ∃ i : α, Quiver.period i = 1 :=
-  hP.2
+  @Quiver.IsAperiodic.exists_period_eq_one α (InfMatrix.toQuiver P) _ hP.2
 
 omit [DecidableEq α] in
 /--
 For an irreducible infinite matrix, aperiodicity is equivalent to the period-one condition at any
 chosen vertex of the positive-edge quiver.
 -/
-theorem isAperiodic_iff_period_eq_one
+theorem isAperiodic_iff_period_eq_one [Nonempty α]
     {P : InfMatrix α} (hP_irred : IsIrreducible P) (i : α) :
-    IsAperiodic P ↔ (letI : Quiver α := InfMatrix.toQuiver P; Quiver.period i = 1) := by
-  constructor
-  · intro hP
-    exact Quiver.isAperiodic_iff_period_eq_one (G := InfMatrix.toQuiver P) hP_irred.connected i
-      |>.mp hP.2
-  · intro hi
-    exact
-      ⟨hP_irred,
-        Quiver.isAperiodic_iff_period_eq_one (G := InfMatrix.toQuiver P) hP_irred.connected i
-          |>.mpr hi⟩
+    IsAperiodic P ↔ (letI : Quiver α := InfMatrix.toQuiver P; Quiver.period i = 1) :=
+  (and_iff_right hP_irred).trans
+    (@Quiver.isAperiodic_iff_period_eq_one α (InfMatrix.toQuiver P) _ hP_irred.connected i)
 
 omit [DecidableEq α] in
 /--
 For an aperiodic infinite matrix, every vertex of the positive-edge quiver has period `1`.
 -/
-theorem IsAperiodic.period_eq_one {P : InfMatrix α} (hP : IsAperiodic P) (i : α) :
+theorem IsAperiodic.period_eq_one [Nonempty α] {P : InfMatrix α} (hP : IsAperiodic P) (i : α) :
     letI : Quiver α := InfMatrix.toQuiver P
-    Quiver.period i = 1 := by
-  exact Quiver.IsAperiodic.period_eq_one hP.1.connected hP.2 i
+    Quiver.period i = 1 :=
+  @Quiver.IsAperiodic.period_eq_one α (InfMatrix.toQuiver P) _ hP.1.connected hP.2 i
 
 /--
 The first-passage probability `fᵢⱼ^(k)`.
@@ -284,8 +279,9 @@ theorem positive_recurrence_is_solidarity_property
   sorry
 
 /-- Aperiodicity implies Seneta's diagonal limit formula in the irreducible recurrent case. -/
-theorem limit_of_recurrent_of_aperiodic
-    {P : InfMatrix α} (hP : IsStochastic P) (hP_aper : IsAperiodic P) (i : α) :
+theorem limit_of_recurrent_of_aperiodic [Nonempty α]
+    {P : InfMatrix α} (hP : IsStochastic P) (hP_aper : IsAperiodic P) (i : α)
+    (hP_rec : IsRecurrent P i) :
     Tendsto (fun k : ℕ => InfMatrix.pow P k i i) atTop
       (nhds (((meanRecurrenceTime P i)⁻¹).toReal)) := by
   sorry
