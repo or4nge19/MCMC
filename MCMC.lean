@@ -39,6 +39,7 @@ import MCMC.ToMathlib.Analysis.CStarAlgebra.SelfAdjoint
 import MCMC.ToMathlib.Analysis.Convex.Cone.Basic
 import MCMC.ToMathlib.Analysis.Convex.Cone.Dual
 import MCMC.ToMathlib.Analysis.Convex.Cone.FiniteDimensional
+import MCMC.ToMathlib.Analysis.InnerProductSpace.SpectralGap
 import MCMC.ToMathlib.Analysis.Matrix.GelfandRadius
 import MCMC.ToMathlib.Analysis.Matrix.PerronFrobenius
 import MCMC.ToMathlib.Analysis.Matrix.Stochastic
@@ -60,6 +61,7 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Basic
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Compact
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.FiniteDimensional
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Jentzsch
+import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.JentzschComplex
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Order
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.OrderBounded
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
@@ -67,6 +69,7 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
 import MCMC.ToMathlib.Analysis.Subadditive
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
 import MCMC.ToMathlib.MeasureTheory.Function.LpOrder
+import MCMC.ToMathlib.MeasureTheory.Function.LpRealForm
 import MCMC.ToMathlib.Topology.ContinuousMap.Bounded.Normed
 import MCMC.ToMathlib.Topology.ContinuousMap.Compact
 import MCMC.ToMathlib.Topology.ContinuousMap.Ordered
