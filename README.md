@@ -4,7 +4,7 @@ Formalization of:
 - finite-state Markov chains (kernels, total variation, convergence),
 - basic MCMC algorithms (Gibbs, Metropolis–Hastings),
 - Perron–Frobenius theory and supporting spectral material,
-- the Krein–Rutman theorem on real Banach spaces (`MCMC/ToMathlib`, sorry-free),
+- the Krein–Rutman theorem on real Banach spaces (`MCMC/ToMathlib`),
 - groundwork for a general MCMC kernel interface (non-finite).
 
 ## Build
