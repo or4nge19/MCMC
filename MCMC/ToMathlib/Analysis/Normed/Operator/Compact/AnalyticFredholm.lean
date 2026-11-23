@@ -3,8 +3,10 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Analysis.Normed.Module.FiniteDimension.MeromorphicInverse
-import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.RieszSchauder
+module
+
+public import MCMC.ToMathlib.Analysis.Normed.Module.FiniteDimension.MeromorphicInverse
+public import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.RieszSchauder
 
 /-!
 # The analytic Fredholm theorem
@@ -52,6 +54,8 @@ AxiomaticX QuantumlibCore (`MathlibPRnew.md`) plans an analytic Fredholm theorem
 after mathlib's Fredholm-operator PR #39274; this file is that statement for analytic families
 with compact value at the point.
 -/
+
+@[expose] public section
 
 open Filter Topology
 

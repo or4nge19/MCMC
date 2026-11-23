@@ -3,9 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Normed.Module.RieszLemma
-import Mathlib.Analysis.Normed.Operator.Compact.FiniteDimension
-import Mathlib.Topology.MetricSpace.HausdorffDistance
+module
+
+public import Mathlib.Analysis.Normed.Module.RieszLemma
+public import Mathlib.Analysis.Normed.Operator.Compact.FiniteDimension
+public import Mathlib.Topology.MetricSpace.HausdorffDistance
 
 /-!
 # Ascent and descent of compact perturbations of a scalar
@@ -58,6 +60,8 @@ TauCeti `59a6ba7bd8b5` (2026-10-13) has since replaced its `finiteDimensional_ke
 `isClosed_range_of_compact_estimate`, from `‖x‖ ≤ C * ‖T x‖ + ‖K x‖`); the statements here are
 its case `T = S - μ • 1`, `K = μ⁻¹ • S`, and should become corollaries of it upstream.
 -/
+
+@[expose] public section
 
 open Filter Metric Topology
 

@@ -3,9 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Convex.Cone.Basic
-import Mathlib.Topology.Algebra.Module.Basic
-import Mathlib.Topology.Algebra.Ring.Real
+module
+
+public import Mathlib.Analysis.Convex.Cone.Basic
+public import Mathlib.Topology.Algebra.Module.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
 
 /-!
 # Interior points of a proper cone
@@ -26,6 +28,8 @@ Staged for `Mathlib/Analysis/Convex/Cone/Basic.lean`. Searched on 2026-10-17: th
 mathlib master have `interior_smul₀` and convex-set interior lemmas, but no statement about
 interior points of a proper cone.
 -/
+
+@[expose] public section
 
 open Filter Topology Set
 

@@ -3,7 +3,9 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Normed.Operator.Compact.Basic
+module
+
+public import Mathlib.Analysis.Normed.Operator.Compact.Basic
 
 /-!
 # Rank-one operators are compact
@@ -19,6 +21,8 @@ Compact/FiniteRank.lean`) has the finite-rank generalization
 `isCompactOperator_of_finiteDimensional_range`, staged for the same Mathlib file; upstream the
 two together.
 -/
+
+@[expose] public section
 
 /-- A rank-one operator `y ↦ f y • x` is compact. -/
 theorem ContinuousLinearMap.isCompactOperator_smulRight {𝕜 E F : Type*}

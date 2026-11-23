@@ -3,9 +3,11 @@ Copyright (c) 2026 Thomas Browning. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Thomas Browning
 -/
-import Mathlib.Algebra.Order.Group.DenselyOrdered
-import Mathlib.Data.Fintype.Order
-import MCMC.ToMathlib.Analysis.Subadditive
+module
+
+public import Mathlib.Algebra.Order.Group.DenselyOrdered
+public import Mathlib.Data.Fintype.Order
+public import MCMC.ToMathlib.Analysis.Subadditive
 
 /-!
 # The Gelfand radius in a normed ring
@@ -14,8 +16,8 @@ This file defines the Gelfand radius in a normed ring as the limit of `lim ‖a 
 and proves basic properties.
 
 Port of `Mathlib/Analysis/Normed/Algebra/GelfandRadius.lean` at mathlib4 `6f48dc052ef6` (#42607,
-merged 2026-10-13 as `56307dd73d68`, and #44891, merged 2026-10-17), verbatim up to the
-module-system header. Delete at a pin containing `6f48dc052ef6` (first tag: after `v4.36.0-rc1`).
+merged 2026-10-13 as `56307dd73d68`, and #44891, merged 2026-10-17), verbatim in its
+declarations. Delete at a pin containing `6f48dc052ef6` (first tag: after `v4.36.0-rc1`).
 
 ## Main definitions
 
@@ -28,6 +30,8 @@ module-system header. Delete at a pin containing `6f48dc052ef6` (first tag: afte
 * `gelfandRadius_mul_le`: `gelfandRadius` is submultiplicative.
 
 -/
+
+@[expose] public section
 
 open Filter
 

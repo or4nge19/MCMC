@@ -3,7 +3,9 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Convex.Cone.Dual
+module
+
+public import Mathlib.Analysis.Convex.Cone.Dual
 
 /-!
 # The dual of a salient proper cone separates points
@@ -21,6 +23,8 @@ Staged for `Mathlib/Analysis/Convex/Cone/Dual.lean`, after `ProperCone.hyperplan
 Searched on 2026-10-17: the pinned tree and mathlib master have Farkas' lemma and the double dual
 but no statement about salient cones.
 -/
+
+@[expose] public section
 
 namespace ProperCone
 

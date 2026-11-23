@@ -3,8 +3,10 @@ Copyright (c) 2026 Sébastien Gouëzel, Thomas Browning. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Sébastien Gouëzel, Thomas Browning
 -/
-import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
-import Mathlib.Order.Filter.AtTopBot.Archimedean
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
+public import Mathlib.Order.Filter.AtTopBot.Archimedean
 
 /-!
 # Submultiplicative sequences
@@ -12,10 +14,12 @@ import Mathlib.Order.Filter.AtTopBot.Archimedean
 `Submultiplicative u` and Fekete's lemma for its nth roots (`Submultiplicative.tendsto_lim`).
 
 Port of the `Submultiplicative` part of `Mathlib/Analysis/Subadditive.lean` at mathlib4
-`f58d2cce48bd` (#42605, 2026-09-30). Changes: no module-system header, `Submultiplicative` is not
+`f58d2cce48bd` (#42605, 2026-09-30). Changes: `Submultiplicative` is not
 linked to `Subadditive` by `to_additive`, and `lim` is marked `noncomputable` (the origin is a
 `noncomputable section`). Delete at a pin containing that commit.
 -/
+
+@[expose] public section
 
 open Set Filter
 

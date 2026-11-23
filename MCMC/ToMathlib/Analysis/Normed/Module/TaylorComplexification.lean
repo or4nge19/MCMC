@@ -3,10 +3,12 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Complex.OperatorNorm
-import Mathlib.Analysis.Normed.Module.RCLike.Extend
-import Mathlib.Analysis.Normed.Operator.Compact.Basic
-import MCMC.ToMathlib.Analysis.Normed.Algebra.GelfandRadius
+module
+
+public import Mathlib.Analysis.Complex.OperatorNorm
+public import Mathlib.Analysis.Normed.Module.RCLike.Extend
+public import Mathlib.Analysis.Normed.Operator.Compact.Basic
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.GelfandRadius
 
 /-!
 # The Taylor complexification of a real normed space
@@ -62,6 +64,8 @@ complexification with root-namespace `ContinuousLinearMap.complexify`; our opera
 (`OAI.SeparableQuotient.Complexify X := ℂ →L[ℝ] X`) uses the same carrier. `gelfandRadius` is the
 backport of #42607.
 -/
+
+@[expose] public section
 
 open Complex (I)
 
