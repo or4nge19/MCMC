@@ -3,9 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Analysis.Convex.Cone.FiniteDimensional
-import MCMC.ToMathlib.Analysis.Normed.Operator.GelfandRadius
-import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
+module
+
+public import MCMC.ToMathlib.Analysis.Convex.Cone.FiniteDimensional
+public import MCMC.ToMathlib.Analysis.Normed.Operator.GelfandRadius
+public import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
 
 /-!
 # The Krein–Rutman theorem in finite dimension
@@ -38,6 +40,8 @@ Krein–Rutman, Birkhoff–Vandergraft or cone-preserving Perron–Frobenius sta
 tree, on mathlib master, or in an open mathlib PR; the open Perron–Frobenius series (#39913–#39927)
 is about matrices with the entrywise order.
 -/
+
+@[expose] public section
 
 open Filter Metric Set Topology
 

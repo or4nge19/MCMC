@@ -3,9 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Algebra.Order.Group.PosPart
-import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.FiniteDimensional
-import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.OrderBounded
+module
+
+public import Mathlib.Algebra.Order.Group.PosPart
+public import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.FiniteDimensional
+public import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.OrderBounded
 
 /-!
 # Krein–Rutman for positive operators on ordered Banach spaces
@@ -38,6 +40,8 @@ pinned tree has `ConvexCone.salient_positive` for the convex cone but not for
 `ProperCone.positive`, no span statement for the positive cone of a lattice, and no spectral
 statement about positive operators.
 -/
+
+@[expose] public section
 
 open Set
 
