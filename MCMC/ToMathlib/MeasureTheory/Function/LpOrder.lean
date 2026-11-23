@@ -3,7 +3,9 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.MeasureTheory.Function.LpOrder
+module
+
+public import Mathlib.MeasureTheory.Function.LpOrder
 
 /-!
 # Nonnegative scalars preserve the order on `Lp`
@@ -11,6 +13,8 @@ import Mathlib.MeasureTheory.Function.LpOrder
 Staged for `Mathlib/MeasureTheory/Function/LpOrder.lean`. Searched on 2026-10-17: the pinned tree
 makes `Lp E p μ` an ordered group and a normed lattice but has no `PosSMulMono` instance.
 -/
+
+@[expose] public section
 
 namespace MeasureTheory.Lp
 

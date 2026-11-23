@@ -3,10 +3,12 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Analytic.Constructions
-import Mathlib.Analysis.Analytic.Composition
-import Mathlib.Analysis.Meromorphic.Basic
-import Mathlib.Analysis.Normed.Algebra.Spectrum
+module
+
+public import Mathlib.Analysis.Analytic.Constructions
+public import Mathlib.Analysis.Analytic.Composition
+public import Mathlib.Analysis.Meromorphic.Basic
+public import Mathlib.Analysis.Normed.Algebra.Spectrum
 
 /-!
 # Poles of the resolvent from a spectral idempotent
@@ -39,6 +41,9 @@ a spectral value and no spectral-idempotent (Drazin) criterion;
 `gh pr list -R leanprover-community/mathlib4 --search "resolvent meromorphic"` returns only the
 merged Fredholm alternative (#35048).
 -/
+
+@[expose] public section
+
 open Filter Finset Topology
 open scoped Ring
 

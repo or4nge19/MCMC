@@ -3,12 +3,14 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Convex.Cone.Basic
-import MCMC.ToMathlib.Analysis.Convex.Cone.Dual
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Analysis.Normed.Operator.Compact.Basic
-import Mathlib.LinearAlgebra.Eigenspace.Basic
-import MCMC.ToMathlib.Analysis.Normed.Algebra.Resolvent
+module
+
+public import Mathlib.Analysis.Convex.Cone.Basic
+public import MCMC.ToMathlib.Analysis.Convex.Cone.Dual
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Analysis.Normed.Operator.Compact.Basic
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.Resolvent
 
 /-!
 # Operators preserving a proper cone: resolvent and approximate eigenvectors
@@ -41,6 +43,8 @@ Staged for a new `Mathlib/Analysis/Normed/Operator/KreinRutman.lean`. Searched o
 Krein–Rutman or cone-positive resolvent statement in the pinned tree, on mathlib master, or in an
 open mathlib PR (`gh pr list --search "Krein"`, `"positive operator"`, `"ProperCone"`).
 -/
+
+@[expose] public section
 
 open Filter Metric Set Topology
 

@@ -3,11 +3,13 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Mathlib.Algebra.Module.Submodule.Invariant
-import Mathlib.LinearAlgebra.Eigenspace.Basic
-import MCMC.ToMathlib.Analysis.Normed.Algebra.Resolvent
-import MCMC.ToMathlib.Analysis.Normed.Module.TaylorComplexification
+module
+
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Mathlib.Algebra.Module.Submodule.Invariant
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.Resolvent
+public import MCMC.ToMathlib.Analysis.Normed.Module.TaylorComplexification
 
 /-!
 # Rank-one spectral gap
@@ -42,6 +44,8 @@ stationary law).
 Staged for `Mathlib/Analysis/Normed/Operator/SpectralGap.lean`. Searched on 2026-10-17: no
 spectral-gap or rank-one Perron projection statement in the pinned tree or on mathlib master.
 -/
+
+@[expose] public section
 
 open Filter Topology
 

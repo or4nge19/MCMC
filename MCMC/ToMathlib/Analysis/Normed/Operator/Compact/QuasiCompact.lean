@@ -3,11 +3,13 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Normed.Module.Connected
-import Mathlib.LinearAlgebra.Complex.FiniteDimensional
-import MCMC.ToMathlib.Analysis.Normed.Algebra.Resolvent
-import MCMC.ToMathlib.Analysis.Normed.Algebra.ResolventMeromorphic
-import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.AnalyticFredholm
+module
+
+public import Mathlib.Analysis.Normed.Module.Connected
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.Resolvent
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.ResolventMeromorphic
+public import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.AnalyticFredholm
 
 /-!
 # Quasi-compact operators: poles of the resolvent and eigenvectors
@@ -69,6 +71,8 @@ mathlib master (`gh api` on the `Mathlib/Analysis` tree) has no such file, and
 `"essential spectrum"`, `"Krein Rutman"` return no related PR (only #43906, compact perturbations
 of Fredholm operators, closed).
 -/
+
+@[expose] public section
 
 open Filter Metric Topology
 

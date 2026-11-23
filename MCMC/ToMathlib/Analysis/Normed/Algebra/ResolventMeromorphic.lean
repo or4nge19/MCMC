@@ -3,9 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Meromorphic.Order
-import Mathlib.Analysis.Normed.Algebra.Spectrum
-import Mathlib.FieldTheory.IsAlgClosed.Spectrum
+module
+
+public import Mathlib.Analysis.Meromorphic.Order
+public import Mathlib.Analysis.Normed.Algebra.Spectrum
+public import Mathlib.FieldTheory.IsAlgClosed.Spectrum
 
 /-!
 # Meromorphic resolvents have poles at spectral values
@@ -48,6 +50,8 @@ to a spectral value, no `AnalyticAt` statement for `resolvent` and no statement 
 neither; `gh pr list -R leanprover-community/mathlib4 --search "resolvent meromorphic"` returns
 only the merged Fredholm alternative (#35048), `--search "resolvent pole"` nothing related.
 -/
+
+@[expose] public section
 
 open Filter Topology
 

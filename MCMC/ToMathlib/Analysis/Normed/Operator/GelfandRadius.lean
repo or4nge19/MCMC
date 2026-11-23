@@ -3,9 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Normed.Module.HahnBanach
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import MCMC.ToMathlib.Analysis.Normed.Algebra.Resolvent
+module
+
+public import Mathlib.Analysis.Normed.Module.HahnBanach
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.Resolvent
 
 /-!
 # Gelfand radius of the transpose
@@ -21,6 +23,8 @@ Staged for `Mathlib/Analysis/Normed/Algebra/GelfandRadius.lean` (operator sectio
 2026-10-17: no Banach transpose with its norm in the pinned tree or on mathlib master (only
 `compL`/`flip`).
 -/
+
+@[expose] public section
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 

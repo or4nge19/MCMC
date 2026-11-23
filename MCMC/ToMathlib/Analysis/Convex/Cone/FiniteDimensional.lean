@@ -3,10 +3,12 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Analysis.Convex.Cone.Dual
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Topology.Algebra.Module.TopDualPairing
+module
+
+public import MCMC.ToMathlib.Analysis.Convex.Cone.Dual
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Topology.Algebra.Module.TopDualPairing
 
 /-!
 # Proper cones in finite-dimensional normed spaces
@@ -33,6 +35,8 @@ the double dual and inner-product duals, but no strictly positive functional, co
 normality, or
 salient/generating duality statement.
 -/
+
+@[expose] public section
 
 open Metric Set
 
