@@ -26,6 +26,7 @@ compositions of such updates.
 * `IsProper.setLIntegral_eq_lintegral_mul`, `IsProper.isReversible_comap_id`.
 * `IsProper.isReversible_comap_id_iff_invariant` (Markov).
 * `IsProper.comap_id_comp_comap_id` (Markov): the update is idempotent.
+* `isProper_const_bot`: independent resampling is the update for the trivial σ-algebra.
 * `exists_invariant_not_isReversible`: properness cannot be dropped;
   `exists_isProper_isReversible_not_invariant`, `exists_isProper_comp_ne`: the Markov hypotheses
   cannot be dropped.
@@ -92,17 +93,27 @@ theorem IsProper.comap_id_comp_comap_id [IsMarkovKernel γ] (hγ : γ.IsProper) 
         rw [hγ.lintegral_mul h𝓑𝓧 measurable_const (γ.measurable_coe hA), lintegral_one,
           measure_univ, mul_one]
 
+/-- A constant kernel is proper for the trivial σ-algebra. -/
+theorem isProper_const_bot (ν : Measure[𝓧] X) : (@Kernel.const X X ⊥ 𝓧 ν).IsProper :=
+  ⟨fun B hB x ↦ by
+    rw [bot_inf_eq, MeasurableSpace.measurableSet_bot_iff] at hB
+    rcases hB with rfl | rfl <;> simp [Kernel.restrict_apply]⟩
+
 /-- The hypotheses of `IsProper.isReversible_comap_id` hold together: resampling from a
 probability measure `π` independently of the current state is the Gibbs update of `π` for the
 trivial σ-algebra. -/
 example [IsProbabilityMeasure π] :
     ((@Kernel.const X X ⊥ 𝓧 π).comap id (measurable_id'' bot_le)).IsReversible π := by
-  refine IsProper.isReversible_comap_id ⟨fun B hB x ↦ ?_⟩ bot_le ?_
-  · rw [bot_inf_eq, MeasurableSpace.measurableSet_bot_iff] at hB
-    rcases hB with rfl | rfl <;> simp [Kernel.restrict_apply]
-  · refine Measure.ext fun s hs ↦ ?_
-    rw [Measure.bind_apply hs (Kernel.aemeasurable _)]
-    simp
+  refine (isProper_const_bot π).isReversible_comap_id bot_le (Measure.ext fun s hs ↦ ?_)
+  rw [Measure.bind_apply hs (Kernel.aemeasurable _)]
+  simp
+
+/-- The hypotheses of `IsProper.comap_id_comp_comap_id` hold together. -/
+example [IsProbabilityMeasure π] :
+    (@Kernel.const X X ⊥ 𝓧 π).comap id (measurable_id'' (bot_le : ⊥ ≤ 𝓧)) ∘ₖ
+        (@Kernel.const X X ⊥ 𝓧 π).comap id (measurable_id'' (bot_le : ⊥ ≤ 𝓧)) =
+      (@Kernel.const X X ⊥ 𝓧 π).comap id (measurable_id'' (bot_le : ⊥ ≤ 𝓧)) :=
+  (isProper_const_bot π).comap_id_comp_comap_id bot_le
 
 /-- Properness is needed in `IsProper.isReversible_comap_id` (take `𝓑 = 𝓧`): the rotation
 `x ↦ x + 1` of `Fin 3` leaves the counting measure invariant and is not reversible for it. -/
