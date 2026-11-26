@@ -11,12 +11,36 @@ public import MCMC.ToMathlib.MeasureTheory.Measure.WithDensity
 public import MCMC.ToMathlib.Probability.Kernel.Reversible
 
 /-!
-# Accept–reject kernels
+# Accept–reject kernels and the Metropolis–Hastings acceptance
 
 The accept–reject kernel of a proposal `Q` and an acceptance `a : X → X → ℝ≥0∞` proposes `y ∼ Q x`,
 accepts it with probability `a x y` and otherwise stays at `x`:
 `acceptReject Q a x = (Q x).withDensity (a x) + (1 - ∫⁻ y, a x y ∂Q x) • δ_x`.
-Every Metropolis–Hastings kernel is of this form.
+Every Metropolis–Hastings kernel is of this form. The Metropolis–Hastings acceptance
+`π.mhAcceptance Q` is the density of the symmetric part `(π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap` of
+the proposed flow with respect to `π ⊗ₘ Q`, truncated at `1`: no density of `π` or of `Q` and no
+positivity is involved.
+
+## Main statements
+
+* `isMarkovKernel_acceptReject_iff`: the kernel is Markov iff the accepted mass is at most `1`.
+* `isReversible_acceptReject_iff`: for every measure `π`, the kernel is `π`-reversible iff its
+  accepted part `Q.withDensity a` is.
+* `isReversible_acceptReject_iff_map_swap`: for σ-finite `π` and accepted mass finite
+  `π`-almost everywhere, the kernel is `π`-reversible iff the accepted flow is invariant under the
+  swap.
+* `withDensity_mhAcceptance`: the flow accepted by `π.mhAcceptance Q` is the symmetric part of the
+  proposed flow; `isReversible_acceptReject_mhAcceptance`,
+  `isReversible_acceptReject_of_ae_eq_mhAcceptance`: the Metropolis–Hastings kernel is
+  `π`-reversible.
+* `ae_le_mhAcceptance_of_isReversible_acceptReject`: every acceptance `a ≤ 1` with a
+  `π`-reversible accept–reject kernel is at most `π.mhAcceptance Q`, `π ⊗ₘ Q`-almost everywhere.
+* `IsReversible.withDensity_min`, `isReversible_acceptReject_min_one_div`: for a proposal
+  reversible for a reference measure `μ`, the acceptance `min 1 (f y / f x)` gives a kernel
+  reversible for `μ.withDensity f`; `μ` and `Q` need not be finite.
+* `mhAcceptance_eq_min_one_div` (on atoms) and `mhAcceptance_withDensity_ae_eq` (with densities):
+  `π.mhAcceptance Q` is the classical ratio `min 1 (π(y) q(y, x) / (π(x) q(x, y)))`.
+* For each hypothesis that cannot be dropped, a counterexample (`exists_…`).
 
 Staged for `Mathlib/Probability/Kernel/AcceptReject.lean` (new file). Searched on 2026-11-26 in
 the pinned Mathlib: `grep -rni "acceptReject\|accept_reject\|metropolis\|hastings" Mathlib` has no
