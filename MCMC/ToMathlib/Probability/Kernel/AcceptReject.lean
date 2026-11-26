@@ -200,4 +200,44 @@ theorem isReversible_acceptReject_mhAcceptance [SFinite π] [IsSFiniteKernel Q]
   isReversible_acceptReject_of_ae_eq_mhAcceptance (π.measurable_mhAcceptance Q)
     Filter.EventuallyEq.rfl
 
+/-- **Maximality of the Metropolis–Hastings acceptance.** Among the acceptances `a ≤ 1` whose
+accept–reject kernel is `π`-reversible, the Metropolis–Hastings acceptance is the largest,
+`π ⊗ₘ Q`-almost everywhere. -/
+theorem ae_le_mhAcceptance_of_isReversible_acceptReject [IsSFiniteKernel Q] [SigmaFinite π]
+    (hQ : ∀ᵐ x ∂π, Q x univ ≠ ∞) (ha : Measurable (Function.uncurry a))
+    (ha1 : ∀ᵐ p ∂(π ⊗ₘ Q), Function.uncurry a p ≤ 1) (h : (acceptReject Q a).IsReversible π) :
+    Function.uncurry a ≤ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q) := by
+  have := Measure.sigmaFinite_compProd hQ
+  have ha_fin : ∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞ := by
+    filter_upwards [hQ, Measure.ae_ae_of_ae_compProd ha1] with x hx h1
+    exact ((lintegral_mono_ae h1).trans_eq lintegral_one).trans_lt hx.lt_top |>.ne
+  have hα : (π ⊗ₘ Q).withDensity (Function.uncurry a) ≤ π ⊗ₘ Q :=
+    (withDensity_mono ha1).trans_eq MeasureTheory.withDensity_one
+  have hsymm := (isReversible_acceptReject_iff_map_swap ha ha_fin).1 h
+  have hle : (π ⊗ₘ Q).withDensity (Function.uncurry a) ≤
+      (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q)) := by
+    rw [withDensity_mhAcceptance]
+    exact le_inf hα (hsymm ▸ Measure.map_mono hα measurable_swap)
+  refine ae_le_of_forall_setLIntegral_le_of_sigmaFinite ha fun s hs _ ↦ ?_
+  rw [← withDensity_apply _ hs, ← withDensity_apply _ hs]
+  exact Measure.le_iff'.1 hle s
+
+/-- The bound `a ≤ 1` is needed in `ae_le_mhAcceptance_of_isReversible_acceptReject`: on `Unit`
+every kernel is reversible, and the acceptance `2` exceeds the Metropolis–Hastings acceptance. -/
+theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance :
+    ∃ (π : Measure Unit) (Q : Kernel Unit Unit) (_ : IsMarkovKernel Q), IsProbabilityMeasure π ∧
+      (acceptReject Q fun _ _ ↦ 2).IsReversible π ∧
+      ¬ (fun _ ↦ 2) ≤ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q) := by
+  refine ⟨Measure.dirac (), Kernel.id, inferInstance, inferInstance, ?_, fun h ↦ ?_⟩
+  · intro s t _ _
+    rcases s.eq_empty_or_nonempty with rfl | hs
+    · simp
+    rcases t.eq_empty_or_nonempty with rfl | ht
+    · simp
+    rw [hs.eq_univ, ht.eq_univ]
+  rw [Measure.compProd_id, Measure.map_dirac] at h
+  have h2 := (ae_dirac_iff (measurableSet_le measurable_const
+    (Measure.measurable_mhAcceptance _ _))).1 h
+  exact absurd (h2.trans (Measure.mhAcceptance_le_one _ _ _ _)) (by norm_num)
+
 end ProbabilityTheory.Kernel
