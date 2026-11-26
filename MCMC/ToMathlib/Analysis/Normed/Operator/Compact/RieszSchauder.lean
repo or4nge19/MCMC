@@ -3,12 +3,14 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Normed.Module.Complemented
-import Mathlib.Analysis.Normed.Operator.Compact.FredholmAlternative
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Idempotent
-import MCMC.ToMathlib.Analysis.Normed.Algebra.ResolventPole
-import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.AscentDescent
-import MCMC.ToMathlib.LinearAlgebra.KerRangePow
+module
+
+public import Mathlib.Analysis.Normed.Module.Complemented
+public import Mathlib.Analysis.Normed.Operator.Compact.FredholmAlternative
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Idempotent
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.ResolventPole
+public import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.AscentDescent
+public import MCMC.ToMathlib.LinearAlgebra.KerRangePow
 
 /-!
 # The Riesz–Schauder theorem
@@ -47,6 +49,8 @@ PR #43906 (Fredholmness and index of `1 + c` over `RCLike`), which proves neithe
 decomposition nor the pole. The pole is obtained algebraically from the Riesz projection
 (`MCMC/ToMathlib/Analysis/Normed/Algebra/ResolventPole.lean`), without contour integrals.
 -/
+
+@[expose] public section
 
 open Filter Topology
 

@@ -61,6 +61,7 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.GelfandRadius
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Basic
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Compact
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.FiniteDimensional
+import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Jentzsch
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Order
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.OrderBounded
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive

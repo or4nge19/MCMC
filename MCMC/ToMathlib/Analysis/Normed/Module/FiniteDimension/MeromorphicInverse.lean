@@ -3,10 +3,12 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Meromorphic.Basic
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.LinearAlgebra.Matrix.Adjugate
-import Mathlib.Topology.Algebra.Module.Determinant
+module
+
+public import Mathlib.Analysis.Meromorphic.Basic
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.LinearAlgebra.Matrix.Adjugate
+public import Mathlib.Topology.Algebra.Module.Determinant
 
 /-!
 # Meromorphic inverses of analytic families of operators in finite dimension
@@ -41,6 +43,8 @@ and `Analysis/Normed/Module/FiniteDimension.lean` finds only `Continuous.matrix_
 `gh pr list -R leanprover-community/mathlib4 --search "analytic determinant"`,
 `--search "meromorphic inverse"` return no related PR.
 -/
+
+@[expose] public section
 
 open Filter Topology
 

@@ -3,10 +3,12 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Analysis.Convex.Cone.Basic
-import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.Basic
-import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Compact
-import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
+module
+
+public import MCMC.ToMathlib.Analysis.Convex.Cone.Basic
+public import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.Basic
+public import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Compact
+public import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
 
 /-!
 # Krein–Rutman for strongly positive operators
@@ -63,6 +65,8 @@ Staged for `Mathlib/Analysis/Normed/Operator/KreinRutman.lean`. Searched on 2026
 strongly positive Krein–Rutman, spectral-gap or Perron–Frobenius-for-cones statement in the pinned
 tree, on mathlib master, or in an open mathlib PR.
 -/
+
+@[expose] public section
 
 open Filter Metric Set Topology TaylorComplexification
 

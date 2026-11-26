@@ -3,8 +3,10 @@ Copyright (c) 2026 Thomas Browning. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Thomas Browning
 -/
-import Mathlib.Analysis.Normed.Algebra.GelfandFormula
-import MCMC.ToMathlib.Analysis.Normed.Algebra.GelfandRadius
+module
+
+public import Mathlib.Analysis.Normed.Algebra.GelfandFormula
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.GelfandRadius
 
 /-!
 # Gelfand's formula in terms of the Gelfand radius
@@ -15,6 +17,8 @@ Port of `spectrum.spectralRadius_eq_gelfandRadius` from
 `Mathlib/Analysis/Normed/Algebra/GelfandFormula.lean` at mathlib4 `56307dd73d68` (#42607,
 2026-10-13), verbatim. Delete at a pin containing that commit.
 -/
+
+@[expose] public section
 
 open Filter ENNReal
 

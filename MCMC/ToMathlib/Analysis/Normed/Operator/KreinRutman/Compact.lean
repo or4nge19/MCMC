@@ -3,11 +3,13 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Analysis.Convex.Cone.Dual
-import MCMC.ToMathlib.Analysis.Normed.Algebra.GelfandFormula
-import MCMC.ToMathlib.Analysis.Normed.Module.TaylorComplexification
-import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.QuasiCompact
-import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Basic
+module
+
+public import MCMC.ToMathlib.Analysis.Convex.Cone.Dual
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.GelfandFormula
+public import MCMC.ToMathlib.Analysis.Normed.Module.TaylorComplexification
+public import MCMC.ToMathlib.Analysis.Normed.Operator.Compact.QuasiCompact
+public import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Basic
 
 /-!
 # The Krein–Rutman theorem for compact and quasi-compact operators
@@ -59,6 +61,8 @@ Krein–Rutman statement in the pinned tree, on mathlib master, or in an open ma
 `facebookresearch/atlas-lean` (`MathlibExt/Analysis/FunctionalAnalysis/KreinRutman.lean`) proves
 the compact case on `C(K, ℝ)` through `spectralRadius ℝ`; no quasi-compact version anywhere.
 -/
+
+@[expose] public section
 
 open Filter Metric Set Topology TaylorComplexification
 

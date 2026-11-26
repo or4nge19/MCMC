@@ -3,9 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Algebra.Module.Submodule.Invariant
-import Mathlib.Algebra.Module.Submodule.Range
-import Mathlib.LinearAlgebra.Span.Defs
+module
+
+public import Mathlib.Algebra.Module.Submodule.Invariant
+public import Mathlib.Algebra.Module.Submodule.Range
+public import Mathlib.LinearAlgebra.Span.Defs
 
 /-!
 # Kernels and ranges of iterates after stabilization
@@ -41,6 +43,9 @@ mathlib (`v4.34.1`) and mathlib master (`gh api` on `RingTheory/Artinian/Module.
 hypotheses or over a division ring. Prior art: TauCeti, `TauCeti/LinearAlgebra/End/RangePow.lean`
 (commit `a65deaded1ca`, Apache 2.0), whose range lemmas are re-proved here.
 -/
+
+@[expose] public section
+
 open LinearMap (ker range)
 
 namespace Module.End

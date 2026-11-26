@@ -3,7 +3,9 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Normed.Operator.Compact.Basic
+module
+
+public import Mathlib.Analysis.Normed.Operator.Compact.Basic
 
 /-!
 # Rank-one operators are compact
@@ -17,6 +19,8 @@ pinned tree has compactness of maps into or out of locally compact spaces
 The finite-rank generalization `isCompactOperator_of_finiteDimensional_range` is staged for the
 same Mathlib file; the two should be upstreamed together.
 -/
+
+@[expose] public section
 
 /-- A rank-one operator `y ↦ f y • x` is compact. -/
 theorem ContinuousLinearMap.isCompactOperator_smulRight {𝕜 E F : Type*}

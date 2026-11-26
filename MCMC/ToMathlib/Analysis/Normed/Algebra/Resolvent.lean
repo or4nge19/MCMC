@@ -3,9 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Analysis.Normed.Algebra.Spectrum
-import Mathlib.Analysis.SpecificLimits.Normed
-import MCMC.ToMathlib.Analysis.Normed.Algebra.GelfandRadius
+module
+
+public import Mathlib.Analysis.Normed.Algebra.Spectrum
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import MCMC.ToMathlib.Analysis.Normed.Algebra.GelfandRadius
 
 /-!
 # The resolvent beyond the Gelfand radius
@@ -30,6 +32,8 @@ Staged as additions to `Mathlib/Analysis/Normed/Algebra/GelfandRadius.lean`. Sea
 the Neumann series in mathlib is stated below norm `1` (`NormedRing.inverse_one_sub`,
 `geom_series_mul_neg`); no open PR mentions `gelfandRadius` and `resolvent`.
 -/
+
+@[expose] public section
 
 open Filter Topology
 

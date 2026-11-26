@@ -3,7 +3,9 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
+module
+
+public import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
 
 /-!
 # Krein–Rutman for `u₀`-positive operators: cones with empty interior
@@ -59,6 +61,8 @@ Staged for `Mathlib/Analysis/Normed/Operator/KreinRutman.lean`. Searched on 2026
 tree, on mathlib master, or in an open mathlib PR; lean-pool `SpectralPositivity` proves Jentzsch
 on `L²` for self-adjoint operators with a Hilbert-basis eigen-expansion as a hypothesis.
 -/
+
+@[expose] public section
 
 open Filter Metric Set Topology
 
