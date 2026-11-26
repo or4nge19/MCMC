@@ -5,6 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 public import MCMC.ToMathlib.MeasureTheory.Measure.CompleteLattice
 public import MCMC.ToMathlib.Probability.Kernel.Reversible
 
@@ -239,5 +240,111 @@ theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance :
   have h2 := (ae_dirac_iff (measurableSet_le measurable_const
     (Measure.measurable_mhAcceptance _ _))).1 h
   exact absurd (h2.trans (Measure.mhAcceptance_le_one _ _ _ _)) (by norm_num)
+
+/-- If `Q` is `μ`-reversible, so is `Q` with density `min (f x) (f y)`, for every measurable `f`.
+The proof is the layer-cake formula `min (f x) (f y) = ∫⁻ r in Ioi 0, 1[r < f x] 1[r < f y]`,
+which turns the flow into an integral of flows between rectangles; no finiteness is assumed. -/
+theorem IsReversible.withDensity_min [SFinite μ] [IsSFiniteKernel Q] (hQ : Q.IsReversible μ)
+    {f : X → ℝ≥0∞} (hf : Measurable f) :
+    (Q.withDensity fun x y ↦ min (f x) (f y)).IsReversible μ := by
+  have hm : Measurable (Function.uncurry fun x y ↦ min (f x) (f y)) :=
+    (hf.comp measurable_fst).min (hf.comp measurable_snd)
+  have hF : ∀ r : ℝ, MeasurableSet {x | ENNReal.ofReal r < f x} := fun r ↦
+    measurableSet_lt measurable_const hf
+  have hvol : ∀ c : ℝ≥0∞, ∫⁻ r in Ioi (0 : ℝ), {r : ℝ | ENNReal.ofReal r < c}.indicator 1 r = c :=
+    fun c ↦ by
+      rw [lintegral_indicator_one (measurableSet_lt ENNReal.measurable_ofReal measurable_const),
+        Measure.restrict_apply (measurableSet_lt ENNReal.measurable_ofReal measurable_const)]
+      rcases eq_or_ne c ∞ with rfl | hc
+      · simp
+      rw [show {r : ℝ | ENNReal.ofReal r < c} ∩ Ioi 0 = Ioo 0 c.toReal by
+        ext r; exact ⟨fun h ↦ ⟨h.2, (ENNReal.ofReal_lt_iff_lt_toReal h.2.le hc).1 h.1⟩,
+          fun h ↦ ⟨(ENNReal.ofReal_lt_iff_lt_toReal h.1.le hc).2 h.2, h.1⟩⟩,
+        Real.volume_Ioo, sub_zero, ENNReal.ofReal_toReal hc]
+  have hS : Measurable (Function.uncurry fun (p : X × X) (r : ℝ) ↦
+      {r : ℝ | ENNReal.ofReal r < min (f p.1) (f p.2)}.indicator (1 : ℝ → ℝ≥0∞) r) :=
+    measurable_one.indicator (measurableSet_lt (ENNReal.measurable_ofReal.comp measurable_snd)
+      (hm.comp measurable_fst))
+  have key : ∀ ⦃u v : Set X⦄, MeasurableSet u → MeasurableSet v →
+      ∫⁻ x in u, (Q.withDensity fun x y ↦ min (f x) (f y)) x v ∂μ = ∫⁻ r in Ioi (0 : ℝ),
+        (μ ⊗ₘ Q) ((u ∩ {x | ENNReal.ofReal r < f x}) ×ˢ (v ∩ {x | ENNReal.ofReal r < f x})) :=
+    fun u v hu hv ↦ by
+      rw [← Measure.compProd_apply_prod hu hv, Measure.compProd_withDensity hm,
+        withDensity_apply _ (hu.prod hv),
+        setLIntegral_congr_fun (hu.prod hv) fun p _ ↦ (hvol (min (f p.1) (f p.2))).symm,
+        lintegral_lintegral_swap hS.aemeasurable]
+      refine setLIntegral_congr_fun measurableSet_Ioi fun r _ ↦ ?_
+      rw [← prod_inter_prod, inter_comm, ← Measure.restrict_apply ((hF r).prod (hF r)),
+        ← lintegral_indicator_one ((hF r).prod (hF r))]
+      exact lintegral_congr fun p ↦ by simp [indicator, lt_min_iff]
+  intro s t hs ht
+  rw [key hs ht, key ht hs]
+  refine setLIntegral_congr_fun measurableSet_Ioi fun r _ ↦ ?_
+  rw [Measure.compProd_apply_prod (hs.inter (hF r)) (ht.inter (hF r)),
+    Measure.compProd_apply_prod (ht.inter (hF r)) (hs.inter (hF r))]
+  exact hQ (hs.inter (hF r)) (ht.inter (hF r))
+
+/-- **The Metropolis acceptance.** If the proposal `Q` is reversible for a reference measure `μ`,
+the accept–reject kernel with acceptance `min 1 (f y / f x)` is reversible for `μ.withDensity f`.
+Neither `μ` nor `Q` needs to be finite: `μ` may be Lebesgue measure and `Q` a random walk, or `μ`
+a Gaussian measure and `Q` the preconditioned Crank–Nicolson proposal. -/
+theorem isReversible_acceptReject_min_one_div [SFinite μ] [IsSFiniteKernel Q]
+    (hQ : Q.IsReversible μ) {f : X → ℝ≥0∞} (hf : Measurable f) (hf_top : ∀ᵐ x ∂μ, f x ≠ ∞) :
+    (acceptReject Q fun x y ↦ min 1 (f y / f x)).IsReversible (μ.withDensity f) := by
+  have ha : Measurable (Function.uncurry fun x y ↦ min 1 (f y / f x)) :=
+    measurable_const.min ((hf.comp measurable_snd).div (hf.comp measurable_fst))
+  have hm : Measurable (Function.uncurry fun x y ↦ min (f x) (f y)) :=
+    (hf.comp measurable_fst).min (hf.comp measurable_snd)
+  have hmul : ∀ x y, f x ≠ ∞ → f x * min 1 (f y / f x) = min (f x) (f y) := fun x y hx ↦ by
+    rcases eq_or_ne (f x) 0 with h0 | h0
+    · simp [h0]
+    · rw [mul_min_of_nonneg _ _ zero_le, mul_one, ENNReal.mul_div_cancel h0 hx]
+  have h : ∀ ⦃u v : Set X⦄, MeasurableSet u → MeasurableSet v →
+      ∫⁻ x in u, Q.withDensity (fun x y ↦ min 1 (f y / f x)) x v ∂(μ.withDensity f) =
+        ∫⁻ x in u, (Q.withDensity fun x y ↦ min (f x) (f y)) x v ∂μ := fun u v hu hv ↦ by
+    rw [setLIntegral_withDensity_eq_setLIntegral_mul _ hf (Kernel.measurable_coe _ hv) hu]
+    refine setLIntegral_congr_fun_ae hu ?_
+    filter_upwards [hf_top] with x hx _
+    rw [Pi.mul_apply, Kernel.withDensity_apply' _ ha, Kernel.withDensity_apply' _ hm,
+      ← lintegral_const_mul' _ _ hx]
+    simp_rw [hmul x _ hx]
+  refine (isReversible_acceptReject_iff ha).2 fun s t hs ht ↦ ?_
+  rw [h hs ht, h ht hs]
+  exact hQ.withDensity_min hf hs ht
+
+/-- Finiteness of `f` is needed in `isReversible_acceptReject_min_one_div`: on `Bool`, with the
+flip proposal, the reference measure `δ_true + δ_false`, and `f true = ∞`, `f false = 1`, the
+move from `false` to `true` is always accepted and the move back never. -/
+theorem exists_not_isReversible_acceptReject_min_one_div :
+    ∃ (μ : Measure Bool) (Q : Kernel Bool Bool) (_ : IsMarkovKernel Q) (f : Bool → ℝ≥0∞),
+      IsFiniteMeasure μ ∧ Q.IsReversible μ ∧ Measurable f ∧
+        ¬ (acceptReject Q fun x y ↦ min 1 (f y / f x)).IsReversible (μ.withDensity f) := by
+  have hg : Measurable fun b : Bool ↦ (b, !b) := measurable_of_countable _
+  refine ⟨Measure.dirac true + Measure.dirac false, Kernel.deterministic (!·)
+    (measurable_of_countable _), inferInstance, fun b ↦ if b then ∞ else 1, inferInstance,
+    IsReversible.of_map_swap_compProd ?_, measurable_of_countable _, fun h ↦ ?_⟩
+  · rw [Measure.compProd_deterministic, Measure.map_add _ _ hg, Measure.map_dirac' hg,
+      Measure.map_dirac' hg, Measure.map_add _ _ measurable_swap,
+      Measure.map_dirac' measurable_swap, Measure.map_dirac' measurable_swap, add_comm]
+    rfl
+  have h1 := h (measurableSet_singleton false) (measurableSet_singleton true)
+  simp only [acceptReject_apply (measurable_of_countable _), Measure.add_apply,
+    withDensity_apply _ (measurableSet_singleton _), Measure.smul_apply, Kernel.deterministic_apply,
+    Measure.restrict_singleton] at h1
+  simp at h1
+
+/-- Reversibility of the proposal is needed in `isReversible_acceptReject_min_one_div`: with
+`f = 1` the accept–reject kernel of the constant proposal `δ_false` on `Bool` moves `δ_true`. -/
+theorem exists_not_isReversible_acceptReject_min_one_div_one :
+    ∃ (μ : Measure Bool) (Q : Kernel Bool Bool) (_ : IsMarkovKernel Q), IsFiniteMeasure μ ∧
+      ¬ (acceptReject Q fun x y ↦ min 1 ((fun _ ↦ 1 : Bool → ℝ≥0∞) y / (fun _ ↦ 1) x)).IsReversible
+        (μ.withDensity fun _ ↦ 1) := by
+  refine ⟨Measure.dirac true, Kernel.const Bool (Measure.dirac false), inferInstance,
+    inferInstance, fun h ↦ ?_⟩
+  have h1 := h (measurableSet_singleton true) (measurableSet_singleton false)
+  simp only [acceptReject_apply (measurable_of_countable _), Measure.add_apply,
+    withDensity_apply _ (measurableSet_singleton _), Measure.smul_apply, Kernel.const_apply,
+    Measure.restrict_singleton] at h1
+  simp at h1
 
 end ProbabilityTheory.Kernel
