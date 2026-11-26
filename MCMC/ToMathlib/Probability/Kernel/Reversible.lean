@@ -30,7 +30,7 @@ a kernel of infinite mass, reversibility does not determine `π ⊗ₘ κ`.
   a Markov kernel `κ` on `ℝ` for which `ν ⊗ₘ κ` and its swap have the same null rectangles but
   are not mutually absolutely continuous.
 * `exists_isReversible_smul_top_and_map_swap_compProd_ne`,
-  `exists_isReversible_and_map_swap_compProd_ne`: the two finiteness hypotheses of
+  `exists_isReversible_withDensity_top_and_map_swap_compProd_ne`: the two finiteness hypotheses of
   `isReversible_iff_map_swap_compProd` cannot be dropped.
 
 Staged for `Mathlib/Probability/Kernel/Invariance.lean`. Searched on 2026-11-26 in the pinned
@@ -148,20 +148,20 @@ theorem exists_isReversible_smul_top_and_map_swap_compProd_ne :
     simp only [Measure.smul_apply, smul_eq_mul, hs, mul_zero] at h's
     exact (mul_eq_zero.1 h's.symm).resolve_left ENNReal.top_ne_zero
 
-/-- Finiteness of `κ x` is needed in `isReversible_iff_map_swap_compProd`: a kernel of infinite
-mass everywhere on `ℝ` is reversible for a probability measure `π` and `π ⊗ₘ κ` is not invariant
-under the swap. -/
-theorem exists_isReversible_and_map_swap_compProd_ne :
-    ∃ (π : Measure ℝ) (κ : Kernel ℝ ℝ), IsProbabilityMeasure π ∧ IsSFiniteKernel κ ∧
-      (∀ x, κ x univ = ∞) ∧ κ.IsReversible π ∧ (π ⊗ₘ κ).map Prod.swap ≠ π ⊗ₘ κ := by
+/-- Finiteness of `κ x` is needed in `isReversible_iff_map_swap_compProd`: for a Markov kernel
+`Q` on `ℝ` and a probability measure `π`, the kernel `Q.withDensity fun _ _ ↦ ∞`, of infinite mass
+at every point, is `π`-reversible and its composition-product with `π` is not invariant under the
+swap. -/
+theorem exists_isReversible_withDensity_top_and_map_swap_compProd_ne :
+    ∃ (π : Measure ℝ) (Q : Kernel ℝ ℝ) (_ : IsMarkovKernel Q), IsProbabilityMeasure π ∧
+      (Q.withDensity fun _ _ ↦ ∞).IsReversible π ∧
+      (π ⊗ₘ Q.withDensity fun _ _ ↦ ∞).map Prod.swap ≠ π ⊗ₘ Q.withDensity fun _ _ ↦ ∞ := by
   obtain ⟨ν, κ, hν, hκ, hrev, hne⟩ := exists_isReversible_smul_top_and_map_swap_compProd_ne
   have heq : ν ⊗ₘ κ.withDensity (fun _ _ ↦ ∞) = (∞ • ν) ⊗ₘ κ := by
     rw [Measure.compProd_withDensity measurable_const, withDensity_const,
       Measure.compProd_smul_left]
-  refine ⟨ν, _, hν, inferInstance, fun x ↦ ?_, fun s t hs ht ↦ ?_, by rw [heq]; exact hne⟩
-  · rw [Kernel.withDensity_apply _ measurable_const, withDensity_const, Measure.smul_apply,
-      measure_univ, smul_eq_mul, mul_one]
-  · rw [← Measure.compProd_apply_prod hs ht, ← Measure.compProd_apply_prod ht hs, heq,
-      Measure.compProd_apply_prod hs ht, Measure.compProd_apply_prod ht hs, hrev hs ht]
+  refine ⟨ν, κ, hκ, hν, fun s t hs ht ↦ ?_, by rw [heq]; exact hne⟩
+  rw [← Measure.compProd_apply_prod hs ht, ← Measure.compProd_apply_prod ht hs, heq,
+    Measure.compProd_apply_prod hs ht, Measure.compProd_apply_prod ht hs, hrev hs ht]
 
 end ProbabilityTheory.Kernel
