@@ -1,5 +1,5 @@
 /-
-Copyright (c) 2026 Axiomatic_AI. All rights reserved.
+Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
@@ -20,11 +20,11 @@ the `T`-periodic profile the signal approaches: the harmonics of a steady state.
   asymptotic to an integrable profile `p` on `AddCircle T`, they tend to `fourierCoeff p`.
 
 Staged for `Mathlib/Analysis/Fourier/AddCircle.lean`. Searched on 2026-11-12 (pinned `d13f23b`):
-`octo` ("Fourier coefficient on a sliding window [s, s+T] of a function asymptotic to a periodic
-function converges", "Fourier coefficient of fourier m times a constant vector") and `rg` for
+"Fourier coefficient on a sliding window [s, s+T] of a function asymptotic to a periodic
+function converges", "Fourier coefficient of fourier m times a constant vector", and `rg` for
 `fourierCoeffOn` next to `Tendsto`, for `fourier m x •` and for `norm_fourierCoeff`: the tree has
-`fourierCoeff_fourier` (scalar profile only), no norm bound and no window limit. A translated form, `Filter.Tendsto.fourierCoeffOn_comp_add`, exists at another pin as the
-third item.
+`fourierCoeff_fourier` (scalar profile only), no norm bound and no window limit. A translated
+form, `Filter.Tendsto.fourierCoeffOn_comp_add`, exists at another pin as the third item.
 -/
 
 open Set Filter Topology MeasureTheory AddCircle
