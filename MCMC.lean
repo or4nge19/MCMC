@@ -9,6 +9,7 @@ import MCMC.Finite.Core
 import MCMC.Finite.Gibbs
 import MCMC.Finite.MarkovChain
 import MCMC.Finite.MetropolisHastings
+import MCMC.Finite.MetropolisHastingsKernel
 import MCMC.Finite.TotalVariation
 import MCMC.Finite.toKernel
 import MCMC.PF.Analysis.CstarAlgebra.Classes
@@ -34,6 +35,7 @@ import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Stochastic
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Uniqueness
 import MCMC.PF.LinearAlgebra.Matrix.Spectrum
 import MCMC.PF.Topology.Compactness.ExtremeValueUSC
+import MCMC.Samplers.Metropolis
 import MCMC.ToMathlib.Analysis.CStarAlgebra.PositiveLinearMap
 import MCMC.ToMathlib.Analysis.CStarAlgebra.SelfAdjoint
 import MCMC.ToMathlib.Analysis.Convex.Cone.Basic
@@ -67,6 +69,16 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
 import MCMC.ToMathlib.Analysis.Subadditive
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
 import MCMC.ToMathlib.MeasureTheory.Function.LpOrder
+import MCMC.ToMathlib.MeasureTheory.Measure.CompleteLattice
+import MCMC.ToMathlib.MeasureTheory.Measure.Prod
+import MCMC.ToMathlib.MeasureTheory.Measure.WithDensity
+import MCMC.ToMathlib.Probability.Distributions.Gaussian.Reversible
+import MCMC.ToMathlib.Probability.Kernel.AcceptReject
+import MCMC.ToMathlib.Probability.Kernel.Composition.MeasureCompProd
+import MCMC.ToMathlib.Probability.Kernel.ProperInvariant
+import MCMC.ToMathlib.Probability.Kernel.RandomWalk
+import MCMC.ToMathlib.Probability.Kernel.Reversible
+import MCMC.ToMathlib.Probability.Kernel.WithDensity
 import MCMC.ToMathlib.Topology.ContinuousMap.Bounded.Normed
 import MCMC.ToMathlib.Topology.ContinuousMap.Compact
 import MCMC.ToMathlib.Topology.ContinuousMap.Ordered
