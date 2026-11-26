@@ -5,7 +5,8 @@ Formalization of:
 - basic MCMC algorithms (Gibbs, Metropolis–Hastings),
 - Perron–Frobenius theory and supporting spectral material,
 - the Krein–Rutman (and Jentzsch) theorem on real Banach spaces (`MCMC/ToMathlib`),
-- groundwork for a general MCMC kernel interface (non-finite).
+- Doeblin and Harris for a Markov kernel on a measurable space
+  (`MCMC/ToMathlib/Probability/Kernel`).
 
 ## Build
 
@@ -30,7 +31,7 @@ Open the folder in VS Code for interactive proofs.
   - `LinearAlgebra/Matrix/PerronFrobenius/`: PF and spectral/JNF files
     - core: `Defs`, `Irreducible`, `Primitive`, `Aperiodic`, `CollatzWielandt`, `Multiplicity`,`Dominance`
     - stochastic/sampling: `Stochastic.lean`
-- `MCMC/Kernel/`: WIP general-state kernel interface
+- `MCMC/ToMathlib/Probability/Kernel/`: Doeblin and Harris on a measurable space
 - `MCMC/ToMathlib/`: Mathlib-ready additions at their Mathlib paths (below)
 
 ## Krein–Rutman (`MCMC/ToMathlib`)
@@ -57,6 +58,13 @@ mathlib #42607); cones are `ProperCone ℝ E`. Following Bourbaki, *Théories sp
 
 Headline statements are checked against Mathlib-only specifications on branch
 `palomar-comparator`.
+
+## Markov kernels
+
+Doeblin and Harris (Hairer–Mattingly) for `ProbabilityTheory.Kernel` on a measurable space:
+geometric convergence in total variation from a uniform minorization, and a unique invariant
+probability from a Lyapunov drift and a sublevel minorization (`K + γR < R`; `2K + γR < R`
+for the one-step contraction). The Gaussian autoregression is the instance.
 
 ## Finite-state TV and Dobrushin (key results)
 

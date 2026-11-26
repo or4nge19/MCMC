@@ -50,9 +50,8 @@ only Fredholm files are `FredholmAlternative.lean` and `Fredholm/{Basic,Open}.le
 Fredholm operators) and #41858 (properness of upper semi-Fredholm operators), the closed #43906
 and the merged #42689 (Fredholm projections), none with a parameter;
 `--search "analytic Fredholm"`, `"Jacobson lemma"` return nothing related.
-AxiomaticX QuantumlibCore (`MathlibPRnew.md`) plans an analytic Fredholm theorem for resolvents
-after mathlib's Fredholm-operator PR #39274; this file is that statement for analytic families
-with compact value at the point.
+An analytic Fredholm theorem for resolvents is planned after mathlib's Fredholm-operator
+PR #39274; this file is that statement for analytic families with compact value at the point.
 -/
 
 @[expose] public section
