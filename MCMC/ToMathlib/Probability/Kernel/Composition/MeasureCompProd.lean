@@ -18,7 +18,9 @@ for every finite kernel.
 Staged for `Mathlib/Probability/Kernel/Composition/MeasureCompProd.lean`. Searched on 2026-11-26 in
 the pinned Mathlib: `grep -rn "SigmaFinite (μ ⊗ₘ\|SigmaFinite (.* ⊗ₘ" Mathlib` has no hit (the
 instances on `μ ⊗ₘ κ` are `SFinite`, `IsFiniteMeasure`, `IsProbabilityMeasure`,
-`IsZeroOrProbabilityMeasure`); `fst_compProd` is stated for Markov kernels only.
+`IsZeroOrProbabilityMeasure`); `fst_compProd` is stated for Markov kernels only;
+`grep -rn "compProd_apply_singleton\|dirac_compProd_apply" Mathlib/Probability` finds only
+`dirac_compProd_apply`, for a Dirac first factor.
 -/
 
 @[expose] public section
@@ -49,7 +51,15 @@ lemma sigmaFinite_compProd [SigmaFinite μ] [ProbabilityTheory.IsSFiniteKernel �
     (h : ∀ᵐ a ∂μ, κ a univ ≠ ∞) : SigmaFinite (μ ⊗ₘ κ) :=
   SigmaFinite.of_map _ measurable_fst.aemeasurable (sigmaFinite_fst_compProd h)
 
-instance [SigmaFinite μ] [ProbabilityTheory.IsFiniteKernel κ] : SigmaFinite (μ ⊗ₘ κ) :=
+instance sigmaFinite_compProd_of_isFiniteKernel [SigmaFinite μ]
+    [ProbabilityTheory.IsFiniteKernel κ] : SigmaFinite (μ ⊗ₘ κ) :=
   sigmaFinite_compProd (ae_of_all _ fun _ ↦ measure_ne_top _ _)
+
+/-- The mass of `μ ⊗ₘ κ` at a point. -/
+lemma compProd_apply_singleton [MeasurableSingletonClass α] [MeasurableSingletonClass β]
+    [SFinite μ] [ProbabilityTheory.IsSFiniteKernel κ] (a : α) (b : β) :
+    (μ ⊗ₘ κ) {(a, b)} = μ {a} * κ a {b} := by
+  rw [← singleton_prod_singleton, compProd_apply_prod (measurableSet_singleton a)
+    (measurableSet_singleton b), lintegral_singleton, mul_comm]
 
 end MeasureTheory.Measure

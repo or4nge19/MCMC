@@ -5,6 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
+public import MCMC.ToMathlib.MeasureTheory.Measure.CompleteLattice
 public import MCMC.ToMathlib.Probability.Kernel.Reversible
 
 /-!
@@ -81,8 +82,8 @@ theorem isReversible_acceptReject_iff [IsSFiniteKernel Q] (ha : Measurable (Func
   · rw [h hs ht hst, h ht hs hst.symm]
     exact H hs ht hst
 
-/-- **Tierney's criterion.** For σ-finite `π` and an acceptance whose accepted mass is finite
-`π`-almost everywhere, the accept–reject kernel is `π`-reversible iff the accepted flow
+/-- **The accepted-flow criterion.** For σ-finite `π` and an acceptance whose accepted mass is
+finite `π`-almost everywhere, the accept–reject kernel is `π`-reversible iff the accepted flow
 `(π ⊗ₘ Q).withDensity (Function.uncurry a)` is invariant under the swap. -/
 theorem isReversible_acceptReject_iff_map_swap [IsSFiniteKernel Q] [SigmaFinite π]
     (ha : Measurable (Function.uncurry a)) (ha_fin : ∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞) :
@@ -118,5 +119,85 @@ theorem exists_isReversible_acceptReject_top_and_map_swap_ne :
   obtain ⟨π, Q, hQ, hπ, hrev, hne⟩ := exists_isReversible_withDensity_top_and_map_swap_compProd_ne
   rw [Measure.compProd_withDensity measurable_const] at hne
   exact ⟨π, Q, hQ, hπ, (isReversible_acceptReject_iff measurable_const).2 hrev, hne⟩
+
+/-- The Metropolis–Hastings acceptance of the proposal `Q` for the target `π`: the density of the
+symmetric part `(π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap` of the flow with respect to `π ⊗ₘ Q`,
+truncated at `1`. No density of `π` or `Q` and no positivity is involved. -/
+noncomputable def _root_.MeasureTheory.Measure.mhAcceptance (π : Measure X) (Q : Kernel X X)
+    (x y : X) : ℝ≥0∞ :=
+  min 1 (((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).rnDeriv (π ⊗ₘ Q) (x, y))
+
+theorem _root_.MeasureTheory.Measure.mhAcceptance_le_one (π : Measure X) (Q : Kernel X X)
+    (x y : X) : π.mhAcceptance Q x y ≤ 1 :=
+  min_le_left _ _
+
+theorem _root_.MeasureTheory.Measure.measurable_mhAcceptance (π : Measure X) (Q : Kernel X X) :
+    Measurable (Function.uncurry (π.mhAcceptance Q)) :=
+  measurable_const.min (Measure.measurable_rnDeriv _ _)
+
+/-- The Metropolis–Hastings kernel of a Markov proposal is Markov. -/
+instance isMarkovKernel_acceptReject_mhAcceptance [IsMarkovKernel Q] :
+    IsMarkovKernel (acceptReject Q (π.mhAcceptance Q)) :=
+  (isMarkovKernel_acceptReject_iff (π.measurable_mhAcceptance Q)).2 fun x ↦
+    (lintegral_mono fun y ↦ π.mhAcceptance_le_one Q x y).trans (by simp)
+
+/-- The flow accepted by the Metropolis–Hastings acceptance is the symmetric part
+`(π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap` of the proposed flow. -/
+theorem withDensity_mhAcceptance [SigmaFinite (π ⊗ₘ Q)] :
+    (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q)) =
+      (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap := by
+  have hle : (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap ≤ π ⊗ₘ Q := inf_le_left
+  have := Measure.sigmaFinite_of_le _ hle
+  calc (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q))
+      = (π ⊗ₘ Q).withDensity (((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).rnDeriv (π ⊗ₘ Q)) := by
+        refine MeasureTheory.withDensity_congr_ae ?_
+        filter_upwards [Measure.rnDeriv_le_one_of_le hle] with p hp
+        exact min_eq_right hp
+    _ = (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap :=
+        Measure.withDensity_rnDeriv_eq _ _ (Measure.absolutelyContinuous_of_le hle)
+
+/-- σ-finiteness of `π ⊗ₘ Q` is needed in `withDensity_mhAcceptance`: on `Bool`, with the flip
+proposal and `π = ∞ • δ_true + δ_false`, the symmetric part of the flow has mass `1` at
+`(true, false)`, where `π ⊗ₘ Q` has mass `∞`, so it has no density with respect to `π ⊗ₘ Q`. -/
+theorem exists_withDensity_mhAcceptance_ne :
+    ∃ (π : Measure Bool) (Q : Kernel Bool Bool) (_ : IsMarkovKernel Q), SFinite π ∧
+      (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q)) ≠
+        (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap := by
+  refine ⟨∞ • Measure.dirac true + Measure.dirac false,
+    Kernel.deterministic (!·) (measurable_of_countable _), inferInstance, inferInstance,
+    fun h ↦ ?_⟩
+  have h1 := congrArg (· {(true, false)}) h
+  rw [withDensity_apply _ (measurableSet_singleton _), lintegral_singleton,
+    Measure.inf_apply_singleton, Measure.map_apply measurable_swap (measurableSet_singleton _),
+    ← singleton_prod_singleton, preimage_swap_prod, singleton_prod_singleton,
+    singleton_prod_singleton,
+    Measure.compProd_apply_singleton, Measure.compProd_apply_singleton,
+    Function.uncurry_apply_pair] at h1
+  rcases eq_or_ne ((∞ • Measure.dirac true + Measure.dirac false).mhAcceptance
+    (Kernel.deterministic (!·) (measurable_of_countable _)) true false) 0 with h0 | h0
+  · simp [h0, Kernel.deterministic_apply] at h1
+  · simp [ENNReal.mul_top h0, Kernel.deterministic_apply] at h1
+
+/-- An accept–reject kernel whose acceptance agrees `π ⊗ₘ Q`-almost everywhere with the
+Metropolis–Hastings acceptance is `π`-reversible. -/
+theorem isReversible_acceptReject_of_ae_eq_mhAcceptance [SFinite π] [IsSFiniteKernel Q]
+    [SigmaFinite (π ⊗ₘ Q)] (ha : Measurable (Function.uncurry a))
+    (h : Function.uncurry a =ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q)) :
+    (acceptReject Q a).IsReversible π := by
+  refine (isReversible_acceptReject_iff ha).2 (IsReversible.of_map_swap_compProd ?_)
+  rw [Measure.compProd_withDensity ha]
+  change ((π ⊗ₘ Q).withDensity (Function.uncurry a)).map Prod.swap =
+    (π ⊗ₘ Q).withDensity (Function.uncurry a)
+  have hswap := MeasurableEquiv.prodComm.map_inf (π ⊗ₘ Q) ((π ⊗ₘ Q).map Prod.swap)
+  rw [show ⇑(MeasurableEquiv.prodComm : X × X ≃ᵐ X × X) = Prod.swap from rfl,
+    Measure.map_map measurable_swap measurable_swap, Prod.swap_swap_eq, Measure.map_id] at hswap
+  rw [MeasureTheory.withDensity_congr_ae h, withDensity_mhAcceptance, hswap, inf_comm]
+
+/-- **Metropolis–Hastings.** The accept–reject kernel of the Metropolis–Hastings acceptance is
+`π`-reversible, for every proposal with `π ⊗ₘ Q` σ-finite. -/
+theorem isReversible_acceptReject_mhAcceptance [SFinite π] [IsSFiniteKernel Q]
+    [SigmaFinite (π ⊗ₘ Q)] : (acceptReject Q (π.mhAcceptance Q)).IsReversible π :=
+  isReversible_acceptReject_of_ae_eq_mhAcceptance (π.measurable_mhAcceptance Q)
+    Filter.EventuallyEq.rfl
 
 end ProbabilityTheory.Kernel
