@@ -40,7 +40,6 @@ import MCMC.ToMathlib.Analysis.Convex.Cone.Basic
 import MCMC.ToMathlib.Analysis.Convex.Cone.Dual
 import MCMC.ToMathlib.Analysis.Convex.Cone.FiniteDimensional
 import MCMC.ToMathlib.Analysis.Fourier.AbsolutelySummable
-import MCMC.ToMathlib.Analysis.Fourier.AddCircle
 import MCMC.ToMathlib.Analysis.Matrix.GelfandRadius
 import MCMC.ToMathlib.Analysis.Matrix.PerronFrobenius
 import MCMC.ToMathlib.Analysis.Matrix.Stochastic
