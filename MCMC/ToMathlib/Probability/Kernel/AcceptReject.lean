@@ -36,7 +36,8 @@ noncomputable def acceptReject (Q : Kernel X X) [IsSFiniteKernel Q] (a : X → X
     Kernel X X :=
   Q.withDensity a + Kernel.id.withDensity fun x _ ↦ 1 - ∫⁻ y, a x y ∂Q x
 
-instance [IsSFiniteKernel Q] : IsSFiniteKernel (acceptReject Q a) := by
+instance isSFiniteKernel_acceptReject [IsSFiniteKernel Q] :
+    IsSFiniteKernel (acceptReject Q a) := by
   rw [acceptReject]
   infer_instance
 
@@ -48,5 +49,17 @@ theorem acceptReject_apply [IsSFiniteKernel Q] (ha : Measurable (Function.uncurr
     (measurable_const.sub ha.lintegral_kernel_prod_right).comp measurable_fst
   rw [acceptReject, add_apply, Kernel.withDensity_apply _ ha, Kernel.withDensity_apply _ hr,
     id_apply, withDensity_const]
+
+/-- The accept–reject kernel is Markov iff the accepted mass `∫⁻ y, a x y ∂Q x` is at most `1` at
+every point. -/
+theorem isMarkovKernel_acceptReject_iff [IsSFiniteKernel Q]
+    (ha : Measurable (Function.uncurry a)) :
+    IsMarkovKernel (acceptReject Q a) ↔ ∀ x, ∫⁻ y, a x y ∂Q x ≤ 1 := by
+  have h : ∀ x, acceptReject Q a x univ = ∫⁻ y, a x y ∂Q x + (1 - ∫⁻ y, a x y ∂Q x) := fun x ↦ by
+    rw [acceptReject_apply ha, Measure.add_apply, withDensity_apply _ .univ,
+      Measure.restrict_univ, Measure.smul_apply, measure_univ, smul_eq_mul, mul_one]
+  refine ⟨fun hP x ↦ ?_, fun h1 ↦ ⟨fun x ↦ ⟨by rw [h, add_tsub_cancel_of_le (h1 x)]⟩⟩⟩
+  calc ∫⁻ y, a x y ∂Q x ≤ ∫⁻ y, a x y ∂Q x + (1 - ∫⁻ y, a x y ∂Q x) := le_self_add
+    _ = 1 := by rw [← h, measure_univ]
 
 end ProbabilityTheory.Kernel
