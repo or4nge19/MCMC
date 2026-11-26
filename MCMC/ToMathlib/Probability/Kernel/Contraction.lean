@@ -3,9 +3,12 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.MeasureTheory.Measure.UniformLimit
-import MCMC.ToMathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
-import MCMC.ToMathlib.Probability.Kernel.Invariance
+
+module
+
+public import MCMC.ToMathlib.MeasureTheory.Measure.UniformLimit
+public import MCMC.ToMathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
+public import MCMC.ToMathlib.Probability.Kernel.Invariance
 
 /-!
 # Markov kernels that contract a weighted oscillation
@@ -69,6 +72,8 @@ No search hit: `grep -rln "Doeblin\|Dobrushin\|Harris\|minoriz\|Lyapunov functio
 finds only `Combinatorics/SetFamily/HarrisKleitman.lean` (searched 2026-11-24, Mathlib `d13f23b`);
 `grep -rli drift Mathlib/Probability` finds nothing.
 -/
+
+@[expose] public section
 
 open Filter MeasureTheory Set
 open scoped ENNReal NNReal Topology

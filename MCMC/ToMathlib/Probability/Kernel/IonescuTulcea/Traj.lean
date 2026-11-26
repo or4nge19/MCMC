@@ -3,10 +3,13 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Probability.Kernel.IonescuTulcea.Traj
-import Mathlib.Probability.Kernel.Composition.Lemmas
-import Mathlib.Probability.Process.FiniteDimensionalLaws
-import MCMC.ToMathlib.Probability.Kernel.Composition.Comp
+
+module
+
+public import Mathlib.Probability.Kernel.IonescuTulcea.Traj
+public import Mathlib.Probability.Kernel.Composition.Lemmas
+public import Mathlib.Probability.Process.FiniteDimensionalLaws
+public import MCMC.ToMathlib.Probability.Kernel.Composition.Comp
 
 /-!
 # The law of a Markov chain
@@ -33,6 +36,8 @@ next point has law `P` at the current one. Its point at time `n` has law `(P ^ n
 addition only `Probability/ProductMeasure.lean` (product measures). No characterisation of
 `trajMeasure`, no chain of a single kernel, no law of the point at time `n`.
 -/
+
+@[expose] public section
 
 open MeasureTheory ProbabilityTheory Finset Preorder
 

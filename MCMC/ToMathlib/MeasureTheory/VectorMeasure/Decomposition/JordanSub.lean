@@ -3,9 +3,12 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Mathlib.MeasureTheory.Measure.Decomposition.Lebesgue
-import Mathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
+
+module
+
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.MeasureTheory.Measure.Decomposition.Lebesgue
+public import Mathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
 
 /-!
 # Integrals against the total variation of a difference of finite measures
@@ -48,6 +51,8 @@ not through `∫ᵛ`; that the bound is attained, the greatest-value forms and t
 `grep -rn "dirac.*⟂ₘ\|mutuallySingular_dirac" MeasureTheory` finds only
 `MeasureTheory.mutuallySingular_dirac` (a Dirac measure against a measure without atoms).
 -/
+
+@[expose] public section
 
 open Set
 open scoped ENNReal

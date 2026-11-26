@@ -3,7 +3,10 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Probability.Independence.Basic
+
+module
+
+public import Mathlib.Probability.Independence.Basic
 
 /-!
 # Regrouping independent random variables
@@ -22,6 +25,8 @@ Probability/Independence/Basic.lean` finds `meas_inter`, `congr`, `comp`, `compâ
 (`iIndepFun.indepFun_prodMk`, `iIndepFun.indepFun_prodMk_prodMk`) assume an `iIndepFun` family
 of one type.
 -/
+
+@[expose] public section
 
 open MeasureTheory
 

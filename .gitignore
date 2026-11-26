@@ -40,3 +40,6 @@
 /README-BP.md
 /CONTRIBUTING.md
 /Project/
+
+## Local search cache
+.axiomatic/search_lean/

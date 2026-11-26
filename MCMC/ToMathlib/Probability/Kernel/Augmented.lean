@@ -3,7 +3,10 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Probability.Kernel.Mixing
+
+module
+
+public import MCMC.ToMathlib.Probability.Kernel.Mixing
 
 /-!
 # An iterated random map together with its input
@@ -53,6 +56,8 @@ contraction; `grep -rln "smul_map\|map_restrict_le" MeasureTheory/Measure` finds
 character of a group automorphism (`addEquivAddHaarChar_smul_map`), no pushforward of a
 minorization; `grep -rn "\^ 2) x =" Probability` finds no two-step formula.
 -/
+
+@[expose] public section
 
 open Filter MeasureTheory Set
 open scoped ENNReal NNReal Topology

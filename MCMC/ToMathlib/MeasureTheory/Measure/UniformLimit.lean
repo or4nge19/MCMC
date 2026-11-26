@@ -3,7 +3,10 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.MeasureTheory.Integral.Layercake
+
+module
+
+public import Mathlib.MeasureTheory.Integral.Layercake
 
 /-!
 # Limits of finite measures, uniformly on measurable sets
@@ -31,6 +34,8 @@ nothing. Mathlib's total variation (`SignedMeasure.totalVariation`, equal to
 statement; integrals against a signed measure (`∫ᵛ`, `MeasureTheory/VectorMeasure/Integral.lean`)
 are bounded by the variation (`VectorMeasure.norm_integral_le_integral_norm`).
 -/
+
+@[expose] public section
 
 open Filter Function Set
 open scoped ENNReal NNReal Topology

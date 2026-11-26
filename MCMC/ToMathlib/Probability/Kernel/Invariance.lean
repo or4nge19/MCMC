@@ -3,10 +3,13 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Probability.Kernel.Composition.Comp
-import MCMC.ToMathlib.Probability.Kernel.Composition.IntegralCompProd
-import Mathlib.Probability.Kernel.Invariance
-import MCMC.ToMathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
+
+module
+
+public import MCMC.ToMathlib.Probability.Kernel.Composition.Comp
+public import MCMC.ToMathlib.Probability.Kernel.Composition.IntegralCompProd
+public import Mathlib.Probability.Kernel.Invariance
+public import MCMC.ToMathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
 
 /-!
 # Invariant measures of a Markov kernel: powers and differences
@@ -26,6 +29,8 @@ Searched on 2026-11-25 (Mathlib `d13f23b`): `Probability/Kernel/Invariance.lean`
 `Invariant.comp` and no statement on powers or differences; `grep -rn "Invariant.*sub\|
 Invariant.pow" Probability` finds nothing.
 -/
+
+@[expose] public section
 
 open MeasureTheory Set
 open scoped ENNReal

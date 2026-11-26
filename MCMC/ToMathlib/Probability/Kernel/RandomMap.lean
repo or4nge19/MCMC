@@ -3,10 +3,13 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Probability.Independence.Basic
-import MCMC.ToMathlib.Probability.Kernel.Harris
-import MCMC.ToMathlib.Probability.Kernel.IonescuTulcea.Traj
-import Mathlib.Probability.Distributions.Gaussian.Real
+
+module
+
+public import MCMC.ToMathlib.Probability.Independence.Basic
+public import MCMC.ToMathlib.Probability.Kernel.Harris
+public import MCMC.ToMathlib.Probability.Kernel.IonescuTulcea.Traj
+public import Mathlib.Probability.Distributions.Gaussian.Real
 
 /-!
 # Iterated random maps, and the Gaussian autoregression
@@ -55,6 +58,8 @@ MeasureTheory Probability` finds nothing; `Probability/Distributions/Gaussian/Re
 mean, the variance and `MemLp` of `gaussianReal`, `gaussianReal_map_const_mul` and
 `gaussianReal_conv_gaussianReal`, and no second moment.
 -/
+
+@[expose] public section
 
 open Filter MeasureTheory Set
 open scoped ENNReal NNReal Topology Real

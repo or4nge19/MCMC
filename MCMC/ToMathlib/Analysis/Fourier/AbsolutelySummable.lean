@@ -3,9 +3,12 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Analysis.Fourier.AddCircle
-import Mathlib.Analysis.Normed.Group.FunctionSeries
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+module
+
+public import Mathlib.Analysis.Fourier.AddCircle
+public import Mathlib.Analysis.Normed.Group.FunctionSeries
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 
 /-!
 # Absolutely summable Fourier series
@@ -27,10 +30,22 @@ function to its series), and no statement computing the coefficients of a given 
 `grep -rn "fourierCoeff (fun" Mathlib` finds no `tsum`.
 -/
 
+@[expose] public section
+
 open MeasureTheory AddCircle ComplexConjugate
 
 variable {T : ℝ} [Fact (0 < T)] {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
   [CompleteSpace E]
+
+/-- The profile `fourier m • c` has the single harmonic `c`, at `m`. -/
+theorem fourierCoeff_fourier_smul (m : ℤ) (c : E) :
+    fourierCoeff (fun x : AddCircle T => fourier m x • c) = Pi.single m c := by
+  ext n
+  have h := congrFun (fourierCoeff_fourier (T := T) m) n
+  simp only [fourierCoeff, smul_smul, smul_eq_mul] at h ⊢
+  rw [integral_smul_const, h]
+  rcases eq_or_ne n m with rfl | hnm <;> simp [*]
+
 
 omit [Fact (0 < T)] [CompleteSpace E] in
 /-- The terms `fourier k t • c` have norm `‖c‖`. -/

@@ -3,7 +3,10 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Probability.Kernel.Composition.Comp
+
+module
+
+public import Mathlib.Probability.Kernel.Composition.Comp
 
 /-!
 # Powers of a kernel on one space are Markov, finite or s-finite with the kernel
@@ -17,6 +20,8 @@ Searched on 2026-11-25 (Mathlib `d13f23b`): `grep -rn "IsMarkovKernel (.* \^\|Is
 (.* \^\|IsSFiniteKernel (.* \^\|isMarkovKernel_pow\|IsMarkovKernel.pow" Probability` finds
 nothing.
 -/
+
+@[expose] public section
 
 namespace ProbabilityTheory.Kernel
 

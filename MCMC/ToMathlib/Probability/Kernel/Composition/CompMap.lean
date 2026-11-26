@@ -3,7 +3,10 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Probability.Kernel.Composition.CompMap
+
+module
+
+public import Mathlib.Probability.Kernel.Composition.CompMap
 
 /-!
 # Powers of a deterministic kernel
@@ -14,6 +17,8 @@ next to Mathlib's `ProbabilityTheory.Kernel.deterministic_comp_deterministic`.
 Searched on 2026-11-25 (Mathlib `d13f23b`): `grep -rn "deterministic_pow\|deterministic.*\^"
 Probability/Kernel` finds nothing.
 -/
+
+@[expose] public section
 
 namespace ProbabilityTheory.Kernel
 

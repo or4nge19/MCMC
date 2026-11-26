@@ -3,12 +3,15 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Analysis.Fourier.AbsolutelySummable
-import MCMC.ToMathlib.Probability.Kernel.RandomMap
-import Mathlib.Probability.Moments.Covariance
-import Mathlib.Analysis.MeanInequalitiesPow
-import Mathlib.MeasureTheory.Integral.MeanInequalities
-import Mathlib.Probability.Moments.Variance
+
+module
+
+public import MCMC.ToMathlib.Analysis.Fourier.AbsolutelySummable
+public import MCMC.ToMathlib.Probability.Kernel.RandomMap
+public import Mathlib.Probability.Moments.Covariance
+public import Mathlib.Analysis.MeanInequalitiesPow
+public import Mathlib.MeasureTheory.Integral.MeanInequalities
+public import Mathlib.Probability.Moments.Variance
 
 /-!
 # Mixing of Harris chains: correlations along the chain and decay of covariances
@@ -47,6 +50,8 @@ Mathlib has `variance_congr` but no `covariance_congr` (`grep -rn "covariance_co
 nothing; `grep -n congr Probability/Moments/Covariance.lean` finds only the `congr` tactic and
 `Finset.sum_congr`).
 -/
+
+@[expose] public section
 
 open Filter MeasureTheory Set
 open scoped ENNReal NNReal Topology

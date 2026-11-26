@@ -3,8 +3,11 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import Mathlib.Probability.Kernel.Composition.IntegralCompProd
-import Mathlib.Probability.Kernel.Composition.MeasureComp
+
+module
+
+public import Mathlib.Probability.Kernel.Composition.IntegralCompProd
+public import Mathlib.Probability.Kernel.Composition.MeasureComp
 
 /-!
 # The Bochner integral against the composition of a kernel and a measure
@@ -16,6 +19,8 @@ counterpart of Mathlib's `MeasureTheory.Measure.lintegral_bind`, named after its
 Searched on 2026-11-25 (Mathlib `d13f23b`): `grep -rn "theorem integral_bind\|lemma integral_bind\|
 ∂(κ ∘ₘ μ)" MeasureTheory Probability` finds no Bochner statement.
 -/
+
+@[expose] public section
 
 open MeasureTheory ProbabilityTheory
 

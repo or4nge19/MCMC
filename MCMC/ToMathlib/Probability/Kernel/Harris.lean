@@ -3,7 +3,10 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import MCMC.ToMathlib.Probability.Kernel.Doeblin
+
+module
+
+public import MCMC.ToMathlib.Probability.Kernel.Doeblin
 
 /-!
 # Harris' ergodic theorem for Markov kernels on a measurable space
@@ -140,14 +143,11 @@ hypothesis, uniqueness at `R = K / (1 - γ)`, and counterexamples at and below t
 factor `2` in Hairer–Mattingly is needed for their one-step contraction. Not read: the published
 version of Hairer–Mattingly; Douc, Moulines, Priouret, Soulier, *Markov Chains* (2018).
 
-Prior formalizations (read as source): Doeblin's bound `(1 - ε)ⁿ` on a general measurable space,
-in the case where the minorizing measure is the invariant law and that law is assumed, and a
-coupling-form convergence theorem under a bivariate drift with an assumed invariant law, exist in a
-public Lean 4 repository of Markov chain Monte Carlo theory (2026); finite-state Doeblin and
-Perron–Frobenius ergodicity in Lean; countable-state convergence without a rate in Isabelle's
-Archive of Formal Proofs (`Markov_Models`). We found no formalization of Harris' theorem in
-drift–minorization form with existence, uniqueness and weighted geometric convergence.
+No formalization of Harris' theorem in drift–minorization form, with existence,
+uniqueness and weighted geometric convergence, was found.
 -/
+
+@[expose] public section
 
 open Filter MeasureTheory Set
 open scoped ENNReal NNReal Topology
