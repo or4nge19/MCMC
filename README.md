@@ -5,7 +5,7 @@ Formalization of:
 - basic MCMC algorithms (Gibbs, Metropolis–Hastings),
 - Perron–Frobenius theory and supporting spectral material,
 - the Krein–Rutman theorem on real Banach spaces (`MCMC/ToMathlib`, sorry-free),
-- Doeblin's theorem and Harris' theorem for a Markov kernel on a measurable space
+- Doeblin and Harris for a Markov kernel on a measurable space
   (`MCMC/ToMathlib/Probability/Kernel`).
 
 ## Build
@@ -31,8 +31,7 @@ Open the folder in VS Code for interactive proofs.
   - `LinearAlgebra/Matrix/PerronFrobenius/`: PF and spectral/JNF files
     - core: `Defs`, `Irreducible`, `Primitive`, `Aperiodic`, `CollatzWielandt`, `Multiplicity`,`Dominance`
     - stochastic/sampling: `Stochastic.lean`
-- `MCMC/ToMathlib/Probability/Kernel/`: Doeblin, Harris (Hairer–Mattingly), the chain as an
-  Ionescu–Tulcea trajectory, geometric decay of covariances, iterated random maps
+- `MCMC/ToMathlib/Probability/Kernel/`: Doeblin and Harris on a measurable space
 - `MCMC/ToMathlib/`: Mathlib-ready additions at their Mathlib paths (below)
 
 ## Krein–Rutman (`MCMC/ToMathlib`)
@@ -60,18 +59,12 @@ mathlib #42607); cones are `ProperCone ℝ E`. Following Bourbaki, *Théories sp
 Headline statements are checked against Mathlib-only specifications on branch
 `palomar-comparator`.
 
-## Markov kernels on a measurable space
+## Markov kernels
 
-`MCMC/ToMathlib/Probability/Kernel/` states Doeblin's theorem and Harris' theorem for
-`ProbabilityTheory.Kernel` on a measurable space, with no topology and no finite-dimensional
-hypothesis. A uniform minorization gives geometric convergence in total variation. A Lyapunov
-drift together with a minorization on a sublevel set gives a unique invariant probability and
-geometric convergence in the weighted total variation of Hairer–Mattingly, with the threshold
-`K + γR < R` for existence, uniqueness and convergence and `2K + γR < R` for the one-step
-contraction. The chain is Mathlib's Ionescu–Tulcea trajectory. Covariances of a geometrically
-ergodic chain decay geometrically, and a summable autocovariance is the Fourier sequence of a
-continuous spectral density. An iterated random map is the kernel `x ↦ ρ.map (F x)`; the
-Gaussian autoregression is the instance.
+Doeblin and Harris (Hairer–Mattingly) for `ProbabilityTheory.Kernel` on a measurable space:
+geometric convergence in total variation from a uniform minorization, and a unique invariant
+probability from a Lyapunov drift and a sublevel minorization (`K + γR < R`; `2K + γR < R`
+for the one-step contraction). The Gaussian autoregression is the instance.
 
 ## Finite-state TV and Dobrushin (key results)
 
