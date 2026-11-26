@@ -20,7 +20,7 @@ for every finite kernel. For the kernel `(Kernel.id ×ₖ Kernel.const α ν).ma
 Staged for `Mathlib/Probability/Kernel/Composition/MeasureCompProd.lean`. Searched on 2026-11-26 in
 the pinned Mathlib: `grep -rn "SigmaFinite (μ ⊗ₘ\|SigmaFinite (.* ⊗ₘ" Mathlib` has no hit (the
 instances on `μ ⊗ₘ κ` are `SFinite`, `IsFiniteMeasure`, `IsProbabilityMeasure`,
-`IsZeroOrProbabilityMeasure`); `fst_compProd` is stated for Markov kernels only;
+`IsZeroOrProbabilityMeasure`); `Measure.fst_compProd` is stated for Markov kernels only;
 `grep -rn "id ×ₖ" Mathlib/Probability/Kernel/Composition` finds no composition-product with the
 kernel of a random map; `grep -rn "compProd_apply_singleton\|dirac_compProd_apply"
 Mathlib/Probability` finds only `dirac_compProd_apply`, for a Dirac first factor.
