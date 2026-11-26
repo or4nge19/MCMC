@@ -7,6 +7,7 @@ module
 
 public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 public import MCMC.ToMathlib.MeasureTheory.Measure.CompleteLattice
+public import MCMC.ToMathlib.MeasureTheory.Measure.WithDensity
 public import MCMC.ToMathlib.Probability.Kernel.Reversible
 
 /-!
@@ -346,5 +347,82 @@ theorem exists_not_isReversible_acceptReject_min_one_div_one :
     withDensity_apply _ (measurableSet_singleton _), Measure.smul_apply, Kernel.const_apply,
     Measure.restrict_singleton] at h1
   simp at h1
+
+/-- **The Metropolis–Hastings ratio on atoms.** At a point `(x, y)` charged by `π ⊗ₘ Q` with
+finite mass, the Metropolis–Hastings acceptance is `min 1 (π {y} * Q y {x} / (π {x} * Q x {y}))`.
+On a countable space this determines the acceptance `π ⊗ₘ Q`-almost everywhere. -/
+theorem mhAcceptance_eq_min_one_div [MeasurableSingletonClass X] [SFinite π] [IsSFiniteKernel Q]
+    [SigmaFinite (π ⊗ₘ Q)] {x y : X} (h0 : π {x} * Q x {y} ≠ 0) (htop : π {x} * Q x {y} ≠ ∞) :
+    π.mhAcceptance Q x y = min 1 (π {y} * Q y {x} / (π {x} * Q x {y})) := by
+  have h := congrArg (· {(x, y)}) (withDensity_mhAcceptance (π := π) (Q := Q))
+  rw [withDensity_apply _ (measurableSet_singleton _), lintegral_singleton,
+    Measure.inf_apply_singleton, Measure.map_apply measurable_swap (measurableSet_singleton _),
+    ← singleton_prod_singleton, preimage_swap_prod, singleton_prod_singleton,
+    singleton_prod_singleton,
+    Measure.compProd_apply_singleton,
+    Measure.compProd_apply_singleton] at h
+  rw [Function.uncurry_apply_pair] at h
+  calc π.mhAcceptance Q x y = min (π {x} * Q x {y}) (π {y} * Q y {x}) / (π {x} * Q x {y}) :=
+        (ENNReal.eq_div_iff h0 htop).2 (by rw [mul_comm]; exact h)
+    _ = min 1 (π {y} * Q y {x} / (π {x} * Q x {y})) := by
+        rw [(show Monotone fun t : ℝ≥0∞ ↦ t / (π {x} * Q x {y}) from
+          fun _ _ hst ↦ ENNReal.div_le_div_right hst _).map_min, ENNReal.div_self h0 htop]
+
+/-- **The Metropolis–Hastings ratio.** For a target `π = ν.withDensity p` and a proposal with
+densities `Q x = ν.withDensity (q x)` with respect to a σ-finite `ν`, the Metropolis–Hastings
+acceptance is `min 1 (p y * q y x / (p x * q x y))`, `π ⊗ₘ Q`-almost everywhere. -/
+theorem mhAcceptance_withDensity_ae_eq {ν : Measure X} [SigmaFinite ν] {p : X → ℝ≥0∞}
+    {q : X → X → ℝ≥0∞} (hp : Measurable p) (hq : Measurable (Function.uncurry q))
+    (hpq : ∀ᵐ z ∂(ν.prod ν), p z.1 * q z.1 z.2 ≠ ∞) :
+    Function.uncurry ((ν.withDensity p).mhAcceptance ((Kernel.const X ν).withDensity q))
+      =ᵐ[(ν.withDensity p) ⊗ₘ (Kernel.const X ν).withDensity q]
+        fun z ↦ min 1 (p z.2 * q z.2 z.1 / (p z.1 * q z.1 z.2)) := by
+  set g : X × X → ℝ≥0∞ := fun z ↦ p z.1 * q z.1 z.2 with hg_def
+  have hg : Measurable g := (hp.comp measurable_fst).mul hq
+  have hgs : Measurable fun z : X × X ↦ g z.swap := hg.comp measurable_swap
+  have hh : Measurable fun z ↦ min (g z) (g z.swap) / g z := (hg.min hgs).div hg
+  have hρ : (ν.withDensity p) ⊗ₘ (Kernel.const X ν).withDensity q = (ν.prod ν).withDensity g := by
+    rw [Measure.withDensity_compProd_withDensity hp hq, Measure.compProd_const]
+  have := SigmaFinite.withDensity_of_ne_top hpq
+  have hmap : ((ν.prod ν).withDensity g).map Prod.swap =
+      (ν.prod ν).withDensity fun z ↦ g z.swap := by
+    rw [show ((ν.prod ν).withDensity g).map Prod.swap =
+        ((ν.prod ν).withDensity g).map (MeasurableEquiv.prodComm : X × X ≃ᵐ X × X) from rfl,
+      MeasurableEquiv.map_withDensity, show (ν.prod ν).map (MeasurableEquiv.prodComm :
+        X × X ≃ᵐ X × X) = (ν.prod ν).map Prod.swap from rfl, Measure.prod_swap]
+    rfl
+  have hinf : (ν.prod ν).withDensity g ⊓ ((ν.prod ν).withDensity g).map Prod.swap =
+      ((ν.prod ν).withDensity g).withDensity fun z ↦ min (g z) (g z.swap) / g z := by
+    rw [hmap, withDensity_inf_withDensity hg hgs, ← MeasureTheory.withDensity_mul _ hg hh]
+    refine MeasureTheory.withDensity_congr_ae ?_
+    filter_upwards [hpq] with z hz
+    change min (g z) (g z.swap) = g z * (min (g z) (g z.swap) / g z)
+    rcases eq_or_ne (g z) 0 with h0 | h0
+    · rw [h0, zero_mul]
+      exact min_eq_left zero_le
+    · exact (ENNReal.mul_div_cancel h0 hz).symm
+  have hmh : ∀ z, Function.uncurry ((ν.withDensity p).mhAcceptance
+      ((Kernel.const X ν).withDensity q)) z = min 1 ((((ν.prod ν).withDensity g) ⊓
+        ((ν.prod ν).withDensity g).map Prod.swap).rnDeriv ((ν.prod ν).withDensity g) z) :=
+    fun z ↦ by simp only [Function.uncurry_def, Measure.mhAcceptance, hρ, Prod.mk.eta]
+  rw [hρ]
+  filter_upwards [Measure.rnDeriv_withDensity ((ν.prod ν).withDensity g) hh,
+    (ae_withDensity_iff hg).2 (ae_of_all _ fun z hz ↦ hz),
+    (ae_withDensity_iff hg).2 (hpq.mono fun z hz _ ↦ hz)] with z hz h0 htop
+  rw [hmh z, hinf, hz]
+  rw [(show Monotone fun t : ℝ≥0∞ ↦ t / g z from
+    fun _ _ hst ↦ ENNReal.div_le_div_right hst _).map_min, ENNReal.div_self h0 htop, ← min_assoc,
+    min_self]
+  rfl
+
+/-- The hypotheses of `mhAcceptance_withDensity_ae_eq` hold together, for instance for densities
+of a finite target and of a proposal with respect to Lebesgue measure. -/
+example {p : ℝ → ℝ≥0∞} {q : ℝ → ℝ → ℝ≥0∞} (hp : Measurable p) (hq : Measurable (Function.uncurry q))
+    (hp_top : ∀ x, p x ≠ ∞) (hq_top : ∀ x y, q x y ≠ ∞) :
+    Function.uncurry ((volume.withDensity p).mhAcceptance ((Kernel.const ℝ volume).withDensity q))
+      =ᵐ[(volume.withDensity p) ⊗ₘ (Kernel.const ℝ volume).withDensity q]
+        fun z ↦ min 1 (p z.2 * q z.2 z.1 / (p z.1 * q z.1 z.2)) :=
+  mhAcceptance_withDensity_ae_eq hp hq
+    (ae_of_all _ fun z ↦ ENNReal.mul_ne_top (hp_top z.1) (hq_top z.1 z.2))
 
 end ProbabilityTheory.Kernel
