@@ -40,4 +40,13 @@ instance [IsSFiniteKernel Q] : IsSFiniteKernel (acceptReject Q a) := by
   rw [acceptReject]
   infer_instance
 
+/-- The accept–reject kernel at `x` is the accepted part of the proposal plus the rejected mass
+at `x`. -/
+theorem acceptReject_apply [IsSFiniteKernel Q] (ha : Measurable (Function.uncurry a)) (x : X) :
+    acceptReject Q a x = (Q x).withDensity (a x) + (1 - ∫⁻ y, a x y ∂Q x) • Measure.dirac x := by
+  have hr : Measurable (Function.uncurry fun x (_ : X) ↦ 1 - ∫⁻ y, a x y ∂Q x) :=
+    (measurable_const.sub ha.lintegral_kernel_prod_right).comp measurable_fst
+  rw [acceptReject, add_apply, Kernel.withDensity_apply _ ha, Kernel.withDensity_apply _ hr,
+    id_apply, withDensity_const]
+
 end ProbabilityTheory.Kernel
