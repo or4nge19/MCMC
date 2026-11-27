@@ -6,10 +6,11 @@ Authors: Matteo Cipollina
 
 module
 
+public import MCMC.ToMathlib.Analysis.Asymptotics.SpecificAsymptotics
+public import MCMC.ToMathlib.Analysis.Real.Sqrt
 public import MCMC.ToMathlib.Probability.Kernel.Chain.Basic
 public import MCMC.ToMathlib.Probability.Kernel.Mixing
 public import MCMC.ToMathlib.Probability.StrongLaw
-public import Mathlib.Analysis.Asymptotics.SpecificAsymptotics
 
 /-!
 # The law of large numbers for Harris chains
@@ -72,61 +73,21 @@ The hypotheses on the kernel are those of Harris' theorem with the minorization 
 
 At Mathlib `d13f23b`: `grep -rln "strong_law" Mathlib` finds `Probability/StrongLaw.lean`
 (independent identically distributed sequences) and its uses, none for a Markov chain;
+`grep -rn "asymptotic variance\|asymptoticVariance" Mathlib` finds nothing;
 `grep -rn "variance_sum" Mathlib` finds `ProbabilityTheory.variance_sum'`
 (`Probability/Moments/Variance.lean`: the variance of a sum as the double sum of covariances,
 centered at the means), while the sums here are centered at `∫ g ∂π`, so their second moment is
-expanded by lags (`MeasureTheory.integral_sq_sum_range_eq`);
-`grep -rn "sq_sum_le_card_mul_sum_sq" Mathlib` finds the Cauchy–Schwarz inequality for finite
-sums (`Algebra/Order/Chebyshev.lean`) and no expansion of `(∑_{k < n} a k)²` by lags.
-`grep -rn "asymptotic variance\|asymptoticVariance" Mathlib` finds nothing;
-`grep -rln "cesaro" Mathlib` finds only `Analysis/Asymptotics/SpecificAsymptotics.lean`
-(`Filter.Tendsto.cesaro`, used here), with no Cesàro mean of lag sums;
-`grep -rn "pow_le_sqrt\|sqrt_pow_mul\|min_pow_le" Mathlib` finds nothing.
+expanded by lags (`MeasureTheory.integral_sq_sum_range_eq`) and averaged by
+`Filter.tendsto_inv_mul_sum_two_mul_sum_sub_of_abs_sub_le`. The general lemmas are in
+`MCMC/ToMathlib/Algebra/BigOperators/Intervals.lean`, `MeasureTheory/Function/L2Space.lean`,
+`Analysis/Asymptotics/SpecificAsymptotics.lean` and `Analysis/Real/Sqrt.lean`, each with its
+search.
 -/
 
 @[expose] public section
 
 open Filter MeasureTheory Finset
 open scoped ENNReal NNReal Topology
-
-/-- **The square of a sum, by lags**:
-`(∑_{k < n} a k)² = ∑_{k < n} (2 ∑_{l < n - k} a k a (k + l) - (a k)²)`. -/
-theorem Finset.sq_sum_range_eq_sum_range_sum_range {R : Type*} [CommRing R] (a : ℕ → R)
-    (n : ℕ) : (∑ k ∈ range n, a k) ^ 2 =
-      ∑ k ∈ range n, (2 * ∑ l ∈ range (n - k), a k * a (k + l) - a k ^ 2) := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    have h (k : ℕ) (hk : k ∈ range n) : 2 * ∑ l ∈ range (n + 1 - k), a k * a (k + l) - a k ^ 2 =
-        (2 * ∑ l ∈ range (n - k), a k * a (k + l) - a k ^ 2) + 2 * (a k * a n) := by
-      rw [Nat.sub_add_comm (mem_range.1 hk).le, sum_range_succ,
-        Nat.add_sub_of_le (mem_range.1 hk).le]
-      ring
-    rw [sum_range_succ, add_sq, ih, sum_range_succ, sum_congr rfl h, sum_add_distrib,
-      Nat.add_sub_cancel_left, sum_range_one, add_zero, ← mul_sum, ← sum_mul]
-    ring
-
-namespace MeasureTheory
-
-variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
-
-/-- **The second moment of a sum, by lags**: for square integrable `Y k`,
-`∫ (∑_{k < n} Y k)² = ∑_{k < n} (2 ∑_{l < n - k} ∫ Y k Y (k + l) - ∫ (Y k)²)`. -/
-theorem integral_sq_sum_range_eq {Y : ℕ → Ω → ℝ} (hY : ∀ k, MemLp (Y k) 2 μ) (n : ℕ) :
-    ∫ ω, (∑ k ∈ range n, Y k ω) ^ 2 ∂μ = ∑ k ∈ range n,
-      (2 * ∑ l ∈ range (n - k), ∫ ω, Y k ω * Y (k + l) ω ∂μ - ∫ ω, Y k ω ^ 2 ∂μ) := by
-  have hi2 (k l : ℕ) : Integrable (fun ω ↦ Y k ω * Y (k + l) ω) μ :=
-    (hY k).integrable_mul (hY (k + l))
-  have hi (k : ℕ) : Integrable (fun ω ↦ ∑ l ∈ range (n - k), Y k ω * Y (k + l) ω) μ :=
-    integrable_finsetSum _ fun l _ ↦ hi2 k l
-  simp_rw [Finset.sq_sum_range_eq_sum_range_sum_range]
-  rw [integral_finsetSum]
-  · refine sum_congr rfl fun k _ ↦ ?_
-    rw [integral_sub ((hi k).const_mul 2) (hY k).integrable_sq, integral_const_mul,
-      integral_finsetSum _ fun l _ ↦ hi2 k l]
-  · exact fun k _ ↦ ((hi k).const_mul 2).sub (hY k).integrable_sq
-
-end MeasureTheory
 
 namespace ProbabilityTheory.Kernel
 
@@ -401,63 +362,6 @@ theorem ae_tendsto_inv_mul_sum_chain_comp_of_drift_of_minorization_pow [IsMarkov
 
 /-! ### The asymptotic variance -/
 
-/-- **A power below a product of square roots**: for `0 ≤ ρ ≤ 1` and `k ≤ l`,
-`ρ ^ l ≤ √ρ ^ k * √ρ ^ l`. -/
-theorem _root_.Real.pow_le_sqrt_pow_mul_sqrt_pow {ρ : ℝ} (h0 : 0 ≤ ρ) (h1 : ρ ≤ 1) {k l : ℕ}
-    (hkl : k ≤ l) : ρ ^ l ≤ √ρ ^ k * √ρ ^ l :=
-  calc ρ ^ l = √ρ ^ l * √ρ ^ l := by rw [← mul_pow, Real.mul_self_sqrt h0]
-    _ ≤ √ρ ^ k * √ρ ^ l := mul_le_mul_of_nonneg_right
-        (pow_le_pow_of_le_one (Real.sqrt_nonneg _) (Real.sqrt_le_one.2 h1) hkl)
-        (pow_nonneg (Real.sqrt_nonneg _) _)
-
-/-- **Cesàro means of lag sums**: if `|a k l - b l| ≤ E rᵏ rˡ` with `0 ≤ r < 1` and `b` is
-summable, then `n⁻¹ ∑_{k < n} (2 ∑_{l < n - k} a k l - a k 0) → 2 ∑' l, b l - b 0`. -/
-theorem _root_.Filter.tendsto_inv_mul_sum_two_mul_sum_sub_of_abs_sub_le {a : ℕ → ℕ → ℝ}
-    {b : ℕ → ℝ} {E r : ℝ} (hr0 : 0 ≤ r) (hr : r < 1)
-    (hab : ∀ k l, |a k l - b l| ≤ E * r ^ k * r ^ l) (hb : Summable b) :
-    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, (2 * ∑ l ∈ range (n - k), a k l - a k 0))
-      atTop (𝓝 (2 * ∑' l, b l - b 0)) := by
-  have hE : 0 ≤ E := by simpa using (abs_nonneg _).trans (hab 0 0)
-  have hgeom (N : ℕ) : ∑ l ∈ range N, r ^ l ≤ (1 - r)⁻¹ :=
-    ((summable_geometric_of_lt_one hr0 hr).sum_le_tsum _ fun _ _ ↦ pow_nonneg hr0 _).trans_eq
-      (tsum_geometric_of_lt_one hr0 hr)
-  have h1 : (1 : ℝ) ≤ (1 - r)⁻¹ := (one_le_inv₀ (sub_pos.2 hr)).2 (by linarith)
-  have hk (N k : ℕ) : |2 * ∑ l ∈ range N, a k l - a k 0 - (2 * ∑ l ∈ range N, b l - b 0)| ≤
-      3 * E * (1 - r)⁻¹ * r ^ k := by
-    rw [show 2 * ∑ l ∈ range N, a k l - a k 0 - (2 * ∑ l ∈ range N, b l - b 0) =
-        2 * ∑ l ∈ range N, (a k l - b l) - (a k 0 - b 0) by rw [Finset.sum_sub_distrib]; ring]
-    calc _ ≤ 2 * ∑ l ∈ range N, |a k l - b l| + |a k 0 - b 0| := by
-          refine (abs_sub _ _).trans (add_le_add ?_ le_rfl)
-          rw [abs_mul, abs_two]
-          exact mul_le_mul_of_nonneg_left (abs_sum_le_sum_abs _ _) zero_le_two
-      _ ≤ 2 * (E * r ^ k * ∑ l ∈ range N, r ^ l) + E * r ^ k * (1 - r)⁻¹ := by
-          gcongr
-          · rw [Finset.mul_sum]; exact Finset.sum_le_sum fun l _ ↦ hab k l
-          · exact (hab k 0).trans (by
-              rw [pow_zero, mul_one]; exact le_mul_of_one_le_right (by positivity) h1)
-      _ ≤ 2 * (E * r ^ k * (1 - r)⁻¹) + E * r ^ k * (1 - r)⁻¹ := by gcongr; exact hgeom N
-      _ = 3 * E * (1 - r)⁻¹ * r ^ k := by ring
-  have hU (n : ℕ) : ∑ k ∈ range n, (2 * ∑ l ∈ range (n - k), b l - b 0) =
-      ∑ j ∈ range n, (2 * ∑ l ∈ range (j + 1), b l - b 0) := by
-    rw [← Finset.sum_range_reflect]
-    exact Finset.sum_congr rfl fun j hj ↦ by
-      rw [mem_range] at hj; rw [show n - (n - 1 - j) = j + 1 by omega]
-  have h0 : Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
-      (∑ k ∈ range n, (2 * ∑ l ∈ range (n - k), a k l - a k 0) -
-        ∑ k ∈ range n, (2 * ∑ l ∈ range (n - k), b l - b 0))) atTop (𝓝 0) := by
-    refine squeeze_zero_norm (fun n ↦ ?_) (by
-      simpa using tendsto_inv_atTop_nhds_zero_nat.mul_const (3 * E * (1 - r)⁻¹ * (1 - r)⁻¹))
-    rw [Real.norm_eq_abs, abs_mul, abs_inv, Nat.abs_cast, ← Finset.sum_sub_distrib]
-    refine mul_le_mul_of_nonneg_left ((abs_sum_le_sum_abs _ _).trans
-      ((Finset.sum_le_sum fun k _ ↦ hk (n - k) k).trans ?_)) (by positivity)
-    exact (Finset.mul_sum _ _ _).symm.trans_le (mul_le_mul_of_nonneg_left (hgeom n) (by positivity))
-  have h := (((hb.hasSum.tendsto_sum_nat.comp (tendsto_add_atTop_nat 1)).const_mul 2).sub_const
-    (b 0)).cesaro.add h0
-  rw [add_zero] at h
-  refine h.congr fun n ↦ ?_
-  simp only [Function.comp_apply, ← hU n]
-  ring
-
 /-- **The correlations of a Harris chain approach the stationary ones**: under the drift and the
 minorization of `P ^ m` on `{V ≤ R}` (`α > 0`, `K + γ R < R`), there are `C ≥ 0` and `0 ≤ r < 1`
 with `|∫ ψ (ω k) φ (ω (k + l)) ∂(P.chain ∘ₘ μ) - ∫ ψ · Pˡφ ∂π| ≤ C rᵏ rˡ M (1 + ∫ V ∂μ)` for
@@ -610,13 +514,16 @@ theorem tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow [IsMark
         2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω l); P.chain ∘ₘ π] -
           cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω 0); P.chain ∘ₘ π] by
       rw [hsum.tsum_eq_zero_add]; ring]
-  refine (Filter.tendsto_inv_mul_sum_two_mul_sum_sub_of_abs_sub_le hr0 hr
+  refine (Filter.tendsto_inv_mul_sum_two_mul_sum_sub_of_abs_sub_le
     (a := fun k l ↦ ∫ ω, (g (ω k) - c) * (g (ω (k + l)) - c) ∂(P.chain ∘ₘ μ))
-    (E := C * (2 * (2 + K / (1 - γ)) * M) * (1 + ∫ x, (V x : ℝ) ∂μ)) (fun k l ↦ ?_)
+    (c := fun k ↦ C * (2 * (2 + K / (1 - γ)) * M) * (1 + ∫ x, (V x : ℝ) ∂μ) * r ^ k)
+    (d := fun l ↦ r ^ l) (fun k l ↦ ?_) ?_ (summable_geometric_of_lt_one hr0 hr)
     hsum).congr fun n ↦ ?_
   · rw [hcov]
     exact (h π inferInstance hπ μ inferInstance hμ _ _ (hg.sub_const c) (hg.sub_const c) hc0 _
       hgM' hgM' k l).trans_eq (by ring)
+  · simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hr0 hr).const_mul
+      (C * (2 * (2 + K / (1 - γ)) * M) * (1 + ∫ x, (V x : ℝ) ∂μ))
   · rw [integral_sq_sum_range_eq (fun k ↦ memLp_comp_chain_comp_of_drift hV hdrift hμ
       (hg.sub_const c) hgM' k) n]
     simp only [add_zero, sq]
@@ -982,11 +889,9 @@ example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0
       (Measure.dirac false) 0 1 1 (by norm_num)
       (fun _ _ ↦ by rw [zero_smul]; exact Measure.zero_le _) π hπ μ hμ g hg M hgM
 
-/-- **A law with the masses `2⁻⁽ʲ⁺¹⁾`**: `∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{x j}` is a probability measure. -/
-theorem _root_.MeasureTheory.isProbabilityMeasure_sum_inv_two_pow_smul_dirac {α : Type*}
-    [MeasurableSpace α] (x : ℕ → α) :
-    IsProbabilityMeasure
-      (Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (x j)) := ⟨by
+/-- **The initial law of the descent**: `∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{4ʲ}` is a probability measure on `ℕ`. -/
+theorem isProbabilityMeasure_sum_inv_two_pow_smul_dirac : IsProbabilityMeasure
+    (Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j)) := ⟨by
   simp only [Measure.sum_apply _ MeasurableSet.univ, Measure.smul_apply, measure_univ,
     smul_eq_mul, mul_one, ENNReal.inv_pow]
   rw [ENNReal.tsum_geometric_add_one, ENNReal.one_sub_inv_two, inv_inv]
@@ -1065,7 +970,7 @@ theorem le_integral_sq_sum_sub_chain_descent_comp (J : ℕ) :
         ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0)) ^ 2
           ∂((deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _)).chain ∘ₘ
             Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j)) := by
-  have := isProbabilityMeasure_sum_inv_two_pow_smul_dirac fun j : ℕ ↦ 4 ^ j
+  have := isProbabilityMeasure_sum_inv_two_pow_smul_dirac
   have h0 : ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0 = 0 := by simp
   have hfm : Measurable fun ω : ℕ → ℕ ↦ (∑ k ∈ range (4 ^ J), ((if ω k = 0 then (0 : ℝ) else 1) -
       ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0)) ^ 2 :=
@@ -1121,7 +1026,7 @@ theorem not_exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow_nat :
         lintegral_two_pow_sum_inv_two_pow_smul_dirac
   have hb := (le_integral_sq_sum_sub_chain_descent_comp J).trans (hC (Measure.dirac 0)
     inferInstance hinv (Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j))
-    (isProbabilityMeasure_sum_inv_two_pow_smul_dirac fun j : ℕ ↦ 4 ^ j)
+    isProbabilityMeasure_sum_inv_two_pow_smul_dirac
     (fun y ↦ if y = 0 then 0 else 1) (measurable_of_countable _) 1
     (fun x ↦ by by_cases hx : x = 0 <;> simp [hx]) (4 ^ J))
   rw [hV0] at hb
@@ -1144,7 +1049,7 @@ theorem not_tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow_nat
       (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
         2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π]))) := by
   intro h
-  have := isProbabilityMeasure_sum_inv_two_pow_smul_dirac fun j : ℕ ↦ 4 ^ j
+  have := isProbabilityMeasure_sum_inv_two_pow_smul_dirac
   obtain ⟨hd, hm, hinv⟩ := drift_and_minorization_descent
   obtain ⟨B, hB⟩ := (h (deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _))
     (fun x ↦ 2 ^ x) (1 / 2) 1 (measurable_of_countable _) hd
