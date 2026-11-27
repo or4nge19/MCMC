@@ -67,6 +67,7 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
 import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
 import MCMC.ToMathlib.Analysis.Subadditive
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.Ergodic
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.LpConvergence
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.MaximalErgodic
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.Pointwise
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
