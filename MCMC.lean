@@ -34,6 +34,8 @@ import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Stochastic
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Uniqueness
 import MCMC.PF.LinearAlgebra.Matrix.Spectrum
 import MCMC.PF.Topology.Compactness.ExtremeValueUSC
+import MCMC.ToMathlib.Algebra.BigOperators.Intervals
+import MCMC.ToMathlib.Analysis.Asymptotics.SpecificAsymptotics
 import MCMC.ToMathlib.Analysis.CStarAlgebra.PositiveLinearMap
 import MCMC.ToMathlib.Analysis.CStarAlgebra.SelfAdjoint
 import MCMC.ToMathlib.Analysis.Convex.Cone.Basic
@@ -65,6 +67,8 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.Order
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.OrderBounded
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
 import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
+import MCMC.ToMathlib.Analysis.Real.Sqrt
+import MCMC.ToMathlib.Analysis.SpecificLimits.FloorPow
 import MCMC.ToMathlib.Analysis.Subadditive
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.Ergodic
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.Examples
@@ -73,11 +77,14 @@ import MCMC.ToMathlib.Dynamics.BirkhoffSum.MaximalErgodic
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.Pointwise
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.Stationary
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
+import MCMC.ToMathlib.MeasureTheory.Function.L2Space
 import MCMC.ToMathlib.MeasureTheory.Function.LpOrder
 import MCMC.ToMathlib.MeasureTheory.Measure.UniformLimit
 import MCMC.ToMathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
 import MCMC.ToMathlib.Probability.Independence.Basic
 import MCMC.ToMathlib.Probability.Kernel.Augmented
+import MCMC.ToMathlib.Probability.Kernel.Chain.Basic
+import MCMC.ToMathlib.Probability.Kernel.Chain.LawOfLargeNumbers
 import MCMC.ToMathlib.Probability.Kernel.Composition.Comp
 import MCMC.ToMathlib.Probability.Kernel.Composition.CompMap
 import MCMC.ToMathlib.Probability.Kernel.Composition.IntegralCompProd
@@ -88,6 +95,8 @@ import MCMC.ToMathlib.Probability.Kernel.Invariance
 import MCMC.ToMathlib.Probability.Kernel.IonescuTulcea.Traj
 import MCMC.ToMathlib.Probability.Kernel.Mixing
 import MCMC.ToMathlib.Probability.Kernel.RandomMap
+import MCMC.ToMathlib.Probability.Moments.Variance
+import MCMC.ToMathlib.Probability.StrongLaw
 import MCMC.ToMathlib.Topology.ContinuousMap.Bounded.Normed
 import MCMC.ToMathlib.Topology.ContinuousMap.Compact
 import MCMC.ToMathlib.Topology.ContinuousMap.Ordered
