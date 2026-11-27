@@ -32,7 +32,8 @@ formulas are missing; no statement about Markov chains is proved here.
 
 Searched on 2026-11-27 (Mathlib `v4.34.1`): `grep -rn "condExp.*map\|condExp.*comap" Mathlib`
 finds Jensen's inequality (`ConcaveOn.condExp_map_le`) and kernels
-(`condDistrib_apply_ae_eq_condExpKernel_map`), no change of variables for `condExp` along a map.
+(`ProbabilityTheory.condDistrib_apply_ae_eq_condExpKernel_map`), no change of variables for
+`condExp` along a map.
 -/
 
 @[expose] public section
