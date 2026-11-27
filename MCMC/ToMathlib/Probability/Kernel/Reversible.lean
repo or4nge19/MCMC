@@ -42,7 +42,8 @@ A third counterexample, the orbit-counting kernel of an irrational rotation of t
   maximality of the Metropolis–Hastings acceptance
   (`ae_le_mhAcceptance_of_isReversible_acceptReject`); the two `example`s after it show that
   σ-finiteness of the first marginal is needed in `mhAcceptance_withDensity_ae_eq_min_one_div` and
-  cannot be weakened to that of `π ⊗ₘ κ` in `isReversible_iff_map_swap_compProd`.
+  cannot be weakened to that of `π ⊗ₘ κ` in `isReversible_iff_map_swap_compProd` and in
+  `mhAcceptance_ae_eq_one`.
 
 Staged for Mathlib's `Counterexamples/` (new file): the Gaussian measure is the only reason for the
 import of `Mathlib.Probability.Distributions.Gaussian.Real`, and the rotation of the circle for
@@ -386,6 +387,17 @@ example : ∃ (π : Measure (AddCircle (1 : ℝ))) (Q : Kernel (AddCircle (1 : �
     (MeasureTheory.withDensity_one (μ := π ⊗ₘ Q)).symm] with z hz
   rw [hz]
   simp
+
+/-- σ-finiteness of the first marginal is needed in `mhAcceptance_ae_eq_one`, even for a finite
+`π` and a σ-finite `π ⊗ₘ Q`: for the same data `Q` is `π`-reversible and the acceptance is not `1`
+almost everywhere. -/
+example : ∃ (π : Measure (AddCircle (1 : ℝ))) (Q : Kernel (AddCircle (1 : ℝ)) (AddCircle (1 : ℝ)))
+    (_ : IsSFiniteKernel Q), IsFiniteMeasure π ∧ SigmaFinite (π ⊗ₘ Q) ∧ Q.IsReversible π ∧
+      ¬ Function.uncurry (π.mhAcceptance Q) =ᵐ[π ⊗ₘ Q] fun _ ↦ 1 := by
+  obtain ⟨π, Q, hQ, hπ, hσ, hrev, hn⟩ :=
+    exists_isReversible_acceptReject_not_ae_le_mhAcceptance_lintegral_eq_top
+  rw [isReversible_acceptReject_iff, Kernel.withDensity_one'] at hrev
+  exact ⟨π, Q, hQ, hπ, hσ, hrev, fun h ↦ hn h.symm.le⟩
 
 end Iterate
 

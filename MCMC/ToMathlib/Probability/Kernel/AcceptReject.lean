@@ -49,6 +49,9 @@ positivity is involved.
   swap-invariant σ-finite measure, and `mhAcceptance_withDensity_ae_eq_min_one_div`: for a
   `μ`-reversible proposal and the target `μ.withDensity f`, it is the Metropolis acceptance
   `min 1 (f y / f x)`.
+* `mhAcceptance_ae_eq_one_iff`, `mhAcceptance_ae_eq_one`: for a σ-finite proposed flow, the
+  Metropolis–Hastings acceptance is `1` almost everywhere iff the flow is invariant under the
+  swap; a proposal reversible for the target is always accepted.
 * For each hypothesis that cannot be dropped, a counterexample (`exists_…`).
 
 Staged for `Mathlib/Probability/Kernel/AcceptReject.lean` (new file). Searched on 2026-11-26 in
@@ -690,5 +693,41 @@ theorem not_mhAcceptance_withDensity_ae_eq_top :
   simp [π, Q, withDensity_const] at h2
   rw [← univ_prod_univ, Measure.prod_prod] at h2
   simp at h2
+
+/-- **The acceptance is `1` exactly for a swap-invariant flow.** For a σ-finite proposed flow
+`π ⊗ₘ Q`, the Metropolis–Hastings acceptance is `1`, `π ⊗ₘ Q`-almost everywhere, iff the flow is
+invariant under the swap. -/
+theorem mhAcceptance_ae_eq_one_iff [SigmaFinite (π ⊗ₘ Q)] :
+    Function.uncurry (π.mhAcceptance Q) =ᵐ[π ⊗ₘ Q] (fun _ ↦ 1) ↔
+      (π ⊗ₘ Q).map Prod.swap = π ⊗ₘ Q := by
+  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+  · have h1 := (MeasureTheory.withDensity_congr_ae (g := 1) h).trans MeasureTheory.withDensity_one
+    rw [withDensity_mhAcceptance] at h1
+    have h2 := Measure.map_mono (inf_eq_left.1 h1) measurable_swap
+    rw [Measure.map_map measurable_swap measurable_swap, Prod.swap_swap_eq, Measure.map_id] at h2
+    exact le_antisymm h2 (inf_eq_left.1 h1)
+  · filter_upwards [mhAcceptance_ae_eq_of_compProd_eq_withDensity (π := π) (Q := Q) h
+      (g := fun _ ↦ 1) measurable_const (ae_of_all _ fun _ ↦ ENNReal.one_ne_top)
+      (MeasureTheory.withDensity_one (μ := π ⊗ₘ Q)).symm] with z hz
+    rw [hz]
+    simp
+
+/-- **A proposal reversible for the target is always accepted**: if `Q` is `π`-reversible and the
+first marginal of `π ⊗ₘ Q` is σ-finite, the Metropolis–Hastings acceptance is `1`,
+`π ⊗ₘ Q`-almost everywhere. σ-finiteness of `π ⊗ₘ Q` alone is not enough (the `example` after
+`exists_isReversible_acceptReject_not_ae_le_mhAcceptance_lintegral_eq_top`, in
+`MCMC/ToMathlib/Probability/Kernel/Reversible.lean`). -/
+theorem mhAcceptance_ae_eq_one [SigmaFinite (π ⊗ₘ Q).fst] (hQ : Q.IsReversible π) :
+    Function.uncurry (π.mhAcceptance Q) =ᵐ[π ⊗ₘ Q] fun _ ↦ 1 := by
+  have : SigmaFinite (π ⊗ₘ Q) := SigmaFinite.of_map _ measurable_fst.aemeasurable ‹_›
+  by_cases hπ : SFinite π
+  swap
+  · rw [Measure.compProd_of_not_sfinite _ _ hπ, Filter.EventuallyEq, ae_zero]
+    exact Filter.eventually_bot
+  by_cases hQ' : IsSFiniteKernel Q
+  swap
+  · rw [Measure.compProd_of_not_isSFiniteKernel _ _ hQ', Filter.EventuallyEq, ae_zero]
+    exact Filter.eventually_bot
+  exact mhAcceptance_ae_eq_one_iff.2 (isReversible_iff_map_swap_compProd.1 hQ)
 
 end ProbabilityTheory.Kernel

@@ -7,14 +7,15 @@ module
 
 public import MCMC.ToMathlib.Probability.Distributions.Gaussian.Reversible
 public import MCMC.ToMathlib.Probability.Kernel.AcceptReject
+public import MCMC.ToMathlib.Probability.Kernel.Proper
 public import MCMC.ToMathlib.Probability.Kernel.RandomWalk
 
 /-!
-# Two Metropolis samplers: random-walk Metropolis and preconditioned Crank–Nicolson
+# Metropolis samplers: random walk, preconditioned Crank–Nicolson, Gibbs updates
 
-Both are instances of `ProbabilityTheory.Kernel.isReversible_acceptReject_min_one_div`: a proposal
-reversible for a reference measure `μ`, the acceptance `min 1 (f y / f x)`, and the target
-`μ.withDensity f`.
+The first two are instances of `ProbabilityTheory.Kernel.isReversible_acceptReject_min_one_div`:
+a proposal reversible for a reference measure `μ`, the acceptance `min 1 (f y / f x)`, and the
+target `μ.withDensity f`.
 
 * `isReversible_randomWalkMetropolis`: on a group with a right-invariant reference measure `μ`
   (Lebesgue measure on `ℝⁿ`, not finite; the counting measure on `ℤ`) and increments of any
@@ -23,13 +24,17 @@ reversible for a reference measure `μ`, the acceptance `min 1 (f y / f x)`, and
 * `isReversible_pCN`: on a separable Banach space with a centered Gaussian reference `μ₀`, the
   proposal `cos θ • x + sin θ • W`, `W ∼ μ₀`, and the acceptance `min 1 (exp (Φ x - Φ y))` for the
   target `μ₀.withDensity (exp (-Φ))`, for every measurable potential `Φ`.
+* `Kernel.mhAcceptance_id_prod_comap_fst_ae_eq_one`: the Gibbs update of one coordinate of a
+  σ-finite measure on a product is a Metropolis–Hastings step of acceptance `1`, an instance of
+  `ProbabilityTheory.Kernel.mhAcceptance_ae_eq_one`.
 
 ## References
 
 * M. Hairer, A. M. Stuart, S. J. Vollmer, *Spectral gaps for a Metropolis–Hastings algorithm in
   infinite dimensions*, Ann. Appl. Probab. 24 (2014); arXiv:1112.1392 (the pCN algorithm).
 * C. P. Robert, G. Casella, *Monte Carlo Statistical Methods*, 2nd ed., Springer (2004), §7.5,
-  Algorithm [A.29] (p. 288).
+  Algorithm [A.29] (p. 288); Theorem 10.13 (p. 381): Gibbs sampling as Metropolis–Hastings steps
+  of acceptance `1`.
 * O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021), Lemma 34.28
   (time reversal, Doob): Brownian motion started from Lebesgue measure.
 -/
@@ -86,6 +91,41 @@ theorem isReversible_pCN {μ₀ : Measure E} [IsGaussian μ₀] (hμ₀ : μ₀[
   exact Kernel.isReversible_acceptReject_min_one_div (isReversible_map_cos_smul_add_sin_smul hμ₀ θ)
     (by fun_prop) (ae_of_all _ fun _ ↦ ENNReal.ofReal_ne_top)
 
+/-! ### Gibbs updates are Metropolis–Hastings steps of acceptance `1` -/
+
+namespace Kernel
+
+section Gibbs
+
+variable {α β : Type*} {mα : MeasurableSpace α} {mβ : MeasurableSpace β}
+
+/-- **A Gibbs update is a Metropolis–Hastings step that is always accepted**: for a σ-finite `ρ`
+on a product and a finite conditional kernel `ρCond` of `ρ`, the Metropolis–Hastings acceptance
+of the update of the second coordinate is `1`, almost everywhere for the proposed flow. -/
+theorem mhAcceptance_id_prod_comap_fst_ae_eq_one {ρ : Measure (α × β)} {ρCond : Kernel α β}
+    [SigmaFinite ρ] [IsFiniteKernel ρCond] [ρ.IsCondKernel ρCond] :
+    Function.uncurry (ρ.mhAcceptance ((Kernel.id ×ₖ ρCond).comap Prod.fst measurable_fst))
+      =ᵐ[ρ ⊗ₘ (Kernel.id ×ₖ ρCond).comap Prod.fst measurable_fst] fun _ ↦ 1 := by
+  have := Measure.sigmaFinite_fst_compProd (μ := ρ)
+    (κ := (Kernel.id ×ₖ ρCond).comap Prod.fst measurable_fst)
+    (ae_of_all _ fun _ ↦ measure_ne_top _ _)
+  exact mhAcceptance_ae_eq_one isReversible_id_prod_comap_fst
+
+/-- The hypotheses of `mhAcceptance_id_prod_comap_fst_ae_eq_one` hold together: for a product
+measure `μ.prod ν`, the second coordinate is resampled from `ν`. -/
+example {μ : Measure α} {ν : Measure β} [SigmaFinite μ] [IsProbabilityMeasure ν] :
+    Function.uncurry ((μ.prod ν).mhAcceptance
+        ((Kernel.id ×ₖ Kernel.const α ν).comap Prod.fst measurable_fst))
+      =ᵐ[(μ.prod ν) ⊗ₘ (Kernel.id ×ₖ Kernel.const α ν).comap Prod.fst measurable_fst]
+        fun _ ↦ 1 := by
+  have : (μ.prod ν).IsCondKernel (Kernel.const α ν) :=
+    ⟨by rw [Measure.fst_prod, Measure.compProd_const]⟩
+  exact mhAcceptance_id_prod_comap_fst_ae_eq_one
+
+end Gibbs
+
+end Kernel
+
 /-! ### The hypotheses of the general theorems hold together
 
 Each `example` below applies a general theorem of
@@ -106,6 +146,18 @@ example : (volume ⊗ₘ (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).m
   exact Kernel.isReversible_iff_map_swap_compProd.1
     (Kernel.isReversible_map_add_of_map_neg
       (by simpa using gaussianReal_map_neg (μ := 0) (v := v)))
+
+/-- `mhAcceptance_ae_eq_one` for Lebesgue measure: the random-walk proposal is always accepted
+when the target is the reference measure. -/
+example : Function.uncurry (volume.mhAcceptance ((Kernel.id ×ₖ
+      Kernel.const ℝ (gaussianReal 0 v)).map fun p : ℝ × ℝ ↦ p.1 + p.2)) =ᵐ[volume ⊗ₘ
+      (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map fun p : ℝ × ℝ ↦ p.1 + p.2]
+      fun _ ↦ 1 := by
+  have := Measure.sigmaFinite_fst_compProd (μ := volume)
+    (κ := (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map fun p : ℝ × ℝ ↦ p.1 + p.2)
+    (ae_of_all _ fun _ ↦ measure_ne_top _ _)
+  exact Kernel.mhAcceptance_ae_eq_one (Kernel.isReversible_map_add_of_map_neg
+    (by simpa using gaussianReal_map_neg (μ := 0) (v := v)))
 
 /-- The accepted-flow criterion, in its nontrivial direction, for random-walk Metropolis. -/
 example (hf : Measurable f) (hf_top : ∀ᵐ x, f x ≠ ∞) :
