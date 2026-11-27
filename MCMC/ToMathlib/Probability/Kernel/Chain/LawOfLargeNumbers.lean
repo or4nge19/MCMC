@@ -20,7 +20,9 @@ measurable `g` with `g² ≤ M (1 + V)`, write `ḡ = g - ∫ g ∂π`:
 
 * **Variance growth**: `∫ (∑_{k < n} ḡ (ω k))² ∂(P.chain ∘ₘ μ) ≤ C M n (1 + ∫ V ∂μ)` for every
   initial law `μ` integrating `V`, with `C` independent of `π`, `μ`, `g`, `M` and `n`
-  (`exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow`). The correlations
+  (`exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow`), and in `ℝ≥0∞`, with
+  `μ univ + ∫⁻ V ∂μ` on the right, for every measure `μ`
+  (`exists_lintegral_sq_sum_sub_le_of_drift_of_minorization_pow`). The correlations
   `∫ ψ (ω k) φ (ω (k + l))` with `∫ φ ∂π = 0` are `O(ρˡ)` uniformly in `k`
   (`exists_abs_integral_comp_mul_comp_chain_le_of_drift_of_minorization_pow`), through the bound
   `|Pˡφ| ≤ C ρˡ √M (1 + √V)` of `Mixing.lean`.
@@ -46,7 +48,13 @@ converge to `g x` from `x` (`ae_tendsto_inv_mul_sum_chain_id`,
 `not_forall_ae_tendsto_inv_mul_sum_chain_id_bool`), its centered sums have second moment `n²`
 (`integral_sq_sum_sub_chain_id_bool`), and with suitable `V`, `γ`, `K`, `R` it
 satisfies all the hypotheses but the threshold, all but the drift, and all but the minorization
-(the `example`s at the end). The hypotheses hold together on the halving chain of `Harris.lean`
+(the `example`s at the end). The moment `∫⁻ V ∂μ ≠ ∞` of the initial law is forced in the
+variance growth and in the asymptotic variance, and not needed in the strong law: for the descent
+`x ↦ x - 1` on `ℕ` with `V x = 2ˣ`, started at `∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{4ʲ}`, the second moment at `n = 4ᴶ`
+is at least `n 2ᴶ / 2` (`le_integral_sq_sum_sub_chain_descent_comp`,
+`not_exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow_nat`,
+`not_tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow_nat`). The hypotheses hold
+together on the halving chain of `Harris.lean`
 and on the Gaussian autoregression of `RandomMap.lean` (the last two `example`s).
 
 ## Search
@@ -265,6 +273,53 @@ theorem exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow [IsMarkovKern
         (sub_le_self _ (integral_nonneg fun _ ↦ sq_nonneg _)).trans
           (mul_le_mul_of_nonneg_left (hsum k) zero_le_two)
     _ = _ := by rw [Finset.sum_const, card_range, nsmul_eq_mul, hBdef]; ring
+
+/-- **Variance growth with no moment of the initial measure**: under the drift and the
+minorization of `P ^ m` on `{V ≤ R}` (`α > 0`, `K + γ R < R`), there is `C` with
+`∫⁻ (∑_{k < n} (g (ω k) - ∫ g ∂π))² ∂(P.chain ∘ₘ μ) ≤ C M n (μ univ + ∫⁻ V ∂μ)` in `ℝ≥0∞`, for
+every invariant law `π`, every measure `μ`, every measurable `g` with `g² ≤ M (1 + V)` and every
+`n`. -/
+theorem exists_lintegral_sq_sum_sub_le_of_drift_of_minorization_pow [IsMarkovKernel P]
+    (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) {ν : Measure X}
+    [IsProbabilityMeasure ν] {α R : ℝ≥0} {m : ℕ} (hα : 0 < α) (hR : K + γ * R < R)
+    (hmin : ∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) :
+    ∃ C : ℝ≥0, ∀ π : Measure X, IsProbabilityMeasure π → Invariant P π → ∀ μ : Measure X,
+      ∀ g : X → ℝ, Measurable g → ∀ M : ℝ≥0, (∀ x, g x ^ 2 ≤ M * (1 + V x)) → ∀ n : ℕ,
+        ∫⁻ ω, ENNReal.ofReal ((∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2) ∂(P.chain ∘ₘ μ) ≤
+          C * M * n * (μ Set.univ + ∫⁻ x, V x ∂μ) := by
+  have hγ := NNReal.lt_one_of_add_mul_lt hR
+  obtain ⟨C, hC, h⟩ :=
+    exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow hV hdrift hα hR hmin
+  lift C to ℝ≥0 using hC
+  refine ⟨C, fun π hπ hinv μ g hg M hgM n ↦ ?_⟩
+  have hF : Measurable fun ω : ℕ → X ↦
+      ENNReal.ofReal ((∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2) :=
+    ((Finset.measurable_sum _ fun k _ ↦
+      (hg.comp (measurable_pi_apply k)).sub_const _).pow_const 2).ennreal_ofReal
+  have hd (x : X) : ∫⁻ y, V y ∂(Measure.dirac x) ≠ ∞ := by
+    rw [lintegral_dirac' _ hV.coe_nnreal_ennreal]
+    exact ENNReal.coe_ne_top
+  have hint (x : X) : Integrable (fun ω : ℕ → X ↦
+      (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2) (P.chain ∘ₘ Measure.dirac x) :=
+    (memLp_finsetSum (range n) fun k _ ↦ memLp_comp_chain_comp_of_drift hV hdrift (hd x)
+      (hg.sub_const _) (sq_sub_integral_le_of_invariant_of_drift hV hdrift hγ hinv hg hgM)
+      k).integrable_sq
+  have hb (x : X) := h π hπ hinv (Measure.dirac x) inferInstance (hd x) g hg M hgM n
+  simp only [Measure.dirac_bind P.chain.measurable,
+    integral_dirac' _ _ hV.coe_nnreal_real.stronglyMeasurable] at hint hb
+  have hx (x : X) : ∫⁻ ω, ENNReal.ofReal ((∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2)
+      ∂(P.chain x) ≤ ((C * M * n * (1 + V x) : ℝ≥0) : ℝ≥0∞) :=
+    calc _ = ENNReal.ofReal (∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain x)) :=
+        (ofReal_integral_eq_lintegral_ofReal (hint x) (ae_of_all _ fun _ ↦ sq_nonneg _)).symm
+      _ ≤ ENNReal.ofReal ((C * M * n * (1 + V x) : ℝ≥0) : ℝ) :=
+        ENNReal.ofReal_le_ofReal ((hb x).trans_eq (by push_cast; rfl))
+      _ = _ := ENNReal.ofReal_coe_nnreal
+  rw [Measure.lintegral_bind (Kernel.aemeasurable _) hF.aemeasurable]
+  refine (lintegral_mono hx).trans_eq ?_
+  simp only [ENNReal.coe_mul, ENNReal.coe_add, ENNReal.coe_one, ENNReal.coe_natCast]
+  have hm : Measurable fun a : X ↦ (1 : ℝ≥0∞) + V a :=
+    measurable_const.add hV.coe_nnreal_ennreal
+  rw [lintegral_const_mul _ hm, lintegral_add_left measurable_const, lintegral_one]
 
 /-- **The strong law of large numbers for Harris chains, from every point**: under the drift and
 the minorization of `P ^ m` on `{V ≤ R}` (`α > 0`, `K + γ R < R`), for an invariant law `π` and a
@@ -635,6 +690,203 @@ example {ν : Measure Bool} [IsProbabilityMeasure ν] {α : ℝ≥0} (hα : 0 < 
   ⟨fun _ ↦ by simp, by norm_num, fun _ _ ↦ by rw [zero_smul]; exact Measure.zero_le _,
     fun h ↦ not_forall_smul_le_id_bool hα
     fun x ↦ by simpa using h x zero_le_one⟩
+
+/-- **A law with the masses `2⁻⁽ʲ⁺¹⁾`**: `∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{x j}` is a probability measure. -/
+theorem _root_.MeasureTheory.isProbabilityMeasure_sum_inv_two_pow_smul_dirac {α : Type*}
+    [MeasurableSpace α] (x : ℕ → α) :
+    IsProbabilityMeasure
+      (Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (x j)) := ⟨by
+  simp only [Measure.sum_apply _ MeasurableSet.univ, Measure.smul_apply, measure_univ,
+    smul_eq_mul, mul_one, ENNReal.inv_pow]
+  rw [ENNReal.tsum_geometric_add_one, ENNReal.one_sub_inv_two, inv_inv]
+  exact ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top⟩
+
+/-- **The descent `x ↦ x - 1` on `ℕ`** with `V x = 2ˣ` has the drift with `γ = 1/2`, `K = 1`,
+the minorization `dirac 0 ≤ P x` on `{V ≤ 3}` (`α = 1`, `m = 1`, and `K + γ R = 5/2 < 3 = R`),
+and the invariant law `dirac 0`. -/
+theorem drift_and_minorization_descent :
+    (∀ x : ℕ, ∫⁻ y, (((2 : ℝ≥0) ^ y : ℝ≥0) : ℝ≥0∞)
+        ∂(deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _) x) ≤
+      (1 / 2 : ℝ≥0) * ((2 : ℝ≥0) ^ x : ℝ≥0) + (1 : ℝ≥0)) ∧
+    (∀ x : ℕ, ((2 : ℝ≥0) ^ x : ℝ≥0) ≤ 3 → (1 : ℝ≥0) • Measure.dirac 0 ≤
+      (deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _) ^ 1) x) ∧
+    Invariant (deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _))
+      (Measure.dirac 0) := by
+  refine ⟨fun x ↦ ?_, fun x hx ↦ ?_, ?_⟩
+  · have h2 : (2 : ℝ≥0) ^ (x - 1) ≤ 1 / 2 * 2 ^ x + 1 := by
+      rcases x with _ | x
+      · rw [Nat.zero_sub, pow_zero, mul_one]
+        exact le_add_self
+      · rw [Nat.add_sub_cancel, pow_succ, mul_comm (1 / 2 : ℝ≥0), mul_assoc,
+          mul_one_div_cancel two_ne_zero, mul_one]
+        exact le_self_add
+    rw [deterministic_apply, lintegral_dirac]
+    exact_mod_cast h2
+  · have h4 (hc : 1 < x) : (4 : ℝ≥0) ≤ 2 ^ x :=
+      (pow_le_pow_right₀ one_le_two (Nat.succ_le_of_lt hc)).trans_eq' (by norm_num)
+    have hx1 : x ≤ 1 := not_lt.1 fun hc ↦ absurd ((h4 hc).trans hx) (by norm_num)
+    rw [pow_one, deterministic_apply, one_smul, (by omega : x - 1 = 0)]
+  · simp [Invariant, Measure.dirac_bind (Kernel.measurable _), deterministic_apply]
+
+/-- **A law with no moment**: `V x = 2ˣ` is not integrable under `∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{4ʲ}`. -/
+theorem lintegral_two_pow_sum_inv_two_pow_smul_dirac :
+    ∫⁻ x, (((2 : ℝ≥0) ^ x : ℝ≥0) : ℝ≥0∞)
+      ∂(Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j)) = ∞ := by
+  rw [lintegral_sum_measure]
+  refine top_unique ((ENNReal.tsum_const_eq_top_of_ne_zero one_ne_zero).symm.trans_le
+    (ENNReal.tsum_le_tsum fun j ↦ ?_))
+  rw [lintegral_smul_measure, lintegral_dirac, smul_eq_mul]
+  have hj : j + 1 ≤ 4 ^ j := Nat.lt_pow_self (by norm_num)
+  have hle : (2 : ℝ≥0∞) ^ (j + 1) ≤ (((2 : ℝ≥0) ^ 4 ^ j : ℝ≥0) : ℝ≥0∞) := by
+    rw [ENNReal.coe_pow]
+    exact pow_le_pow_right₀ (by norm_num) hj
+  calc (1 : ℝ≥0∞) = ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ * (2 : ℝ≥0∞) ^ (j + 1) :=
+        (ENNReal.inv_mul_cancel (pow_ne_zero _ two_ne_zero)
+          (ENNReal.pow_ne_top ENNReal.ofNat_ne_top)).symm
+    _ ≤ _ := by gcongr
+
+/-- **The centered sums of the descent grow linearly before it lands**: from `x ≥ n`, with the
+invariant law `dirac 0` and `g = 1_{≠ 0}`, every centered summand before time `n` is `1`, so
+`∫ (∑_{k < n} (g (ω k) - ∫ g ∂(dirac 0)))² ∂(P.chain x) = n²`. -/
+theorem integral_sq_sum_sub_chain_descent {n x : ℕ} (hnx : n ≤ x) :
+    ∫ ω, (∑ k ∈ range n, ((if ω k = 0 then (0 : ℝ) else 1) -
+      ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0)) ^ 2
+        ∂((deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _)).chain x) =
+      (n : ℝ) ^ 2 := by
+  have h0 : ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0 = 0 := by simp
+  have hit (k : ℕ) : (fun y : ℕ ↦ y - 1)^[k] x = x - k := Nat.pred_iterate x k
+  have hs : ∑ k ∈ range n, (if x - k = 0 then (0 : ℝ) else 1) = n := by
+    rw [sum_congr rfl fun k hk ↦ ite_eq_right
+      (Nat.sub_ne_zero_of_lt ((mem_range.1 hk).trans_le hnx))]
+    simp
+  rw [integral_congr_ae (g := fun _ ↦ (n : ℝ) ^ 2)]
+  · simp
+  filter_upwards [ae_forall_eq_iterate_chain_deterministic
+    (measurable_of_countable (fun x : ℕ ↦ x - 1)) x] with ω hω
+  simp only [h0, hω, hit, sub_zero, hs]
+
+/-- **The second moments from a law with no moment**: for the descent on `ℕ` started at
+`∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{4ʲ}`, with `π = dirac 0` and `g = 1_{≠ 0}`, the second moment of the centered sum
+at `n = 4ᴶ` is at least `2⁻⁽ᴶ⁺¹⁾ n² = n 2ᴶ / 2`: the mass at `4ᴶ` has not landed. -/
+theorem le_integral_sq_sum_sub_chain_descent_comp (J : ℕ) :
+    (4 : ℝ) ^ J * (2 ^ J / 2) ≤
+      ∫ ω, (∑ k ∈ range (4 ^ J), ((if ω k = 0 then (0 : ℝ) else 1) -
+        ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0)) ^ 2
+          ∂((deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _)).chain ∘ₘ
+            Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j)) := by
+  have := isProbabilityMeasure_sum_inv_two_pow_smul_dirac fun j : ℕ ↦ 4 ^ j
+  have h0 : ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0 = 0 := by simp
+  have hfm : Measurable fun ω : ℕ → ℕ ↦ (∑ k ∈ range (4 ^ J), ((if ω k = 0 then (0 : ℝ) else 1) -
+      ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0)) ^ 2 :=
+    (Finset.measurable_sum _ fun k _ ↦ ((measurable_of_countable fun y : ℕ ↦
+      if y = 0 then (0 : ℝ) else 1).comp (measurable_pi_apply k)).sub measurable_const).pow_const 2
+  have hbd (ω : ℕ → ℕ) : ‖(∑ k ∈ range (4 ^ J), ((if ω k = 0 then (0 : ℝ) else 1) -
+      ∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0)) ^ 2‖ ≤ ((4 ^ J : ℕ) : ℝ) ^ 2 := by
+    rw [h0, Real.norm_of_nonneg (sq_nonneg _)]
+    exact pow_le_pow_left₀ (sum_nonneg fun k _ ↦ by split_ifs <;> norm_num)
+      ((sum_le_sum (g := fun _ ↦ (1 : ℝ)) fun k _ ↦ by split_ifs <;> norm_num).trans_eq
+        (by simp)) 2
+  have hle : (deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _)).chain ∘ₘ
+      (((2 : ℝ≥0∞) ^ (J + 1))⁻¹ • Measure.dirac (4 ^ J)) ≤
+      (deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _)).chain ∘ₘ
+        Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j) := by
+    refine Measure.le_intro fun s hs _ ↦ ?_
+    rw [Measure.bind_apply hs (Kernel.aemeasurable _),
+      Measure.bind_apply hs (Kernel.aemeasurable _)]
+    exact lintegral_mono' (Measure.le_sum
+      (fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j)) J) le_rfl
+  refine le_trans (le_of_eq ?_) (integral_mono_measure hle (ae_of_all _ fun _ ↦ sq_nonneg _)
+    ((integrable_const _).mono' hfm.aestronglyMeasurable (ae_of_all _ hbd)))
+  rw [Measure.comp_smul, Measure.dirac_bind (Kernel.measurable _), integral_smul_measure,
+    integral_sq_sum_sub_chain_descent le_rfl]
+  simp only [ENNReal.toReal_inv, ENNReal.toReal_pow, ENNReal.toReal_ofNat, smul_eq_mul,
+    Nat.cast_pow, Nat.cast_ofNat]
+  rw [show (4 : ℝ) ^ J = 2 ^ J * 2 ^ J by rw [← mul_pow]; norm_num, pow_succ]
+  field_simp
+
+/-- **The moment of the initial law is forced in the variance growth**: the statement of
+`exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow` at `X = ℕ` with the hypothesis
+`∫⁻ x, V x ∂μ ≠ ∞` left out, and nothing else changed, is false. -/
+theorem not_exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow_nat :
+    ¬ (∀ (P : Kernel ℕ ℕ) [IsMarkovKernel P] (V : ℕ → ℝ≥0) (γ K : ℝ≥0), Measurable V →
+    (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) → ∀ (ν : Measure ℕ) [IsProbabilityMeasure ν]
+    (α R : ℝ≥0) (m : ℕ), 0 < α → K + γ * R < R → (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ π : Measure ℕ, IsProbabilityMeasure π → Invariant P π →
+      ∀ μ : Measure ℕ, IsProbabilityMeasure μ →
+      ∀ g : ℕ → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) → ∀ n : ℕ,
+        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ) ≤
+          C * M * n * (1 + ∫ x, (V x : ℝ) ∂μ)) := by
+  intro h
+  obtain ⟨hd, hm, hinv⟩ := drift_and_minorization_descent
+  obtain ⟨C, -, hC⟩ := h (deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _))
+    (fun x ↦ 2 ^ x) (1 / 2) 1 (measurable_of_countable _) hd (Measure.dirac 0) 1 3 1 one_pos
+    (by norm_num) hm
+  obtain ⟨J, hJ⟩ := exists_nat_gt (2 * C)
+  have hJ2 : 2 * C < (2 : ℝ) ^ J := hJ.trans (by exact_mod_cast Nat.lt_two_pow_self)
+  have hV0 : ∫ x, (((2 : ℝ≥0) ^ x : ℝ≥0) : ℝ)
+      ∂(Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j)) = 0 :=
+    integral_undef fun hi ↦ (lt_top_iff_ne_top.1 (by
+      simpa only [ENNReal.ofReal_coe_nnreal] using hi.lintegral_lt_top))
+        lintegral_two_pow_sum_inv_two_pow_smul_dirac
+  have hb := (le_integral_sq_sum_sub_chain_descent_comp J).trans (hC (Measure.dirac 0)
+    inferInstance hinv (Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j))
+    (isProbabilityMeasure_sum_inv_two_pow_smul_dirac fun j : ℕ ↦ 4 ^ j)
+    (fun y ↦ if y = 0 then 0 else 1) (measurable_of_countable _) 1
+    (fun x ↦ by by_cases hx : x = 0 <;> simp [hx]) (4 ^ J))
+  rw [hV0] at hb
+  push_cast at hb
+  nlinarith [(by positivity : (0 : ℝ) < 4 ^ J)]
+
+/-- **The moment of the initial law is forced in the asymptotic variance**: the statement of
+`tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow` at `X = ℕ` with the hypothesis
+`∫⁻ x, V x ∂μ ≠ ∞` left out, and nothing else changed, is false: for the descent on `ℕ` the
+normalized second moments are unbounded along `n = 4ᴶ`. -/
+theorem not_tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow_nat :
+    ¬ (∀ (P : Kernel ℕ ℕ) [IsMarkovKernel P] (V : ℕ → ℝ≥0) (γ K : ℝ≥0), Measurable V →
+    (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) → ∀ (ν : Measure ℕ) [IsProbabilityMeasure ν]
+    (α R : ℝ≥0) (m : ℕ), 0 < α → K + γ * R < R → (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∀ (π : Measure ℕ) [IsProbabilityMeasure π], Invariant P π →
+    ∀ (μ : Measure ℕ) [IsProbabilityMeasure μ] (g : ℕ → ℝ), Measurable g → ∀ M : ℝ,
+    (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    Summable (fun l ↦ cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω l); P.chain ∘ₘ π]) ∧
+      Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
+        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
+        (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
+          2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π]))) := by
+  intro h
+  have := isProbabilityMeasure_sum_inv_two_pow_smul_dirac fun j : ℕ ↦ 4 ^ j
+  obtain ⟨hd, hm, hinv⟩ := drift_and_minorization_descent
+  obtain ⟨B, hB⟩ := (h (deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _))
+    (fun x ↦ 2 ^ x) (1 / 2) 1 (measurable_of_countable _) hd
+    (Measure.dirac 0) 1 3 1 one_pos (by norm_num) hm (Measure.dirac 0) hinv
+    (Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j))
+    (fun y ↦ if y = 0 then 0 else 1) (measurable_of_countable _) 1
+    (fun x ↦ by by_cases hx : x = 0 <;> simp [hx])).2.bddAbove_range
+  obtain ⟨J, hJ⟩ := exists_nat_gt (2 * B)
+  have hJ2 : 2 * B < (2 : ℝ) ^ J := hJ.trans (by exact_mod_cast Nat.lt_two_pow_self)
+  have hb := hB ⟨4 ^ J, rfl⟩
+  have h4 : (0 : ℝ) < 4 ^ J := by positivity
+  have hl : 2 ^ J / 2 ≤ ((4 ^ J : ℕ) : ℝ)⁻¹ * ∫ ω, (∑ k ∈ range (4 ^ J),
+      ((if ω k = 0 then (0 : ℝ) else 1) - ∫ y, (if y = 0 then (0 : ℝ) else 1)
+        ∂Measure.dirac 0)) ^ 2 ∂((deterministic (fun x : ℕ ↦ x - 1)
+          (measurable_of_countable _)).chain ∘ₘ
+            Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j)) := by
+    push_cast
+    rw [le_inv_mul_iff₀ h4]
+    exact le_integral_sq_sum_sub_chain_descent_comp J
+  simp only at hb
+  linarith
+
+/-- **The strong law needs no moment of the initial law**: for the descent on `ℕ` started at
+`∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{4ʲ}`, the fraction of time spent off `0` tends to `0`. -/
+example : ∀ᵐ ω ∂((deterministic (fun x : ℕ ↦ x - 1) (measurable_of_countable _)).chain ∘ₘ
+      Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j)),
+    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, (if ω k = 0 then (0 : ℝ) else 1)) atTop
+      (𝓝 (∫ y, (if y = 0 then (0 : ℝ) else 1) ∂Measure.dirac 0)) :=
+  ae_tendsto_inv_mul_sum_chain_comp_of_drift_of_minorization_pow (V := fun x ↦ 2 ^ x)
+    (measurable_of_countable _) drift_and_minorization_descent.1 one_pos (by norm_num)
+    drift_and_minorization_descent.2.1 drift_and_minorization_descent.2.2
+    (measurable_of_countable _) (M := 1) (fun x ↦ by by_cases hx : x = 0 <;> simp [hx]) _
 
 /-- **The hypotheses hold together: the halving chain** of `drift_and_minorization_of_halving`
 (`V n = n`, `γ = K = 1/2`, the minorization `(1/2) • dirac 1 ≤ P x` on `{V ≤ 3}`) has the invariant
