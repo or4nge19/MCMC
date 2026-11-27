@@ -16,9 +16,10 @@ Both are instances of `ProbabilityTheory.Kernel.isReversible_acceptReject_min_on
 reversible for a reference measure `μ`, the acceptance `min 1 (f y / f x)`, and the target
 `μ.withDensity f`.
 
-* `isReversible_randomWalkMetropolis`: on `ℝ` with Lebesgue measure as reference (not finite) and
-  Gaussian increments, for every measurable density `f` finite almost everywhere. No integrability
-  of `f` is needed.
+* `isReversible_randomWalkMetropolis`: on a group with a right-invariant reference measure `μ`
+  (Lebesgue measure on `ℝⁿ`, not finite; the counting measure on `ℤ`) and increments of any
+  symmetric law, for every measurable density `f` finite `μ`-almost everywhere; on `ℝ` with
+  Gaussian increments it is an `example`. No integrability of `f` is needed.
 * `isReversible_pCN`: on a separable Banach space with a centered Gaussian reference `μ₀`, the
   proposal `cos θ • x + sin θ • W`, `W ∼ μ₀`, and the acceptance `min 1 (exp (Φ x - Φ y))` for the
   target `μ₀.withDensity (exp (-Φ))`, for every measurable potential `Φ`.
@@ -36,15 +37,31 @@ open scoped ENNReal NNReal ProbabilityTheory
 
 namespace ProbabilityTheory
 
-/-- **Random-walk Metropolis** on `ℝ` with increments `N(0, v)` is reversible for
+section RandomWalk
+
+variable {G : Type*} [AddGroup G] [MeasurableSpace G] [MeasurableAdd₂ G] [MeasurableNeg G]
+
+/-- **Random-walk Metropolis** is reversible: on a group with an s-finite right-invariant
+reference measure `μ` and increments of a symmetric law `ν`, the kernel with acceptance
+`min 1 (f y / f x)` is reversible for `μ.withDensity f`, for every measurable `f` finite
+`μ`-almost everywhere. -/
+theorem isReversible_randomWalkMetropolis {μ ν : Measure G} [SFinite μ] [SFinite ν]
+    [μ.IsAddRightInvariant] (hν : ν.map Neg.neg = ν) {f : G → ℝ≥0∞} (hf : Measurable f)
+    (hf_top : ∀ᵐ x ∂μ, f x ≠ ∞) :
+    (Kernel.acceptReject ((Kernel.id ×ₖ Kernel.const G ν).map fun p : G × G ↦ p.1 + p.2)
+      fun x y ↦ min 1 (f y / f x)).IsReversible (μ.withDensity f) :=
+  Kernel.isReversible_acceptReject_min_one_div (Kernel.isReversible_map_add_of_map_neg hν) hf
+    hf_top
+
+end RandomWalk
+
+/-- Random-walk Metropolis on `ℝ` with increments `N(0, v)` is reversible for
 `volume.withDensity f`, for every measurable `f` finite almost everywhere. -/
-theorem isReversible_randomWalkMetropolis (v : ℝ≥0) {f : ℝ → ℝ≥0∞} (hf : Measurable f)
-    (hf_top : ∀ᵐ x, f x ≠ ∞) :
+example (v : ℝ≥0) {f : ℝ → ℝ≥0∞} (hf : Measurable f) (hf_top : ∀ᵐ x, f x ≠ ∞) :
     (Kernel.acceptReject ((Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map
       fun p : ℝ × ℝ ↦ p.1 + p.2) fun x y ↦ min 1 (f y / f x)).IsReversible (volume.withDensity f) :=
-  Kernel.isReversible_acceptReject_min_one_div
-    (Kernel.isReversible_map_add_of_map_neg (by simpa using gaussianReal_map_neg (μ := 0) (v := v)))
-    hf hf_top
+  isReversible_randomWalkMetropolis (by simpa using gaussianReal_map_neg (μ := 0) (v := v)) hf
+    hf_top
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E]
   [SecondCountableTopology E] [CompleteSpace E]
@@ -93,7 +110,8 @@ example (hf : Measurable f) (hf_top : ∀ᵐ x, f x ≠ ∞) :
   have := SigmaFinite.withDensity_of_ne_top hf_top
   refine (Kernel.isReversible_acceptReject_iff_map_swap
     (measurable_const.min ((hf.comp measurable_snd).div (hf.comp measurable_fst)))
-    (ae_of_all _ fun x ↦ ?_)).1 (isReversible_randomWalkMetropolis v hf hf_top)
+    (ae_of_all _ fun x ↦ ?_)).1 (isReversible_randomWalkMetropolis
+      (by simpa using gaussianReal_map_neg (μ := 0) (v := v)) hf hf_top)
   exact ((lintegral_mono fun _ ↦ min_le_left _ _).trans_lt (by simp)).ne
 
 /-- Maximality for random-walk Metropolis: its acceptance is at most the Metropolis–Hastings
@@ -107,7 +125,8 @@ example (hf : Measurable f) (hf_top : ∀ᵐ x, f x ≠ ∞) :
   exact Kernel.ae_le_mhAcceptance_of_isReversible_acceptReject
     (ae_of_all _ fun _ ↦ measure_ne_top _ _)
     (measurable_const.min ((hf.comp measurable_snd).div (hf.comp measurable_fst)))
-    (ae_of_all _ fun _ ↦ min_le_left _ _) (isReversible_randomWalkMetropolis v hf hf_top)
+    (ae_of_all _ fun _ ↦ min_le_left _ _) (isReversible_randomWalkMetropolis
+      (by simpa using gaussianReal_map_neg (μ := 0) (v := v)) hf hf_top)
 
 /-- The Metropolis–Hastings kernel of the random-walk proposal for `volume.withDensity f` is
 reversible. -/

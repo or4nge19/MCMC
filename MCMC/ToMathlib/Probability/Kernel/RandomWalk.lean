@@ -12,10 +12,12 @@ public import MCMC.ToMathlib.Probability.Kernel.Reversible
 /-!
 # Random walks with symmetric increments are reversible for invariant measures
 
-On a commutative group, the random walk `x ↦ law of x + W`, `W ∼ ν`, is `μ`-reversible for every
-s-finite translation-invariant measure `μ` (Lebesgue measure on `ℝⁿ`, a Haar measure, the counting
-measure on `ℤ`) when the increment law is symmetric, `ν.map Neg.neg = ν`. The measure `μ` need not
-be finite; this is the proposal of the random-walk Metropolis algorithm.
+On a group, the random walk `x ↦ law of x * W`, `W ∼ ν`, is `μ`-reversible for every s-finite
+right-invariant measure `μ` (Lebesgue measure on `ℝⁿ`, a Haar measure on a unimodular group, the
+counting measure on `ℤ`) when the increment law is symmetric, `ν.map Inv.inv = ν`; the additive
+statement is `ProbabilityTheory.Kernel.isReversible_map_add_of_map_neg`. The measure `μ` need not
+be finite; this is the proposal of the random-walk Metropolis algorithm. Both hypotheses are
+needed (`not_isReversible_map_add_dirac_one`, `not_isReversible_map_add_dirac_zero`).
 
 Staged for `Mathlib/Probability/Kernel/RandomWalk.lean` (new file). Searched on 2026-11-26 in the
 pinned Mathlib: `grep -rn "IsReversible" Mathlib` finds only `Probability/Kernel/Invariance.lean`;
@@ -29,33 +31,33 @@ open scoped ProbabilityTheory
 
 namespace ProbabilityTheory.Kernel
 
-variable {G : Type*} [AddCommGroup G] [MeasurableSpace G] [MeasurableAdd₂ G] [MeasurableNeg G]
-
-/-- **A random walk with symmetric increments is reversible** for every s-finite
-translation-invariant measure. -/
-theorem isReversible_map_add_of_map_neg {μ ν : Measure G} [SFinite μ] [SFinite ν]
-    [μ.IsAddLeftInvariant] (hν : ν.map Neg.neg = ν) :
-    ((Kernel.id ×ₖ Kernel.const G ν).map fun p : G × G ↦ p.1 + p.2).IsReversible μ := by
-  have hL : Measurable fun p : G × G ↦ (p.1, p.1 + p.2) := by fun_prop
-  have hM : (μ.prod ν).map (Prod.map id Neg.neg ∘ Prod.swap ∘ (fun z : G × G ↦ (z.1, z.1 + z.2)) ∘
-      Prod.swap) = μ.prod ν := by
-    rw [← Measure.map_map (by fun_prop) (by fun_prop), ← Measure.map_map (by fun_prop)
-        (by fun_prop), ← Measure.map_map (by fun_prop) (by fun_prop), Measure.prod_swap,
-      (measurePreserving_prod_add ν μ).map_eq, Measure.prod_swap,
-      ← Measure.map_prod_map _ _ measurable_id measurable_neg, Measure.map_id, hν]
-  have hF : Measurable (Function.uncurry fun x w : G ↦ x + w) := measurable_add
+/-- **A random walk with symmetric increments is reversible** for every s-finite right-invariant
+measure: the kernel `x ↦ law of x * W`, `W ∼ ν` with `ν.map Inv.inv = ν`, is `μ`-reversible. -/
+@[to_additive /-- **A random walk with symmetric increments is reversible** for every s-finite
+right-invariant measure: the kernel `x ↦ law of x + W`, `W ∼ ν` with `ν.map Neg.neg = ν`, is
+`μ`-reversible. -/]
+theorem isReversible_map_mul_of_map_inv {G : Type*} [Group G] [MeasurableSpace G]
+    [MeasurableMul₂ G] [MeasurableInv G] {μ ν : Measure G} [SFinite μ] [SFinite ν]
+    [μ.IsMulRightInvariant] (hν : ν.map Inv.inv = ν) :
+    ((Kernel.id ×ₖ Kernel.const G ν).map fun p : G × G ↦ p.1 * p.2).IsReversible μ := by
+  have hF : Measurable (Function.uncurry fun x w : G ↦ x * w) := measurable_mul
+  have hL : Measurable fun p : G × G ↦ (p.1, p.1 * p.2) := by fun_prop
+  have hM : (μ.prod ν).map (Prod.map id Inv.inv ∘ fun z : G × G ↦ (z.1 * z.2, z.2)) =
+      μ.prod ν := by
+    rw [← Measure.map_map (by fun_prop) (by fun_prop), (measurePreserving_mul_prod μ ν).map_eq,
+      ← Measure.map_prod_map _ _ measurable_id measurable_inv, Measure.map_id, hν]
   refine IsReversible.of_map_swap_compProd ?_
   rw [Measure.compProd_eq_map_prod (Q := (Kernel.id ×ₖ Kernel.const G ν).map
-      fun p : G × G ↦ p.1 + p.2) hF (Kernel.map_prod_const_apply hF ν) μ,
+      fun p : G × G ↦ p.1 * p.2) hF (Kernel.map_prod_const_apply hF ν) μ,
     Measure.map_map measurable_swap hL]
-  calc (μ.prod ν).map (Prod.swap ∘ fun p : G × G ↦ (p.1, p.1 + p.2))
-      = ((μ.prod ν).map (Prod.map id Neg.neg ∘ Prod.swap ∘ (fun z : G × G ↦ (z.1, z.1 + z.2)) ∘
-          Prod.swap)).map fun p : G × G ↦ (p.1, p.1 + p.2) := by
+  calc (μ.prod ν).map (Prod.swap ∘ fun p : G × G ↦ (p.1, p.1 * p.2))
+      = ((μ.prod ν).map (Prod.map id Inv.inv ∘ fun z : G × G ↦ (z.1 * z.2, z.2))).map
+          fun p : G × G ↦ (p.1, p.1 * p.2) := by
         rw [Measure.map_map hL (by fun_prop)]
         congr 1
         funext p
-        simp [add_comm p.2 p.1]
-    _ = (μ.prod ν).map fun p : G × G ↦ (p.1, p.1 + p.2) := by rw [hM]
+        simp
+    _ = (μ.prod ν).map fun p : G × G ↦ (p.1, p.1 * p.2) := by rw [hM]
 
 /-- Symmetry of the increments is needed in `isReversible_map_add_of_map_neg`: the walk
 `x ↦ x + 1` on `ℤ` is not reversible for the counting measure. -/
