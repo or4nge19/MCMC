@@ -70,6 +70,12 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
 import MCMC.ToMathlib.Analysis.Real.Sqrt
 import MCMC.ToMathlib.Analysis.SpecificLimits.FloorPow
 import MCMC.ToMathlib.Analysis.Subadditive
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.Ergodic
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.Examples
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.LpConvergence
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.MaximalErgodic
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.Pointwise
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.Stationary
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
 import MCMC.ToMathlib.MeasureTheory.Function.L2Space
 import MCMC.ToMathlib.MeasureTheory.Function.LpOrder
