@@ -35,6 +35,7 @@ import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Stochastic
 import MCMC.PF.LinearAlgebra.Matrix.PerronFrobenius.Uniqueness
 import MCMC.PF.LinearAlgebra.Matrix.Spectrum
 import MCMC.PF.Topology.Compactness.ExtremeValueUSC
+import MCMC.Samplers.Independent
 import MCMC.Samplers.Metropolis
 import MCMC.ToMathlib.Analysis.CStarAlgebra.PositiveLinearMap
 import MCMC.ToMathlib.Analysis.CStarAlgebra.SelfAdjoint
@@ -68,6 +69,7 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.OrderBounded
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
 import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
 import MCMC.ToMathlib.Analysis.Subadditive
+import MCMC.ToMathlib.Dynamics.Ergodic.Ergodic
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
 import MCMC.ToMathlib.MeasureTheory.Function.LpOrder
 import MCMC.ToMathlib.MeasureTheory.Integral.Lebesgue.Basic
