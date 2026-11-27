@@ -62,9 +62,10 @@ theorem uniformIntegrable_birkhoffAverage [IsFiniteMeasure μ] (hf : MeasurePres
     hφ.aestronglyMeasurable.aemeasurable.comp_quasiMeasurePreserving
       (hf.iterate k).quasiMeasurePreserving
   have hUI : UniformIntegrable (fun k ↦ φ ∘ f^[k]) p μ :=
-    ProbabilityTheory.MemLp.uniformIntegrable_of_identDistrib (j := 0) hp hp' hφ fun k ↦ ⟨hm k, hm 0, by
-      rw [← AEMeasurable.map_map_of_aemeasurable (by rw [(hf.iterate k).map_eq]; exact hm 0)
-        (hf.iterate k).aemeasurable, (hf.iterate k).map_eq]; rfl⟩
+    ProbabilityTheory.MemLp.uniformIntegrable_of_identDistrib (j := 0) hp hp' hφ fun k ↦
+      ⟨hm k, hm 0, by
+        rw [← AEMeasurable.map_map_of_aemeasurable (by rw [(hf.iterate k).map_eq]; exact hm 0)
+          (hf.iterate k).aemeasurable, (hf.iterate k).map_eq]; rfl⟩
   have heq : (fun n : ℕ ↦ (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, φ ∘ f^[i]) =
       fun n ↦ birkhoffAverage ℝ f φ n := by
     ext n x
