@@ -23,7 +23,8 @@ positivity is involved.
 
 ## Main statements
 
-* `isMarkovKernel_acceptReject_iff`: the kernel is Markov iff the accepted mass is at most `1`.
+* `isMarkovKernel_acceptReject_iff`: the kernel is Markov iff the accepted mass is at most `1`;
+  `acceptReject_of_not_measurable`: for a non-measurable acceptance it is `Kernel.id`.
 * `isReversible_acceptReject_iff`: for every measure `π`, the kernel is `π`-reversible iff its
   accepted part `Q.withDensity a` is.
 * `isReversible_acceptReject_iff_map_swap`: for σ-finite `π` and accepted mass finite
@@ -58,49 +59,64 @@ variable {X : Type*} {mX : MeasurableSpace X} {Q : Kernel X X} {π μ : Measure 
   {a : X → X → ℝ≥0∞}
 
 /-- The accept–reject kernel of the proposal `Q` and the acceptance `a`: propose `y ∼ Q x`,
-accept it with probability `a x y`, otherwise stay at `x`. When `Function.uncurry a` is not
-measurable, `Q.withDensity a` is `0` by convention. -/
+accept it with probability `a x y`, otherwise stay at `x`. The rejected mass is read off the
+accepted part `Q.withDensity a`; when `Function.uncurry a` is not measurable, `Q.withDensity a` is
+`0` by convention and the kernel is `Kernel.id` (`acceptReject_of_not_measurable`). -/
 noncomputable def acceptReject (Q : Kernel X X) [IsSFiniteKernel Q] (a : X → X → ℝ≥0∞) :
     Kernel X X :=
-  Q.withDensity a + Kernel.id.withDensity fun x _ ↦ 1 - ∫⁻ y, a x y ∂Q x
+  Q.withDensity a + Kernel.id.withDensity fun x _ ↦ 1 - Q.withDensity a x univ
 
 instance isSFiniteKernel_acceptReject [IsSFiniteKernel Q] :
     IsSFiniteKernel (acceptReject Q a) := by
   rw [acceptReject]
   infer_instance
 
-/-- The accept–reject kernel at `x` is the accepted part of the proposal plus the rejected mass
-at `x`. -/
+/-- The accept–reject kernel at `x` is the accepted part plus the rejected mass at `x`. -/
+theorem acceptReject_apply' [IsSFiniteKernel Q] (x : X) :
+    acceptReject Q a x =
+      Q.withDensity a x + (1 - Q.withDensity a x univ) • Measure.dirac x := by
+  have hr : Measurable (Function.uncurry fun x (_ : X) ↦ 1 - Q.withDensity a x univ) :=
+    (measurable_const.sub ((Q.withDensity a).measurable_coe .univ)).comp measurable_fst
+  rw [acceptReject, add_apply, Kernel.withDensity_apply _ hr, Kernel.id_apply,
+    withDensity_const]
+
+/-- For a measurable acceptance, the accept–reject kernel at `x` is the accepted part of the
+proposal plus the rejected mass at `x`. -/
 theorem acceptReject_apply [IsSFiniteKernel Q] (ha : Measurable (Function.uncurry a)) (x : X) :
     acceptReject Q a x = (Q x).withDensity (a x) + (1 - ∫⁻ y, a x y ∂Q x) • Measure.dirac x := by
-  have hr : Measurable (Function.uncurry fun x (_ : X) ↦ 1 - ∫⁻ y, a x y ∂Q x) :=
-    (measurable_const.sub ha.lintegral_kernel_prod_right).comp measurable_fst
-  rw [acceptReject, add_apply, Kernel.withDensity_apply _ ha, Kernel.withDensity_apply _ hr,
-    id_apply, withDensity_const]
+  rw [acceptReject_apply', Kernel.withDensity_apply _ ha, withDensity_apply _ .univ,
+    Measure.restrict_univ]
 
-/-- The accept–reject kernel is Markov iff the accepted mass `∫⁻ y, a x y ∂Q x` is at most `1` at
-every point. -/
-theorem isMarkovKernel_acceptReject_iff [IsSFiniteKernel Q]
-    (ha : Measurable (Function.uncurry a)) :
-    IsMarkovKernel (acceptReject Q a) ↔ ∀ x, ∫⁻ y, a x y ∂Q x ≤ 1 := by
-  have h : ∀ x, acceptReject Q a x univ = ∫⁻ y, a x y ∂Q x + (1 - ∫⁻ y, a x y ∂Q x) := fun x ↦ by
-    rw [acceptReject_apply ha, Measure.add_apply, withDensity_apply _ .univ,
-      Measure.restrict_univ, Measure.smul_apply, measure_univ, smul_eq_mul, mul_one]
+/-- For a non-measurable acceptance, the accept–reject kernel is the identity. -/
+theorem acceptReject_of_not_measurable [IsSFiniteKernel Q]
+    (ha : ¬ Measurable (Function.uncurry a)) : acceptReject Q a = Kernel.id := by
+  ext x : 1
+  rw [acceptReject_apply', Kernel.withDensity_of_not_measurable _ ha]
+  simp [Kernel.id_apply]
+
+/-- The accept–reject kernel is Markov iff the accepted mass is at most `1` at every point. -/
+theorem isMarkovKernel_acceptReject_iff [IsSFiniteKernel Q] :
+    IsMarkovKernel (acceptReject Q a) ↔ ∀ x, Q.withDensity a x univ ≤ 1 := by
+  have h : ∀ x, acceptReject Q a x univ =
+      Q.withDensity a x univ + (1 - Q.withDensity a x univ) := fun x ↦ by
+    rw [acceptReject_apply', Measure.add_apply, Measure.smul_apply,
+      (measure_univ : Measure.dirac x univ = 1), smul_eq_mul, mul_one]
   refine ⟨fun hP x ↦ ?_, fun h1 ↦ ⟨fun x ↦ ⟨by rw [h, add_tsub_cancel_of_le (h1 x)]⟩⟩⟩
-  calc ∫⁻ y, a x y ∂Q x ≤ ∫⁻ y, a x y ∂Q x + (1 - ∫⁻ y, a x y ∂Q x) := le_self_add
+  calc Q.withDensity a x univ ≤ Q.withDensity a x univ + (1 - Q.withDensity a x univ) :=
+        le_self_add
     _ = 1 := by rw [← h, measure_univ]
 
 /-- An accept–reject kernel is `π`-reversible iff its accepted part `Q.withDensity a` is: the
-rejected mass stays at its point and never moves between disjoint sets. No finiteness is assumed
-on `π`, `Q` or `a`. -/
-theorem isReversible_acceptReject_iff [IsSFiniteKernel Q] (ha : Measurable (Function.uncurry a)) :
+rejected mass stays at its point and never moves between disjoint sets. No finiteness and no
+measurability is assumed. -/
+theorem isReversible_acceptReject_iff [IsSFiniteKernel Q] :
     (acceptReject Q a).IsReversible π ↔ (Q.withDensity a).IsReversible π := by
   have h : ∀ ⦃s t : Set X⦄, MeasurableSet s → MeasurableSet t → Disjoint s t →
       ∫⁻ x in s, acceptReject Q a x t ∂π = ∫⁻ x in s, Q.withDensity a x t ∂π :=
     fun s t hs ht hst ↦ setLIntegral_congr_fun hs fun x hx ↦ by
-      rw [acceptReject_apply ha, Measure.add_apply, Kernel.withDensity_apply _ ha,
-        Measure.smul_apply, Measure.dirac_apply' _ ht,
-        indicator_of_notMem (disjoint_left.1 hst hx), smul_zero, add_zero]
+      rw [acceptReject_apply', Measure.add_apply, Measure.smul_apply,
+        Measure.dirac_apply' _ ht, indicator_of_notMem (disjoint_left.1 hst hx), smul_zero,
+        add_zero]
   rw [isReversible_iff_forall_disjoint, isReversible_iff_forall_disjoint]
   refine ⟨fun H s t hs ht hst ↦ ?_, fun H s t hs ht hst ↦ ?_⟩
   · rw [← h hs ht hst, ← h ht hs hst.symm]
@@ -119,7 +135,7 @@ theorem isReversible_acceptReject_iff_map_swap [IsSFiniteKernel Q] [SigmaFinite 
   have hκ : ∀ᵐ x ∂π, Q.withDensity a x univ ≠ ∞ := by
     filter_upwards [ha_fin] with x hx
     rwa [Kernel.withDensity_apply' _ ha, Measure.restrict_univ]
-  exact (isReversible_acceptReject_iff ha).trans
+  exact isReversible_acceptReject_iff.trans
     ((isReversible_iff_map_swap_compProd hκ).trans
       (by rw [Measure.compProd_withDensity ha]; exact Iff.rfl))
 
@@ -131,7 +147,7 @@ theorem exists_isReversible_acceptReject_and_map_swap_ne :
       ((π ⊗ₘ Q).withDensity fun _ ↦ 1).map Prod.swap ≠ (π ⊗ₘ Q).withDensity fun _ ↦ 1 := by
   obtain ⟨ν, Q, hν, hQ, hrev, hne⟩ := exists_isReversible_smul_top_and_map_swap_compProd_ne
   refine ⟨∞ • ν, Q, hQ, inferInstance, ?_, ?_⟩
-  · rw [isReversible_acceptReject_iff measurable_const, withDensity_one']
+  · rw [isReversible_acceptReject_iff, withDensity_one']
     exact hrev
   · rw [withDensity_const, one_smul]
     exact hne
@@ -144,7 +160,7 @@ theorem exists_isReversible_acceptReject_top_and_map_swap_ne :
       ((π ⊗ₘ Q).withDensity fun _ ↦ ∞).map Prod.swap ≠ (π ⊗ₘ Q).withDensity fun _ ↦ ∞ := by
   obtain ⟨π, Q, hQ, hπ, hrev, hne⟩ := exists_isReversible_withDensity_top_and_map_swap_compProd_ne
   rw [Measure.compProd_withDensity measurable_const] at hne
-  exact ⟨π, Q, hQ, hπ, (isReversible_acceptReject_iff measurable_const).2 hrev, hne⟩
+  exact ⟨π, Q, hQ, hπ, (isReversible_acceptReject_iff).2 hrev, hne⟩
 
 /-- The Metropolis–Hastings acceptance of the proposal `Q` for the target `π`: the density of the
 symmetric part `(π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap` of the flow with respect to `π ⊗ₘ Q`,
@@ -164,8 +180,9 @@ theorem _root_.MeasureTheory.Measure.measurable_mhAcceptance (π : Measure X) (Q
 /-- The Metropolis–Hastings kernel of a Markov proposal is Markov. -/
 instance isMarkovKernel_acceptReject_mhAcceptance [IsMarkovKernel Q] :
     IsMarkovKernel (acceptReject Q (π.mhAcceptance Q)) :=
-  (isMarkovKernel_acceptReject_iff (π.measurable_mhAcceptance Q)).2 fun x ↦
-    (lintegral_mono fun y ↦ π.mhAcceptance_le_one Q x y).trans (by simp)
+  isMarkovKernel_acceptReject_iff.2 fun x ↦ by
+    rw [Kernel.withDensity_apply' _ (π.measurable_mhAcceptance Q), Measure.restrict_univ]
+    exact (lintegral_mono fun y ↦ π.mhAcceptance_le_one Q x y).trans (by simp)
 
 /-- The symmetric part of a σ-finite flow has a Lebesgue decomposition with respect to it. -/
 instance haveLebesgueDecomposition_inf_map_swap_compProd [SigmaFinite (π ⊗ₘ Q)] :
@@ -233,7 +250,7 @@ theorem isReversible_acceptReject_of_ae_eq_mhAcceptance [SFinite π] [IsSFiniteK
     (ha : Measurable (Function.uncurry a))
     (h : Function.uncurry a =ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q)) :
     (acceptReject Q a).IsReversible π := by
-  refine (isReversible_acceptReject_iff ha).2 (IsReversible.of_map_swap_compProd ?_)
+  refine isReversible_acceptReject_iff.2 (IsReversible.of_map_swap_compProd ?_)
   rw [Measure.compProd_withDensity ha]
   change ((π ⊗ₘ Q).withDensity (Function.uncurry a)).map Prod.swap =
     (π ⊗ₘ Q).withDensity (Function.uncurry a)
@@ -361,7 +378,7 @@ theorem isReversible_acceptReject_min_one_div [SFinite μ] [IsSFiniteKernel Q]
     rw [Pi.mul_apply, Kernel.withDensity_apply' _ ha, Kernel.withDensity_apply' _ hm,
       ← lintegral_const_mul' _ _ hx]
     simp_rw [hmul x _ hx]
-  refine (isReversible_acceptReject_iff ha).2 fun s t hs ht ↦ ?_
+  refine isReversible_acceptReject_iff.2 fun s t hs ht ↦ ?_
   rw [h hs ht, h ht hs]
   exact hQ.withDensity_min hf hs ht
 
