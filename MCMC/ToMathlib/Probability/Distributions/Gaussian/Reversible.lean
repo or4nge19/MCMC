@@ -25,7 +25,8 @@ followed by `w ↦ -w`.
 * `isReversible_gaussianReal_ar`: the Gaussian AR(1) kernel `x ↦ N(a x, v)` is reversible for its
   stationary law `N(0, v / (1 - a ^ 2))`, `|a| < 1`.
 * `not_isReversible_map_cos_smul_add_sin_smul_gaussianReal_one`: the centering is needed;
-  `not_isReversible_gaussianReal_ar_one`: so is `|a| < 1`.
+  `not_isReversible_dirac_of_not_completeSpace`: so is completeness, with the centering written
+  `μ[id] = 0`; `not_isReversible_gaussianReal_ar_one`: so is `|a| < 1`.
 
 Staged for `Mathlib/Probability/Distributions/Gaussian/Reversible.lean` (new file). Searched on
 2026-11-26 in the pinned Mathlib: `grep -rn "IsReversible" Mathlib` finds only
@@ -109,6 +110,33 @@ theorem not_isReversible_map_cos_smul_add_sin_smul_gaussianReal_one :
   have := congrArg (fun μ : Measure ℝ ↦ ∫ x, x ∂μ) hinv
   simp only [integral_id_gaussianReal] at this
   norm_num at this
+
+/-- Completeness of `E` is needed in `isReversible_map_cos_smul_add_sin_smul` with the centering
+written `μ[id] = 0`: on a space that is not complete the Bochner integral is `0` by convention,
+so every Dirac mass is "centered", and for `x ≠ 0` and `θ = π` the kernel `y ↦ δ_{-y}` is not
+reversible for `δ_x`. -/
+theorem not_isReversible_dirac_of_not_completeSpace [SecondCountableTopology E]
+    (hE : ¬ CompleteSpace E) {x : E} (hx : x ≠ 0) :
+    (Measure.dirac x)[id] = 0 ∧
+      ¬ ((Kernel.id ×ₖ Kernel.const E (Measure.dirac x)).map
+        fun p : E × E ↦ Real.cos Real.pi • p.1 + Real.sin Real.pi • p.2).IsReversible
+          (Measure.dirac x) := by
+  refine ⟨integral_of_not_completeSpace hE, fun h ↦ ?_⟩
+  have hF : Measurable fun p : E × E ↦ Real.cos Real.pi • p.1 + Real.sin Real.pi • p.2 := by
+    fun_prop
+  have hK : ∀ y : E, ((Kernel.id ×ₖ Kernel.const E (Measure.dirac x)).map
+      fun p : E × E ↦ Real.cos Real.pi • p.1 + Real.sin Real.pi • p.2) y =
+        Measure.dirac (-y) := by
+    intro y
+    rw [Kernel.map_apply _ hF, Kernel.prod_apply, Kernel.id_apply, Kernel.const_apply,
+      Measure.dirac_prod_dirac, Measure.map_dirac' hF]
+    simp
+  have hne : x ≠ -x := fun h' ↦ hx ((smul_eq_zero.1 ((two_smul ℝ x).trans
+    (eq_neg_iff_add_eq_zero.1 h'))).resolve_left two_ne_zero)
+  have h1 := h (measurableSet_singleton x) (measurableSet_singleton (-x))
+  simp only [hK] at h1
+  rw [Measure.restrict_singleton, Measure.restrict_singleton] at h1
+  simp [hne] at h1
 
 /-- **The Gaussian AR(1) kernel is reversible.** For `|a| < 1`, the kernel `x ↦ N(a x, v)` is
 reversible for its stationary law `N(0, v / (1 - a ^ 2))`. It is the kernel of

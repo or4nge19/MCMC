@@ -6,6 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.MeasureTheory.Group.Prod
+public import Mathlib.MeasureTheory.Measure.Count
 public import MCMC.ToMathlib.Probability.Kernel.Reversible
 
 /-!
@@ -55,5 +56,41 @@ theorem isReversible_map_add_of_map_neg {μ ν : Measure G} [SFinite μ] [SFinit
         funext p
         simp [add_comm p.2 p.1]
     _ = (μ.prod ν).map fun p : G × G ↦ (p.1, p.1 + p.2) := by rw [hM]
+
+/-- Symmetry of the increments is needed in `isReversible_map_add_of_map_neg`: the walk
+`x ↦ x + 1` on `ℤ` is not reversible for the counting measure. -/
+theorem not_isReversible_map_add_dirac_one :
+    ¬ ((Kernel.id ×ₖ Kernel.const ℤ (Measure.dirac (1 : ℤ))).map
+      fun p : ℤ × ℤ ↦ p.1 + p.2).IsReversible Measure.count := by
+  intro h
+  have hF : Measurable fun p : ℤ × ℤ ↦ p.1 + p.2 := measurable_of_countable _
+  have hK : ∀ y : ℤ, ((Kernel.id ×ₖ Kernel.const ℤ (Measure.dirac (1 : ℤ))).map
+      fun p : ℤ × ℤ ↦ p.1 + p.2) y = Measure.dirac (y + 1) := by
+    intro y
+    rw [Kernel.map_apply _ hF, Kernel.prod_apply, Kernel.id_apply, Kernel.const_apply,
+      Measure.dirac_prod_dirac, Measure.map_dirac' hF]
+  have h1 := h (measurableSet_singleton (0 : ℤ)) (measurableSet_singleton (1 : ℤ))
+  simp only [hK] at h1
+  rw [Measure.restrict_singleton, Measure.restrict_singleton] at h1
+  simp at h1
+
+/-- Invariance of the reference measure is needed in `isReversible_map_add_of_map_neg`: the
+symmetric walk `x ↦ x ± 1` on `ℤ` is not reversible for `δ_0`. -/
+theorem not_isReversible_map_add_dirac_zero :
+    ¬ ((Kernel.id ×ₖ Kernel.const ℤ (Measure.dirac (1 : ℤ) + Measure.dirac (-1))).map
+      fun p : ℤ × ℤ ↦ p.1 + p.2).IsReversible (Measure.dirac (0 : ℤ)) := by
+  intro h
+  have hF : Measurable fun p : ℤ × ℤ ↦ p.1 + p.2 := measurable_of_countable _
+  have hK : ∀ y : ℤ, ((Kernel.id ×ₖ Kernel.const ℤ (Measure.dirac (1 : ℤ) +
+      Measure.dirac (-1))).map fun p : ℤ × ℤ ↦ p.1 + p.2) y =
+        Measure.dirac (y + 1) + Measure.dirac (y + -1) := by
+    intro y
+    rw [Kernel.map_apply _ hF, Kernel.prod_apply, Kernel.id_apply, Kernel.const_apply,
+      Measure.prod_add, Measure.dirac_prod_dirac, Measure.dirac_prod_dirac,
+      Measure.map_add _ _ hF, Measure.map_dirac' hF, Measure.map_dirac' hF]
+  have h1 := h (measurableSet_singleton (0 : ℤ)) (measurableSet_singleton (1 : ℤ))
+  simp only [hK] at h1
+  rw [Measure.restrict_singleton, Measure.restrict_singleton] at h1
+  simp at h1
 
 end ProbabilityTheory.Kernel

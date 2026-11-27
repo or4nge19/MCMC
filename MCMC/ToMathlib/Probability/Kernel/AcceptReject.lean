@@ -311,6 +311,96 @@ theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance :
     (Measure.measurable_mhAcceptance _ _))).1 h
   exact absurd (h2.trans (Measure.mhAcceptance_le_one _ _ _ _)) (by norm_num)
 
+/-- On `Fin 3`, for every flow `π ⊗ₘ Q = ∞ • δ_(0,1) + δ_(1,0) + δ_(2,2)`, the symmetric part has
+no Lebesgue decomposition with respect to the flow, so the Metropolis–Hastings acceptance is `0`;
+the acceptance of the move from `2` to `2` alone has a `π`-reversible accept–reject kernel. -/
+theorem mhAcceptance_eq_zero_and_isReversible_acceptReject_of_compProd_eq {π : Measure (Fin 3)}
+    {Q : Kernel (Fin 3) (Fin 3)} [SFinite π] [IsSFiniteKernel Q]
+    (hρ : π ⊗ₘ Q = ∞ • Measure.dirac (0, 1) + Measure.dirac (1, 0) + Measure.dirac (2, 2)) :
+    (∀ x y, π.mhAcceptance Q x y = 0) ∧
+      (acceptReject Q fun x y ↦ if x = 2 ∧ y = 2 then 1 else 0).IsReversible π := by
+  have hρ01 : (π ⊗ₘ Q) {((0 : Fin 3), (1 : Fin 3))} = ∞ := by simp [hρ]
+  have hρ10 : (π ⊗ₘ Q) {((1 : Fin 3), (0 : Fin 3))} = 1 := by simp [hρ]
+  have hρ22 : (π ⊗ₘ Q) {((2 : Fin 3), (2 : Fin 3))} = 1 := by simp [hρ]
+  refine ⟨fun x y ↦ π.mhAcceptance_of_not_haveLebesgueDecomposition (fun hL ↦ ?_) x y, ?_⟩
+  · have h01 := congrArg (· {((0 : Fin 3), (1 : Fin 3))})
+      (withDensity_mhAcceptance (π := π) (Q := Q))
+    rw [withDensity_apply _ (measurableSet_singleton _), lintegral_singleton,
+      Measure.inf_apply_singleton, Measure.map_apply measurable_swap (measurableSet_singleton _),
+      ← singleton_prod_singleton, preimage_swap_prod, singleton_prod_singleton,
+      singleton_prod_singleton, hρ01, hρ10, Function.uncurry_apply_pair] at h01
+    rcases eq_or_ne (π.mhAcceptance Q 0 1) 0 with h0 | h0
+    · simp [h0] at h01
+    · rw [ENNReal.mul_top h0] at h01
+      simp at h01
+  have ha : Measurable (Function.uncurry fun x y : Fin 3 ↦
+      if x = 2 ∧ y = 2 then (1 : ℝ≥0∞) else 0) := measurable_of_countable _
+  refine isReversible_acceptReject_iff.2 (IsReversible.of_map_swap_compProd ?_)
+  rw [Measure.compProd_withDensity ha,
+    show (fun p : Fin 3 × Fin 3 ↦ if p.1 = 2 ∧ p.2 = 2 then (1 : ℝ≥0∞) else 0) =
+      ({(2, 2)} : Set (Fin 3 × Fin 3)).indicator 1 by
+        funext p; rcases p with ⟨x, y⟩; simp [Set.indicator_apply],
+    withDensity_indicator_one (measurableSet_singleton _), Measure.restrict_singleton, hρ22,
+    one_smul, Measure.map_dirac' measurable_swap]
+  rfl
+
+/-- σ-finiteness of `π` is needed in `ae_le_mhAcceptance_of_isReversible_acceptReject`: on `Fin 3`,
+`π = ∞ • δ_0 + δ_1 + δ_2` (s-finite) and the deterministic Markov proposal `0 ↦ 1, 1 ↦ 0, 2 ↦ 2`;
+the acceptance of the move from `2` to `2` alone is not below the Metropolis–Hastings
+acceptance, which is `0`. -/
+theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance_sFinite :
+    ∃ (π : Measure (Fin 3)) (Q : Kernel (Fin 3) (Fin 3)) (_ : IsMarkovKernel Q)
+      (a : Fin 3 → Fin 3 → ℝ≥0∞), SFinite π ∧ (∀ᵐ x ∂π, Q x univ ≠ ∞) ∧
+        Measurable (Function.uncurry a) ∧ (∀ᵐ p ∂(π ⊗ₘ Q), Function.uncurry a p ≤ 1) ∧
+        (acceptReject Q a).IsReversible π ∧
+        ¬ Function.uncurry a ≤ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q) := by
+  have hg : Measurable fun x : Fin 3 ↦ (x, (![1, 0, 2] : Fin 3 → Fin 3) x) :=
+    measurable_of_countable _
+  have hρ : (∞ • Measure.dirac (0 : Fin 3) + Measure.dirac 1 + Measure.dirac 2) ⊗ₘ
+      Kernel.deterministic (![1, 0, 2] : Fin 3 → Fin 3) (measurable_of_countable _) =
+        ∞ • Measure.dirac (0, 1) + Measure.dirac (1, 0) + Measure.dirac (2, 2) := by
+    rw [Measure.compProd_deterministic, Measure.map_add _ _ hg, Measure.map_add _ _ hg,
+      Measure.map_smul _ hg.aemeasurable, Measure.map_dirac' hg, Measure.map_dirac' hg,
+      Measure.map_dirac' hg]
+    rfl
+  obtain ⟨h0, hrev⟩ := mhAcceptance_eq_zero_and_isReversible_acceptReject_of_compProd_eq hρ
+  refine ⟨_, _, inferInstance, fun x y ↦ if x = 2 ∧ y = 2 then 1 else 0, inferInstance,
+    ae_of_all _ fun _ ↦ measure_ne_top _ _, measurable_of_countable _,
+    ae_of_all _ fun p ↦ by
+      rcases p with ⟨x, y⟩; simp only [Function.uncurry_apply_pair]; split_ifs <;> simp, hrev,
+    fun h ↦ ?_⟩
+  have h22 := ae_iff_of_countable.1 h (2, 2) (by rw [hρ]; simp)
+  simp [h0] at h22
+
+/-- Finiteness of the proposal is needed in `ae_le_mhAcceptance_of_isReversible_acceptReject`:
+the same flow on `Fin 3`, from the finite `π = δ_0 + δ_1 + δ_2` and the proposal with
+`Q 0 = ∞ • δ_1`. -/
+theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance_isFiniteMeasure :
+    ∃ (π : Measure (Fin 3)) (Q : Kernel (Fin 3) (Fin 3)) (_ : IsSFiniteKernel Q)
+      (a : Fin 3 → Fin 3 → ℝ≥0∞), IsFiniteMeasure π ∧
+        Measurable (Function.uncurry a) ∧ (∀ᵐ p ∂(π ⊗ₘ Q), Function.uncurry a p ≤ 1) ∧
+        (acceptReject Q a).IsReversible π ∧
+        ¬ Function.uncurry a ≤ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q) := by
+  have hg : Measurable fun x : Fin 3 ↦ (x, (![1, 0, 2] : Fin 3 → Fin 3) x) :=
+    measurable_of_countable _
+  have hρ : (Measure.dirac (0 : Fin 3) + Measure.dirac 1 + Measure.dirac 2) ⊗ₘ
+      (Kernel.deterministic (![1, 0, 2] : Fin 3 → Fin 3) (measurable_of_countable _)).withDensity
+        (fun x _ ↦ if x = 0 then ∞ else 1) =
+        ∞ • Measure.dirac (0, 1) + Measure.dirac (1, 0) + Measure.dirac (2, 2) := by
+    rw [Measure.compProd_withDensity (measurable_of_countable _), Measure.compProd_deterministic,
+      Measure.map_add _ _ hg, Measure.map_add _ _ hg, Measure.map_dirac' hg,
+      Measure.map_dirac' hg, Measure.map_dirac' hg, withDensity_add_measure,
+      withDensity_add_measure, dirac_withDensity, dirac_withDensity, dirac_withDensity]
+    simp
+  obtain ⟨h0, hrev⟩ := mhAcceptance_eq_zero_and_isReversible_acceptReject_of_compProd_eq hρ
+  refine ⟨_, _, inferInstance, fun x y ↦ if x = 2 ∧ y = 2 then 1 else 0, inferInstance,
+    measurable_of_countable _,
+    ae_of_all _ fun p ↦ by
+      rcases p with ⟨x, y⟩; simp only [Function.uncurry_apply_pair]; split_ifs <;> simp, hrev,
+    fun h ↦ ?_⟩
+  have h22 := ae_iff_of_countable.1 h (2, 2) (by rw [hρ]; simp)
+  simp [h0] at h22
+
 /-- If `Q` is `μ`-reversible, so is `Q` with density `min (f x) (f y)`, for every measurable `f`.
 The proof is the layer-cake formula `min (f x) (f y) = ∫⁻ r in Ioi 0, 1[r < f x] 1[r < f y]`,
 which turns the flow into an integral of flows between rectangles; no finiteness is assumed. -/
@@ -440,6 +530,34 @@ theorem mhAcceptance_eq_min_one_div [MeasurableSingletonClass X] [SFinite π] [I
         rw [(show Monotone fun t : ℝ≥0∞ ↦ t / (π {x} * Q x {y}) from
           fun _ _ hst ↦ ENNReal.div_le_div_right hst _).map_min, ENNReal.div_self h0 htop]
 
+/-- σ-finiteness of `π ⊗ₘ Q` is needed in `mhAcceptance_eq_min_one_div`: on `Fin 3`, with
+`π = ∞ • δ_0 + δ_1 + δ_2` and the deterministic Markov proposal `0 ↦ 1, 1 ↦ 0, 2 ↦ 2`, the atom
+`(1, 0)` has mass `1`, the acceptance there is `0` and the ratio formula gives `1`. -/
+theorem exists_mhAcceptance_ne_min_one_div :
+    ∃ (π : Measure (Fin 3)) (Q : Kernel (Fin 3) (Fin 3)) (_ : IsMarkovKernel Q) (x y : Fin 3),
+      SFinite π ∧ π {x} * Q x {y} ≠ 0 ∧ π {x} * Q x {y} ≠ ∞ ∧
+        π.mhAcceptance Q x y ≠ min 1 (π {y} * Q y {x} / (π {x} * Q x {y})) := by
+  have hg : Measurable fun x : Fin 3 ↦ (x, (![1, 0, 2] : Fin 3 → Fin 3) x) :=
+    measurable_of_countable _
+  have hρ : (∞ • Measure.dirac (0 : Fin 3) + Measure.dirac 1 + Measure.dirac 2) ⊗ₘ
+      Kernel.deterministic (![1, 0, 2] : Fin 3 → Fin 3) (measurable_of_countable _) =
+        ∞ • Measure.dirac (0, 1) + Measure.dirac (1, 0) + Measure.dirac (2, 2) := by
+    rw [Measure.compProd_deterministic, Measure.map_add _ _ hg, Measure.map_add _ _ hg,
+      Measure.map_smul _ hg.aemeasurable, Measure.map_dirac' hg, Measure.map_dirac' hg,
+      Measure.map_dirac' hg]
+    rfl
+  have h10 : (∞ • Measure.dirac (0 : Fin 3) + Measure.dirac 1 + Measure.dirac 2 :
+      Measure (Fin 3)) {1} *
+      (Kernel.deterministic (![1, 0, 2] : Fin 3 → Fin 3) (measurable_of_countable _)) 1 {0} =
+        1 := by
+    rw [← Measure.compProd_apply_singleton, hρ]
+    simp
+  refine ⟨_, _, inferInstance, 1, 0, inferInstance, by rw [h10]; exact one_ne_zero,
+    by rw [h10]; exact ENNReal.one_ne_top, ?_⟩
+  rw [(mhAcceptance_eq_zero_and_isReversible_acceptReject_of_compProd_eq hρ).1, h10,
+    ← Measure.compProd_apply_singleton, hρ]
+  simp
+
 /-- **The Metropolis–Hastings ratio.** For a target `π = ν.withDensity p` and a proposal with
 densities `Q x = ν.withDensity (q x)` with respect to a σ-finite `ν`, the Metropolis–Hastings
 acceptance is `min 1 (p y * q y x / (p x * q x y))`, `π ⊗ₘ Q`-almost everywhere. -/
@@ -496,5 +614,31 @@ example {p : ℝ → ℝ≥0∞} {q : ℝ → ℝ → ℝ≥0∞} (hp : Measurab
         fun z ↦ min 1 (p z.2 * q z.2 z.1 / (p z.1 * q z.1 z.2)) :=
   mhAcceptance_withDensity_ae_eq hp hq
     (ae_of_all _ fun z ↦ ENNReal.mul_ne_top (hp_top z.1) (hq_top z.1 z.2))
+
+/-- Finiteness of `p * q` is needed in `mhAcceptance_withDensity_ae_eq`: on `Unit` with `ν = δ`,
+`p = ∞` and `q = 1`, the ratio formula gives `0` while the flow, invariant under the swap, is
+accepted with probability `1`. -/
+theorem not_mhAcceptance_withDensity_ae_eq_top :
+    ¬ Function.uncurry (((Measure.dirac ()).withDensity fun _ ↦ ∞).mhAcceptance
+        ((Kernel.const Unit (Measure.dirac ())).withDensity fun _ _ ↦ 1))
+      =ᵐ[((Measure.dirac ()).withDensity fun _ ↦ ∞) ⊗ₘ
+          (Kernel.const Unit (Measure.dirac ())).withDensity fun _ _ ↦ 1]
+        fun z ↦ min 1 ((fun _ : Unit ↦ (∞ : ℝ≥0∞)) z.2 * (fun _ _ : Unit ↦ (1 : ℝ≥0∞)) z.2 z.1 /
+          ((fun _ : Unit ↦ (∞ : ℝ≥0∞)) z.1 * (fun _ _ : Unit ↦ (1 : ℝ≥0∞)) z.1 z.2)) := by
+  set π : Measure Unit := (Measure.dirac ()).withDensity fun _ ↦ ∞
+  set Q : Kernel Unit Unit := (Kernel.const Unit (Measure.dirac ())).withDensity fun _ _ ↦ 1
+  intro h
+  have hswap : (π ⊗ₘ Q).map Prod.swap = π ⊗ₘ Q := by
+    rw [show (Prod.swap : Unit × Unit → Unit × Unit) = id from
+      funext fun _ ↦ Subsingleton.elim _ _, Measure.map_id]
+  have hL : ((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).HaveLebesgueDecomposition (π ⊗ₘ Q) := by
+    rw [hswap, inf_idem]
+    exact ⟨⟨(0, 1), measurable_one, Measure.MutuallySingular.zero_left, by simp⟩⟩
+  have h1 := withDensity_mhAcceptance (π := π) (Q := Q)
+  rw [hswap, inf_idem, MeasureTheory.withDensity_congr_ae h] at h1
+  have h2 := congrArg (fun m : Measure (Unit × Unit) ↦ m univ) h1
+  simp [π, Q, withDensity_const] at h2
+  rw [← univ_prod_univ, Measure.prod_prod] at h2
+  simp at h2
 
 end ProbabilityTheory.Kernel
