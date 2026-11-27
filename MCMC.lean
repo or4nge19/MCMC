@@ -66,6 +66,7 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.OrderBounded
 import MCMC.ToMathlib.Analysis.Normed.Operator.KreinRutman.StronglyPositive
 import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
 import MCMC.ToMathlib.Analysis.Subadditive
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.MaximalErgodic
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
 import MCMC.ToMathlib.MeasureTheory.Function.LpOrder
 import MCMC.ToMathlib.MeasureTheory.Measure.UniformLimit
