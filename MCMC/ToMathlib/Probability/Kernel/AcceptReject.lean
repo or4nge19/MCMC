@@ -271,7 +271,9 @@ theorem isReversible_acceptReject_mhAcceptance [SFinite π] [IsSFiniteKernel Q] 
 /-- **Maximality of the Metropolis–Hastings acceptance.** For a σ-finite proposed flow `π ⊗ₘ Q`
 and any measure `π`, among the acceptances `a ≤ 1` with accepted mass finite `π`-almost everywhere
 whose accept–reject kernel is `π`-reversible, the Metropolis–Hastings acceptance is the largest,
-`π ⊗ₘ Q`-almost everywhere. -/
+`π ⊗ₘ Q`-almost everywhere. The finiteness of the accepted mass is needed
+(`exists_isReversible_acceptReject_not_ae_le_mhAcceptance_lintegral_eq_top`, in
+`MCMC/ToMathlib/Probability/Kernel/Reversible.lean`). -/
 theorem ae_le_mhAcceptance_of_isReversible_acceptReject [IsSFiniteKernel Q]
     [SigmaFinite (π ⊗ₘ Q)] (ha : Measurable (Function.uncurry a))
     (ha_fin : ∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞)
