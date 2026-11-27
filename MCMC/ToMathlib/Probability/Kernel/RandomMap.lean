@@ -7,6 +7,7 @@ Authors: Matteo Cipollina
 module
 
 public import MCMC.ToMathlib.Probability.Independence.Basic
+public import MCMC.ToMathlib.Probability.Kernel.Composition.MeasureCompProd
 public import MCMC.ToMathlib.Probability.Kernel.Harris
 public import MCMC.ToMathlib.Probability.Kernel.IonescuTulcea.Traj
 public import Mathlib.Probability.Distributions.Gaussian.Real
@@ -117,14 +118,6 @@ theorem smul_restrict_le_gaussianReal {v : ℝ≥0} (hv : v ≠ 0) {m M r : ℝ}
   exact (sq_abs (z - m)).symm.le.trans (pow_le_pow_left₀ (abs_nonneg _) hz' 2)
 
 namespace Kernel
-
-/-- The kernel of the iterated random map `ξ ↦ F ξ w`, `w ∼ ρ`, at `x` is `ρ.map (F x)`. -/
-theorem map_prod_const_apply {F : X → W → X} (hF : Measurable (Function.uncurry F))
-    (ρ : Measure W) [SFinite ρ] (x : X) :
-    ((Kernel.id ×ₖ Kernel.const X ρ).map (Function.uncurry F)) x = ρ.map (F x) := by
-  rw [Kernel.map_apply _ hF, Kernel.prod_apply, Kernel.id_apply, Kernel.const_apply,
-    Measure.dirac_prod, Measure.map_map hF measurable_prodMk_left]
-  rfl
 
 /-- The law of `F ξ w` for `ξ ∼ μ` and an independent `w ∼ ρ`: the kernel of the iterated random
 map composed with `μ` is `(μ.prod ρ).map (uncurry F)`. -/
@@ -366,20 +359,6 @@ theorem not_exists_abs_integral_comp_pow_sub_integral_le_gaussian_ar_zero :
     false_and, ↓reduceIte, sub_zero, abs_one, one_pow] at hb
   rw [lt_div_iff₀ (by positivity)] at hn
   nlinarith [pow_nonneg hρ0 n]
-
-/-- The joint law of `y ∼ μ` and `F y w` for an independent `w ∼ ρ`: if `Q y = ρ.map (F y)`, then
-`μ ⊗ₘ Q = (μ.prod ρ).map (fun p ↦ (p.1, F p.1 p.2))`. -/
-theorem _root_.MeasureTheory.Measure.compProd_eq_map_prod {Y : Type*} {mY : MeasurableSpace Y}
-    {Q : Kernel Y X} [IsSFiniteKernel Q] {F : Y → W → X} (hF : Measurable (Function.uncurry F))
-    {ρ : Measure W} [SFinite ρ] (hQ : ∀ y, Q y = ρ.map (F y)) (μ : Measure Y) [SFinite μ] :
-    μ ⊗ₘ Q = (μ.prod ρ).map (fun p ↦ (p.1, F p.1 p.2)) := by
-  have hG : Measurable fun p : Y × W ↦ (p.1, F p.1 p.2) := measurable_fst.prodMk hF
-  ext s hs
-  rw [Measure.compProd_apply hs, Measure.map_apply hG hs, Measure.prod_apply (hG hs)]
-  refine lintegral_congr fun y ↦ ?_
-  rw [hQ, Measure.map_apply hF.of_uncurry_left (measurable_prodMk_left hs)]
-  rfl
-
 
 end Kernel
 

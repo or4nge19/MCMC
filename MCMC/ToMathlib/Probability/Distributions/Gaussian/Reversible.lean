@@ -6,6 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.Probability.Distributions.Gaussian.Fernique
+public import MCMC.ToMathlib.Probability.Kernel.RandomMap
 public import MCMC.ToMathlib.Probability.Kernel.Reversible
 
 /-!
@@ -72,8 +73,12 @@ theorem isReversible_map_cos_smul_add_sin_smul [SecondCountableTopology E] [Comp
     · simp only [Function.comp_apply, Prod.swap_prod_mk, Prod.map_apply, id_eq,
         ContinuousLinearMap.rotation_apply]
       linear_combination (norm := module) -(Real.cos_sq_add_sin_sq θ) • p.1
+  have hF : Measurable (Function.uncurry fun x w : E ↦ Real.cos θ • x + Real.sin θ • w) := by
+    fun_prop
   refine Kernel.IsReversible.of_map_swap_compProd ?_
-  rw [Measure.compProd_map_id_prod_const (by fun_prop), Measure.map_map measurable_swap hL]
+  rw [Measure.compProd_eq_map_prod (Q := (Kernel.id ×ₖ Kernel.const E μ).map
+      fun p : E × E ↦ Real.cos θ • p.1 + Real.sin θ • p.2) hF (Kernel.map_prod_const_apply hF μ) μ,
+    Measure.map_map measurable_swap hL]
   calc (μ.prod μ).map (Prod.swap ∘ fun p : E × E ↦ (p.1, Real.cos θ • p.1 + Real.sin θ • p.2))
       = ((μ.prod μ).map (Prod.map id Neg.neg ∘ ContinuousLinearMap.rotation θ)).map
           fun p : E × E ↦ (p.1, Real.cos θ • p.1 + Real.sin θ • p.2) := by
@@ -90,10 +95,14 @@ theorem not_isReversible_map_cos_smul_add_sin_smul_gaussianReal_one :
   intro h
   have := Kernel.IsMarkovKernel.map (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 1 1))
     (by fun_prop : Measurable fun p : ℝ × ℝ ↦ Real.cos Real.pi • p.1 + Real.sin Real.pi • p.2)
+  have hF : Measurable (Function.uncurry fun x w : ℝ ↦
+      Real.cos Real.pi • x + Real.sin Real.pi • w) := by fun_prop
   have hinv := h.invariant.def
-  rw [← Measure.snd_compProd, Measure.compProd_map_id_prod_const (by fun_prop),
-    Measure.snd_map_prodMk measurable_fst (by fun_prop),
-    show (fun p : ℝ × ℝ ↦ Real.cos Real.pi • p.1 + Real.sin Real.pi • p.2) =
+  rw [← Measure.snd_compProd, Measure.compProd_eq_map_prod (Q := (Kernel.id ×ₖ Kernel.const ℝ
+      (gaussianReal 1 1)).map fun p : ℝ × ℝ ↦ Real.cos Real.pi • p.1 + Real.sin Real.pi • p.2)
+      hF (Kernel.map_prod_const_apply hF _) _,
+    Measure.snd_map_prodMk measurable_fst (by fun_prop)] at hinv
+  rw [show (fun p : ℝ × ℝ ↦ Real.cos Real.pi • p.1 + Real.sin Real.pi • p.2) =
       (fun x ↦ -x) ∘ Prod.fst by funext p; simp,
     ← Measure.map_map (by fun_prop) measurable_fst, Measure.map_fst_prod, measure_univ, one_smul,
     gaussianReal_map_neg] at hinv
@@ -121,16 +130,14 @@ theorem isReversible_gaussianReal_ar {a : ℝ} (ha : |a| < 1) (v : ℝ≥0) :
         (gaussianReal 0 (v / (1 - ‖a‖₊ ^ 2)))).map fun p : ℝ × ℝ ↦
           Real.cos (Real.arccos a) • p.1 + Real.sin (Real.arccos a) • p.2 := by
     ext x : 1
-    rw [Kernel.map_apply _ (by fun_prop), Kernel.map_apply _ (by fun_prop), Kernel.prod_apply,
-      Kernel.prod_apply, Kernel.id_apply, Kernel.const_apply, Kernel.const_apply,
-      Measure.dirac_prod, Measure.dirac_prod, Measure.map_map (by fun_prop) measurable_prodMk_left,
+    rw [Kernel.map_prod_const_gaussianReal_apply, Kernel.map_apply _ (by fun_prop),
+      Kernel.prod_apply, Kernel.id_apply, Kernel.const_apply, Measure.dirac_prod,
       Measure.map_map (by fun_prop) measurable_prodMk_left,
-      show (fun p : ℝ × ℝ ↦ a * p.1 + p.2) ∘ Prod.mk x = (a * x + ·) from rfl,
       show (fun p : ℝ × ℝ ↦ Real.cos (Real.arccos a) • p.1 + Real.sin (Real.arccos a) • p.2) ∘
         Prod.mk x = (Real.cos (Real.arccos a) * x + ·) ∘ (Real.sin (Real.arccos a) * ·) by
           funext w; simp [smul_eq_mul],
       ← Measure.map_map (by fun_prop) (by fun_prop), gaussianReal_map_const_mul,
-      gaussianReal_map_const_add, gaussianReal_map_const_add, Real.cos_arccos h1 h2]
+      gaussianReal_map_const_add, Real.cos_arccos h1 h2]
     congr 1
     · simp
     · apply NNReal.eq

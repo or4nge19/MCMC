@@ -9,21 +9,26 @@ public import Mathlib.Probability.Kernel.Composition.MeasureCompProd
 public import Mathlib.Probability.Kernel.Composition.Prod
 
 /-!
-# The first marginal of `μ ⊗ₘ κ`, σ-finiteness, and random maps
+# The first marginal of `μ ⊗ₘ κ`, σ-finiteness, and the joint law of a random map
 
 The first marginal of `μ ⊗ₘ κ` is `μ` with density `a ↦ κ a univ` (for a Markov kernel it is `μ`,
 Mathlib's `MeasureTheory.Measure.fst_compProd`). Hence `μ ⊗ₘ κ` and its first marginal are
 σ-finite when `μ` is σ-finite and `κ a` is a finite measure for `μ`-almost every `a`; in particular
-for every finite kernel. For the kernel `(Kernel.id ×ₖ Kernel.const α ν).map F` of the random map
-`x ↦ F (x, w)`, `w ∼ ν`, the measure `μ ⊗ₘ _` is the image of `μ.prod ν` under `p ↦ (p.1, F p)`.
+for every finite kernel. The kernel of the random map `x ↦ F x w`, `w ∼ ρ`, is Mathlib's
+`(Kernel.id ×ₖ Kernel.const X ρ).map (Function.uncurry F)`, whose value at `x` is `ρ.map (F x)`
+(`ProbabilityTheory.Kernel.map_prod_const_apply`); for every kernel with `Q y = ρ.map (F y)`, the
+joint law is `μ ⊗ₘ Q = (μ.prod ρ).map (fun p ↦ (p.1, F p.1 p.2))`
+(`MeasureTheory.Measure.compProd_eq_map_prod`).
 
 Staged for `Mathlib/Probability/Kernel/Composition/MeasureCompProd.lean`. Searched on 2026-11-26 in
 the pinned Mathlib: `grep -rn "SigmaFinite (μ ⊗ₘ\|SigmaFinite (.* ⊗ₘ" Mathlib` has no hit (the
 instances on `μ ⊗ₘ κ` are `SFinite`, `IsFiniteMeasure`, `IsProbabilityMeasure`,
 `IsZeroOrProbabilityMeasure`); `Measure.fst_compProd` is stated for Markov kernels only;
 `grep -rn "id ×ₖ" Mathlib/Probability/Kernel/Composition` finds no composition-product with the
-kernel of a random map; `grep -rn "compProd_apply_singleton\|dirac_compProd_apply"
-Mathlib/Probability` finds only `dirac_compProd_apply`, for a Dirac first factor.
+kernel of a random map (the nearest is `Measure.compProd_map` of `Composition/Lemmas.lean`,
+`μ ⊗ₘ κ.map f = (μ ⊗ₘ κ).map (Prod.map id f)`);
+`grep -rn "compProd_apply_singleton\|dirac_compProd_apply" Mathlib/Probability` finds only
+`dirac_compProd_apply`, for a Dirac first factor.
 -/
 
 @[expose] public section
@@ -65,20 +70,34 @@ lemma compProd_apply_singleton [MeasurableSingletonClass α] [MeasurableSingleto
   rw [← singleton_prod_singleton, compProd_apply_prod (measurableSet_singleton a)
     (measurableSet_singleton b), lintegral_singleton, mul_comm]
 
-/-- The composition-product of `μ` with the kernel of the random map `x ↦ F (x, w)`, `w ∼ ν`, is the
-image of `μ.prod ν` under `p ↦ (p.1, F p)`. -/
-lemma compProd_map_id_prod_const [SFinite μ] {γ : Type*} {mγ : MeasurableSpace γ}
-    {ν : Measure γ} [SFinite ν] {F : α × γ → β} (hF : Measurable F) :
-    μ ⊗ₘ (ProbabilityTheory.Kernel.id ×ₖ ProbabilityTheory.Kernel.const α ν).map F =
-      (μ.prod ν).map fun p ↦ (p.1, F p) := by
-  refine ext_of_lintegral _ fun g hg ↦ ?_
-  rw [lintegral_compProd hg, lintegral_map hg (measurable_fst.prodMk hF),
-    lintegral_prod (fun z ↦ g (z.1, F z)) (hg.comp (measurable_fst.prodMk hF)).aemeasurable]
-  refine lintegral_congr fun x ↦ ?_
-  rw [ProbabilityTheory.Kernel.map_apply _ hF,
-    lintegral_map (f := fun b ↦ g (x, b)) (hg.comp measurable_prodMk_left) hF,
-    ProbabilityTheory.Kernel.prod_apply, ProbabilityTheory.Kernel.id_apply,
-    ProbabilityTheory.Kernel.const_apply, dirac_prod, lintegral_map (f := fun p ↦ g (x, F p))
-      ((hg.comp measurable_prodMk_left).comp hF) measurable_prodMk_left]
+/-- The joint law of `y ∼ μ` and `F y w` for an independent `w ∼ ρ`: if `Q y = ρ.map (F y)`, then
+`μ ⊗ₘ Q = (μ.prod ρ).map (fun p ↦ (p.1, F p.1 p.2))`. -/
+theorem compProd_eq_map_prod {X W Y : Type*} {mX : MeasurableSpace X} {mW : MeasurableSpace W}
+    {mY : MeasurableSpace Y} {Q : ProbabilityTheory.Kernel Y X}
+    [ProbabilityTheory.IsSFiniteKernel Q] {F : Y → W → X} (hF : Measurable (Function.uncurry F))
+    {ρ : Measure W} [SFinite ρ] (hQ : ∀ y, Q y = ρ.map (F y)) (μ : Measure Y) [SFinite μ] :
+    μ ⊗ₘ Q = (μ.prod ρ).map (fun p ↦ (p.1, F p.1 p.2)) := by
+  have hG : Measurable fun p : Y × W ↦ (p.1, F p.1 p.2) := measurable_fst.prodMk hF
+  ext s hs
+  rw [Measure.compProd_apply hs, Measure.map_apply hG hs, Measure.prod_apply (hG hs)]
+  refine lintegral_congr fun y ↦ ?_
+  rw [hQ, Measure.map_apply hF.of_uncurry_left (measurable_prodMk_left hs)]
+  rfl
 
 end MeasureTheory.Measure
+
+namespace ProbabilityTheory.Kernel
+
+open MeasureTheory
+
+variable {X W Y : Type*} {mX : MeasurableSpace X} {mW : MeasurableSpace W} {mY : MeasurableSpace Y}
+
+/-- The kernel of the random map `x ↦ F x w`, `w ∼ ρ`, at `x` is `ρ.map (F x)`. -/
+theorem map_prod_const_apply {F : X → W → Y} (hF : Measurable (Function.uncurry F))
+    (ρ : Measure W) [SFinite ρ] (x : X) :
+    ((Kernel.id ×ₖ Kernel.const X ρ).map (Function.uncurry F)) x = ρ.map (F x) := by
+  rw [Kernel.map_apply _ hF, Kernel.prod_apply, Kernel.id_apply, Kernel.const_apply,
+    Measure.dirac_prod, Measure.map_map hF measurable_prodMk_left]
+  rfl
+
+end ProbabilityTheory.Kernel

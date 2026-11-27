@@ -42,8 +42,11 @@ theorem isReversible_map_add_of_map_neg {μ ν : Measure G} [SFinite μ] [SFinit
         (by fun_prop), ← Measure.map_map (by fun_prop) (by fun_prop), Measure.prod_swap,
       (measurePreserving_prod_add ν μ).map_eq, Measure.prod_swap,
       ← Measure.map_prod_map _ _ measurable_id measurable_neg, Measure.map_id, hν]
+  have hF : Measurable (Function.uncurry fun x w : G ↦ x + w) := measurable_add
   refine IsReversible.of_map_swap_compProd ?_
-  rw [Measure.compProd_map_id_prod_const (by fun_prop), Measure.map_map measurable_swap hL]
+  rw [Measure.compProd_eq_map_prod (Q := (Kernel.id ×ₖ Kernel.const G ν).map
+      fun p : G × G ↦ p.1 + p.2) hF (Kernel.map_prod_const_apply hF ν) μ,
+    Measure.map_map measurable_swap hL]
   calc (μ.prod ν).map (Prod.swap ∘ fun p : G × G ↦ (p.1, p.1 + p.2))
       = ((μ.prod ν).map (Prod.map id Neg.neg ∘ Prod.swap ∘ (fun z : G × G ↦ (z.1, z.1 + z.2)) ∘
           Prod.swap)).map fun p : G × G ↦ (p.1, p.1 + p.2) := by
