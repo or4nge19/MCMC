@@ -44,9 +44,11 @@ instance isProbabilityMeasure_vecToMeasure (π : stdSimplex ℝ n) :
   ⟨by rw [← ENNReal.ofReal_one, ← π.property.2,
     ENNReal.ofReal_sum_of_nonneg fun i _ ↦ π.property.1 i]; simp [vecToMeasure]⟩
 
+omit [DecidableEq n] in
 /-- The measure of a probability vector on a singleton is the entry. -/
 theorem vecToMeasure_singleton (π : stdSimplex ℝ n) (i : n) :
     vecToMeasure π {i} = ENNReal.ofReal (π.val i) := by
+  classical
   simp [vecToMeasure, Measure.dirac_apply', Pi.single_apply]
 
 /-- The kernel of a nonnegative matrix on a finite type is finite. -/
@@ -58,10 +60,12 @@ instance isFiniteKernel_matrixToKernel (P : Matrix n n ℝ) (hP : ∀ i j, 0 ≤
       simpa using Finset.single_le_sum (f := fun i ↦ ∑ j, ENNReal.ofReal (P i j))
         (fun _ _ ↦ zero_le) (Finset.mem_univ i)⟩⟩
 
+omit [DecidableEq n] in
 /-- Matrix stationarity is equivalent to kernel invariance -/
 theorem isStationary_iff_invariant (P : Matrix n n ℝ) (π : stdSimplex ℝ n)
     (hP : ∀ i j, 0 ≤ P i j) :
     IsStationary P π ↔ Kernel.Invariant (matrixToKernel P hP) (vecToMeasure π) := by
+  classical
   rw [Kernel.Invariant, Measure.ext_iff_singleton, IsStationary, funext_iff]
   refine forall_congr' fun j ↦ ?_
   rw [Measure.bind_apply (measurableSet_singleton j) (Kernel.aemeasurable _), lintegral_fintype,

@@ -37,7 +37,8 @@ The powers `κ ^ n` of a kernel on one space are Mathlib's (`Kernel.instMonoid`,
 * `ProbabilityTheory.Kernel.IsReversible.add`, `ProbabilityTheory.Kernel.IsReversible.sum`,
   `ProbabilityTheory.Kernel.IsReversible.withDensity_const`,
   `ProbabilityTheory.Kernel.isReversible_sum_withDensity_const`: mixtures of `π`-reversible kernels
-  (random-scan samplers) are `π`-reversible, as are `0` and `Kernel.id`.
+  (random-scan samplers) are `π`-reversible, as are `0` and `Kernel.id`; a constant kernel is
+  reversible for its value (`ProbabilityTheory.Kernel.isReversible_const`).
 * `ProbabilityTheory.Kernel.IsReversible.withDensity_simpleFunc`,
   `ProbabilityTheory.Kernel.IsReversible.withDensity_iSup`: a `π`-reversible kernel stays
   `π`-reversible with a density that is a symmetric function of a simple function of the two
@@ -228,6 +229,10 @@ theorem isReversible_id : (Kernel.id : Kernel X X).IsReversible π := fun s t hs
   refine lintegral_congr fun x ↦ ?_
   by_cases hxs : x ∈ s <;> by_cases hxt : x ∈ t <;> simp [hxs, hxt]
 
+/-- A constant kernel is reversible for its value. -/
+theorem isReversible_const (γ : Measure X) : (Kernel.const X γ).IsReversible γ :=
+  fun s t _ _ ↦ by simp only [Kernel.const_apply, MeasureTheory.setLIntegral_const, mul_comm]
+
 /-- The sum of two `π`-reversible kernels is `π`-reversible. -/
 theorem IsReversible.add {η : Kernel X X} (hκ : κ.IsReversible π) (hη : η.IsReversible π) :
     (κ + η).IsReversible π := fun s t hs ht ↦ by
@@ -313,5 +318,15 @@ theorem isReversible_sum_withDensity_const {ι : Type*} [Countable ι] {κ : ι 
     [∀ i, IsSFiniteKernel (κ i)] (h : ∀ i, (κ i).IsReversible π) (w : ι → ℝ≥0∞) :
     (Kernel.sum fun i ↦ (κ i).withDensity fun _ _ ↦ w i).IsReversible π :=
   IsReversible.sum fun i ↦ (h i).withDensity_const (w i)
+
+/-- The symmetry of `w` is needed in `IsReversible.withDensity_simpleFunc`: on `Bool`, the counting
+measure, its constant kernel, and `w` the indicator of the pair `(true, false)`. -/
+example : ∃ (π : Measure Bool) (κ : Kernel Bool Bool) (_ : IsFiniteKernel κ)
+    (g : SimpleFunc Bool Bool) (w : Bool → Bool → ℝ≥0∞), κ.IsReversible π ∧
+      ¬ (κ.withDensity fun x y ↦ w (g x) (g y)).IsReversible π := by
+  refine ⟨.count, Kernel.const Bool .count, inferInstance, SimpleFunc.ofFinite id,
+    fun c d ↦ if c = true ∧ d = false then 1 else 0, isReversible_const _, fun h ↦ ?_⟩
+  have h1 := h (measurableSet_singleton true) (measurableSet_singleton false)
+  simp [Kernel.withDensity_apply' _ (measurable_of_finite _), SimpleFunc.ofFinite] at h1
 
 end ProbabilityTheory.Kernel

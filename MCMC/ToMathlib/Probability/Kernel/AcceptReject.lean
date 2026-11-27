@@ -28,9 +28,9 @@ positivity is involved.
   `acceptReject_of_not_measurable`: for a non-measurable acceptance it is `Kernel.id`.
 * `isReversible_acceptReject_iff`: for every measure `π`, the kernel is `π`-reversible iff its
   accepted part `Q.withDensity a` is.
-* `isReversible_acceptReject_iff_map_swap`: for σ-finite `π` and accepted mass finite
+* `isReversible_acceptReject_iff_map_swap`: for a σ-finite accepted flow and accepted mass finite
   `π`-almost everywhere, the kernel is `π`-reversible iff the accepted flow is invariant under the
-  swap.
+  swap; `isReversible_acceptReject_iff_map_swap_of_sigmaFinite` for a σ-finite `π`.
 * `withDensity_mhAcceptance`: the flow accepted by `π.mhAcceptance Q` is the symmetric part of the
   proposed flow; `isReversible_acceptReject_mhAcceptance`,
   `isReversible_acceptReject_of_ae_eq_mhAcceptance`: the Metropolis–Hastings kernel is
@@ -139,13 +139,15 @@ theorem isReversible_acceptReject_iff [IsSFiniteKernel Q] :
   · rw [h hs ht hst, h ht hs hst.symm]
     exact H hs ht hst
 
-/-- **The accepted-flow criterion.** For σ-finite `π` and an acceptance whose accepted mass is
-finite `π`-almost everywhere, the accept–reject kernel is `π`-reversible iff the accepted flow
-`(π ⊗ₘ Q).withDensity (Function.uncurry a)` is invariant under the swap. Both hypotheses are
-needed (`exists_isReversible_acceptReject_and_map_swap_ne`,
-`exists_isReversible_acceptReject_top_and_map_swap_ne`, in
+/-- **The accepted-flow criterion.** For an s-finite `π`, a σ-finite accepted flow
+`(π ⊗ₘ Q).withDensity (Function.uncurry a)` and an accepted mass finite `π`-almost everywhere, the
+accept–reject kernel is `π`-reversible iff the accepted flow is invariant under the swap. Both
+hypotheses are needed (`exists_isReversible_acceptReject_and_map_swap_ne` and, for the accepted
+mass, the `example` after
+`exists_isReversible_acceptReject_not_ae_le_mhAcceptance_lintegral_eq_top`, in
 `MCMC/ToMathlib/Probability/Kernel/Reversible.lean`). -/
-theorem isReversible_acceptReject_iff_map_swap [IsSFiniteKernel Q] [SigmaFinite π]
+theorem isReversible_acceptReject_iff_map_swap [IsSFiniteKernel Q] [SFinite π]
+    [SigmaFinite ((π ⊗ₘ Q).withDensity (Function.uncurry a))]
     (ha : Measurable (Function.uncurry a)) (ha_fin : ∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞) :
     (acceptReject Q a).IsReversible π ↔
       ((π ⊗ₘ Q).withDensity (Function.uncurry a)).map Prod.swap =
@@ -153,10 +155,28 @@ theorem isReversible_acceptReject_iff_map_swap [IsSFiniteKernel Q] [SigmaFinite 
   have hκ : ∀ᵐ x ∂π, Q.withDensity a x univ ≠ ∞ := by
     filter_upwards [ha_fin] with x hx
     rwa [Kernel.withDensity_apply' _ ha, Measure.restrict_univ]
-  have := Measure.sigmaFinite_fst_compProd hκ
+  have := Measure.sigmaFinite_fst_compProd_iff.2
+    ⟨(Measure.compProd_withDensity (μ := π) (κ := Q) ha).symm ▸ ‹_›, hκ⟩
   exact isReversible_acceptReject_iff.trans
     (isReversible_iff_map_swap_compProd.trans
       (by rw [Measure.compProd_withDensity ha]; exact Iff.rfl))
+
+/-- The accepted-flow criterion for a σ-finite `π`: the accepted flow is then σ-finite. Finiteness
+of the accepted mass is needed (`exists_isReversible_acceptReject_top_and_map_swap_ne`, in
+`MCMC/ToMathlib/Probability/Kernel/Reversible.lean`). -/
+theorem isReversible_acceptReject_iff_map_swap_of_sigmaFinite [IsSFiniteKernel Q]
+    [SigmaFinite π] (ha : Measurable (Function.uncurry a))
+    (ha_fin : ∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞) :
+    (acceptReject Q a).IsReversible π ↔
+      ((π ⊗ₘ Q).withDensity (Function.uncurry a)).map Prod.swap =
+        (π ⊗ₘ Q).withDensity (Function.uncurry a) := by
+  have hσ : SigmaFinite ((π ⊗ₘ Q).withDensity (Function.uncurry a)) := by
+    change SigmaFinite ((π ⊗ₘ Q).withDensity fun p ↦ a p.1 p.2)
+    rw [← Measure.compProd_withDensity ha]
+    exact Measure.sigmaFinite_compProd (by
+      filter_upwards [ha_fin] with x hx
+      rwa [Kernel.withDensity_apply' _ ha, Measure.restrict_univ])
+  exact isReversible_acceptReject_iff_map_swap ha ha_fin
 
 /-- The Metropolis–Hastings acceptance of the proposal `Q` for the target `π`: the density of the
 symmetric part `(π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap` of the flow with respect to `π ⊗ₘ Q`,
@@ -290,9 +310,9 @@ theorem ae_le_mhAcceptance_of_isReversible_acceptReject [IsSFiniteKernel Q]
     exact SigmaFinite.withDensity_of_ne_top
       (ha1.mono fun p hp ↦ (hp.trans_lt ENNReal.one_lt_top).ne)
   have := Measure.sigmaFinite_fst_compProd_iff.2
-    (show ∀ᵐ x ∂π, Q.withDensity a x univ ≠ ∞ by
+    ⟨hσ, show ∀ᵐ x ∂π, Q.withDensity a x univ ≠ ∞ by
       filter_upwards [ha_fin] with x hx
-      rwa [Kernel.withDensity_apply' _ ha, Measure.restrict_univ])
+      rwa [Kernel.withDensity_apply' _ ha, Measure.restrict_univ]⟩
   have hsymm := (isReversible_acceptReject_iff.trans isReversible_iff_map_swap_compProd).1 h
   rw [Measure.compProd_withDensity ha] at hsymm
   change ((π ⊗ₘ Q).withDensity (Function.uncurry a)).map Prod.swap =

@@ -14,8 +14,9 @@ public import Mathlib.Probability.Kernel.Composition.Prod
 The first marginal of `μ ⊗ₘ κ` is `μ` with density `a ↦ κ a univ` (for a Markov kernel it is `μ`,
 Mathlib's `MeasureTheory.Measure.fst_compProd`). Hence `μ ⊗ₘ κ` and its first marginal are
 σ-finite when `μ` is σ-finite and `κ a` is a finite measure for `μ`-almost every `a`; in particular
-for every finite kernel. When `μ ⊗ₘ κ` is σ-finite, its first marginal is σ-finite iff `κ a` is
-finite for `μ`-almost every `a` (`MeasureTheory.Measure.sigmaFinite_fst_compProd_iff`). The kernel
+for every finite kernel. For s-finite `μ` and `κ`, the first marginal is σ-finite iff `μ ⊗ₘ κ` is
+σ-finite and `κ a` is finite for `μ`-almost every `a`
+(`MeasureTheory.Measure.sigmaFinite_fst_compProd_iff`). The kernel
 of the random map `x ↦ F x w`, `w ∼ ρ`, is Mathlib's
 `(Kernel.id ×ₖ Kernel.const X ρ).map (Function.uncurry F)`, whose value at `x` is `ρ.map (F x)`
 (`ProbabilityTheory.Kernel.map_prod_const_apply`); for every kernel with `Q y = ρ.map (F y)`, the
@@ -70,12 +71,12 @@ instance sigmaFinite_compProd_of_isFiniteKernel [SigmaFinite μ]
     [ProbabilityTheory.IsFiniteKernel κ] : SigmaFinite (μ ⊗ₘ κ) :=
   sigmaFinite_compProd (ae_of_all _ fun _ ↦ measure_ne_top _ _)
 
-/-- For a σ-finite `μ ⊗ₘ κ`, the first marginal is σ-finite iff `κ a` is finite for `μ`-almost
-every `a`; `μ` itself need not be σ-finite. -/
-theorem sigmaFinite_fst_compProd_iff [SFinite μ] [ProbabilityTheory.IsSFiniteKernel κ]
-    [SigmaFinite (μ ⊗ₘ κ)] : SigmaFinite (μ ⊗ₘ κ).fst ↔ ∀ᵐ a ∂μ, κ a univ ≠ ∞ := by
+/-- The first marginal of `μ ⊗ₘ κ` is σ-finite iff `μ ⊗ₘ κ` is σ-finite and `κ a` is finite for
+`μ`-almost every `a`; `μ` itself need not be σ-finite. -/
+theorem sigmaFinite_fst_compProd_iff [SFinite μ] [ProbabilityTheory.IsSFiniteKernel κ] :
+    SigmaFinite (μ ⊗ₘ κ).fst ↔ SigmaFinite (μ ⊗ₘ κ) ∧ ∀ᵐ a ∂μ, κ a univ ≠ ∞ := by
   have hm : Measurable fun a ↦ κ a univ := κ.measurable_coe .univ
-  refine ⟨fun hσ ↦ ?_, fun h ↦ ?_⟩
+  refine ⟨fun hσ ↦ ⟨SigmaFinite.of_map _ measurable_fst.aemeasurable hσ, ?_⟩, fun ⟨_, h⟩ ↦ ?_⟩
   · have key : ∀ n, ∀ᵐ a ∂μ.restrict (spanningSets (μ ⊗ₘ κ).fst n), κ a univ ≠ ∞ := fun n ↦ by
       refine (ae_lt_top hm ?_).mono fun a ha ↦ ha.ne
       rw [← withDensity_apply _ (measurableSet_spanningSets _ n), ← fst_compProd_eq_withDensity]
@@ -104,6 +105,16 @@ theorem sigmaFinite_fst_compProd_iff [SFinite μ] [ProbabilityTheory.IsSFiniteKe
     (show Measurable fun a ↦ κ a univ / ∫⁻ b, g (a, b) ∂κ a from hm.div hG)]
   exact SigmaFinite.withDensity_of_ne_top
     ((ae_withDensity_iff hG).2 (h.mono fun a ha h0 ↦ ENNReal.div_ne_top ha h0))
+
+/-- σ-finiteness of `μ ⊗ₘ κ` is needed on the right of `sigmaFinite_fst_compProd_iff`, even for a
+Markov kernel: on `Unit`, the measure `∞ • δ` and the kernel `Kernel.id`. -/
+example : ∃ (μ : Measure Unit) (κ : ProbabilityTheory.Kernel Unit Unit)
+    (_ : ProbabilityTheory.IsMarkovKernel κ), SFinite μ ∧ (∀ᵐ a ∂μ, κ a univ ≠ ∞) ∧
+      ¬ SigmaFinite (μ ⊗ₘ κ).fst := by
+  refine ⟨∞ • Measure.dirac (), ProbabilityTheory.Kernel.id, inferInstance, inferInstance,
+    ae_of_all _ fun _ ↦ measure_ne_top _ _, fun h ↦ ?_⟩
+  rw [Measure.fst_compProd, Measure.sigmaFinite_iff_measure_singleton_lt_top] at h
+  simpa using h ()
 
 /-- The mass of `μ ⊗ₘ κ` at a point. -/
 lemma compProd_apply_singleton [MeasurableSingletonClass α] [MeasurableSingletonClass β]

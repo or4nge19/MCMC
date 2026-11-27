@@ -54,4 +54,12 @@ theorem isReversible_iff_invariant_and_ae_eq_posterior [IsFiniteMeasure μ] [IsM
   rw [← compProd_posterior_eq_map_swap, hinv.def]
   exact (Measure.compProd_congr hpost).symm
 
-end ProbabilityTheory.Kernel
+/-- `IsMarkovKernel κ` is needed in `IsReversible.ae_eq_posterior` and in
+`isReversible_iff_invariant_and_ae_eq_posterior`: the zero kernel on `Unit` is reversible and is
+not its posterior, a Markov kernel. -/
+example : (0 : Kernel Unit Unit).IsReversible (Measure.dirac ()) ∧
+    ¬ (0 : Kernel Unit Unit) =ᵐ[Measure.dirac ()] (0 : Kernel Unit Unit)†(Measure.dirac ()) := by
+  refine ⟨Kernel.isReversible_zero, fun h ↦ ?_⟩
+  have h1 := congrArg (fun m : Measure Unit ↦ m Set.univ)
+    (ae_iff_of_countable.1 h () (by simp))
+  simp at h1

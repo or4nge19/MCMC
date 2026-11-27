@@ -31,7 +31,8 @@ A third counterexample, the orbit-counting kernel of an irrational rotation of t
   `exists_isReversible_withDensity_top_and_map_swap_compProd_ne`.
 * `exists_isReversible_acceptReject_and_map_swap_ne`,
   `exists_isReversible_acceptReject_top_and_map_swap_ne`: the same two failures for the
-  accepted-flow criterion `isReversible_acceptReject_iff_map_swap` of accept–reject kernels.
+  accepted-flow criterion of accept–reject kernels (`isReversible_acceptReject_iff_map_swap`,
+  `isReversible_acceptReject_iff_map_swap_of_sigmaFinite`).
 * `isReversible_sum_deterministic_iterate`, `sigmaFinite_compProd_sum_deterministic_iterate`,
   `not_ae_le_mhAcceptance_sum_deterministic_iterate`: for an ergodic map `T` of a finite measure
   space with no periodic point, the kernel `x ↦ ∑ n, δ_{T^[n] x}` is reversible, its flow is
@@ -149,8 +150,9 @@ theorem exists_isReversible_withDensity_top_and_map_swap_compProd_ne :
   rw [← Measure.compProd_apply_prod hs ht, ← Measure.compProd_apply_prod ht hs, heq,
     Measure.compProd_apply_prod hs ht, Measure.compProd_apply_prod ht hs, hrev hs ht]
 
-/-- σ-finiteness of `π` is needed in `isReversible_acceptReject_iff_map_swap`, already for a
-Markov proposal and the acceptance `1`. -/
+/-- σ-finiteness of the accepted flow is needed in `isReversible_acceptReject_iff_map_swap`, and
+of `π` in `isReversible_acceptReject_iff_map_swap_of_sigmaFinite`, already for a Markov proposal
+and the acceptance `1`. -/
 theorem exists_isReversible_acceptReject_and_map_swap_ne :
     ∃ (π : Measure ℝ) (Q : Kernel ℝ ℝ) (_ : IsMarkovKernel Q), SFinite π ∧
       (acceptReject Q fun _ _ ↦ 1).IsReversible π ∧
@@ -162,8 +164,9 @@ theorem exists_isReversible_acceptReject_and_map_swap_ne :
   · rw [withDensity_const, one_smul]
     exact hne
 
-/-- Finiteness of the accepted mass is needed in `isReversible_acceptReject_iff_map_swap`: the
-acceptance `∞` of a Markov proposal, for a probability measure `π`. -/
+/-- Finiteness of the accepted mass is needed in
+`isReversible_acceptReject_iff_map_swap_of_sigmaFinite`: the acceptance `∞` of a Markov proposal,
+for a probability measure `π`. -/
 theorem exists_isReversible_acceptReject_top_and_map_swap_ne :
     ∃ (π : Measure ℝ) (Q : Kernel ℝ ℝ) (_ : IsMarkovKernel Q), IsProbabilityMeasure π ∧
       (acceptReject Q fun _ _ ↦ ∞).IsReversible π ∧
@@ -360,6 +363,27 @@ example : ∃ (μ : Measure (AddCircle (1 : ℝ))) (Q : Kernel (AddCircle (1 : �
     (ae_of_all _ fun _ ↦ ENNReal.one_ne_top)
   rw [show μ.withDensity (fun _ ↦ 1) = μ from MeasureTheory.withDensity_one] at h
   filter_upwards [h] with z hz
+  rw [hz]
+  simp
+
+/-- Finiteness of the accepted mass is needed in `isReversible_acceptReject_iff_map_swap`: for the
+same data the accepted flow `π ⊗ₘ Q` is σ-finite, the accept–reject kernel of the acceptance `1`
+is `π`-reversible, and the accepted flow is not invariant under the swap. -/
+example : ∃ (π : Measure (AddCircle (1 : ℝ))) (Q : Kernel (AddCircle (1 : ℝ)) (AddCircle (1 : ℝ)))
+    (_ : IsSFiniteKernel Q), IsFiniteMeasure π ∧
+      SigmaFinite ((π ⊗ₘ Q).withDensity (Function.uncurry fun _ _ ↦ 1)) ∧
+      (acceptReject Q fun _ _ ↦ 1).IsReversible π ∧
+      ((π ⊗ₘ Q).withDensity (Function.uncurry fun _ _ ↦ 1)).map Prod.swap ≠
+        (π ⊗ₘ Q).withDensity (Function.uncurry fun _ _ ↦ 1) := by
+  obtain ⟨π, Q, hQ, hπ, hσ, hrev, hn⟩ :=
+    exists_isReversible_acceptReject_not_ae_le_mhAcceptance_lintegral_eq_top
+  have h1 : (π ⊗ₘ Q).withDensity (Function.uncurry fun _ _ ↦ 1) = π ⊗ₘ Q :=
+    MeasureTheory.withDensity_one
+  refine ⟨π, Q, hQ, hπ, h1.symm ▸ hσ, hrev, fun h ↦ hn ?_⟩
+  rw [h1] at h
+  filter_upwards [mhAcceptance_ae_eq_of_compProd_eq_withDensity h (g := fun _ ↦ 1)
+    measurable_const (ae_of_all _ fun _ ↦ ENNReal.one_ne_top)
+    (MeasureTheory.withDensity_one (μ := π ⊗ₘ Q)).symm] with z hz
   rw [hz]
   simp
 
