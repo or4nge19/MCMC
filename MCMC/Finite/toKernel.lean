@@ -76,6 +76,7 @@ theorem isStationary_iff_invariant (P : Matrix n n ℝ) (π : stdSimplex ℝ n)
       (π.property.1 i)) (π.property.1 j)]
   rfl
 
+omit [DecidableEq n] in
 /-- Matrix reversibility is equivalent to kernel reversibility -/
 theorem isReversible_iff_kernel_reversible (P : Matrix n n ℝ) (π : stdSimplex ℝ n)
     (hP : ∀ i j, 0 ≤ P i j) :
@@ -98,6 +99,7 @@ instance matrixToKernel_isMarkov (P : Matrix n n ℝ) (hP : IsStochastic P) :
     change ((∑ j : n, ENNReal.ofReal (P i j) • Measure.dirac j) : Measure n) Set.univ = 1
     simp [← ENNReal.ofReal_sum_of_nonneg fun j _ ↦ hP.1 i j, hP.2 i]⟩⟩
 
+omit [DecidableEq n] in
 theorem IsReversible.is_stationary' {P : Matrix n n ℝ} {π : stdSimplex ℝ n}
     (hP : IsStochastic P) (h_rev : IsReversible P π) :
     IsStationary P π := by

@@ -61,6 +61,7 @@ theorem matrixToKernel_metropolisHastingsKernel (hQ : IsStochastic Q)
   · simp only [hxy, ↓reduceIte, add_zero]
     rw [indicator_of_notMem (mem_singleton_iff.not.2 hxy), mul_zero, add_zero, mul_comm]
 
+omit [DecidableEq n] in
 /-- The acceptance of the finite Metropolis–Hastings matrix is the Metropolis–Hastings acceptance,
 almost everywhere for the proposed flow. -/
 theorem ae_eq_mhAcceptance (hQ : ∀ i j, 0 ≤ Q i j) :
