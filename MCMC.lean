@@ -83,6 +83,7 @@ import MCMC.ToMathlib.Probability.Kernel.Invariance
 import MCMC.ToMathlib.Probability.Kernel.IonescuTulcea.Traj
 import MCMC.ToMathlib.Probability.Kernel.Mixing
 import MCMC.ToMathlib.Probability.Kernel.RandomMap
+import MCMC.ToMathlib.Probability.StrongLaw
 import MCMC.ToMathlib.Topology.ContinuousMap.Bounded.Normed
 import MCMC.ToMathlib.Topology.ContinuousMap.Compact
 import MCMC.ToMathlib.Topology.ContinuousMap.Ordered
