@@ -23,10 +23,22 @@ measurable `g` with `g² ≤ M (1 + V)`, write `ḡ = g - ∫ g ∂π`:
   `∫ ψ (ω k) φ (ω (k + l))` with `∫ φ ∂π = 0` are `O(ρˡ)` uniformly in `k`
   (`exists_abs_integral_comp_mul_comp_chain_le_of_drift_of_minorization_pow`), through the bound
   `|Pˡφ| ≤ C ρˡ √M (1 + √V)` of `Mixing.lean`.
+* **The strong law**: `n⁻¹ ∑_{k < n} g (ω k) → ∫ g ∂π` for `P.chain x`-almost every `ω`, from every
+  point `x` (`ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow`), hence from every
+  initial measure, with no moment
+  (`ae_tendsto_inv_mul_sum_chain_comp_of_drift_of_minorization_pow`): the variance growth and
+  Rajchman's argument (`ProbabilityTheory.ae_tendsto_inv_mul_sum_of_integral_sq_le`).
 
 The class `g² ≤ M (1 + V)` is the class this second-moment argument reaches; it is not claimed
-optimal. The hypotheses on the kernel are those of Harris' theorem with the minorization of a
-power (`exists_abs_integral_comp_pow_sub_integral_le_of_drift_of_minorization_pow`).
+optimal (for a Harris recurrent chain the strong law holds for every `g ∈ L¹(π)`). The
+hypotheses on the kernel are those of Harris' theorem with the minorization of a power
+(`exists_abs_integral_comp_pow_sub_integral_le_of_drift_of_minorization_pow`), and none is
+removable: the identity kernel of `Bool` has every Dirac mass as invariant law and its averages
+converge to `g x` from `x` (`ae_tendsto_inv_mul_sum_chain_id`,
+`not_forall_ae_tendsto_inv_mul_sum_chain_id_bool`), and with suitable `V`, `γ`, `K`, `R` it
+satisfies all the hypotheses but the threshold, all but the drift, and all but the minorization
+(the `example`s at the end). The hypotheses hold together on the halving chain of `Harris.lean`
+and on the Gaussian autoregression of `RandomMap.lean` (the last two `example`s).
 
 ## Search
 
@@ -246,5 +258,199 @@ theorem exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow [IsMarkovKern
         (sub_le_self _ (integral_nonneg fun _ ↦ sq_nonneg _)).trans
           (mul_le_mul_of_nonneg_left (hsum k) zero_le_two)
     _ = _ := by rw [Finset.sum_const, card_range, nsmul_eq_mul, hBdef]; ring
+
+/-- **The strong law of large numbers for Harris chains, from every point**: under the drift and
+the minorization of `P ^ m` on `{V ≤ R}` (`α > 0`, `K + γ R < R`), for an invariant law `π` and a
+measurable `g` with `g² ≤ M (1 + V)`, from every point `x`,
+`n⁻¹ ∑_{k < n} g (ω k) → ∫ g ∂π` for `P.chain x`-almost every trajectory `ω`. -/
+theorem ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow [IsMarkovKernel P]
+    (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) {ν : Measure X}
+    [IsProbabilityMeasure ν] {α R : ℝ≥0} {m : ℕ} (hα : 0 < α) (hR : K + γ * R < R)
+    (hmin : ∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) {π : Measure X} [IsProbabilityMeasure π]
+    (hπ : Invariant P π) {g : X → ℝ} (hg : Measurable g) {M : ℝ}
+    (hgM : ∀ x, g x ^ 2 ≤ M * (1 + V x)) (x : X) :
+    ∀ᵐ ω ∂(P.chain x), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, g (ω k)) atTop
+      (𝓝 (∫ y, g y ∂π)) := by
+  have hγ := NNReal.lt_one_of_add_mul_lt hR
+  have hL : 0 ≤ (K : ℝ) / (1 - γ) :=
+    div_nonneg K.coe_nonneg (by linarith [(by exact_mod_cast hγ : (γ : ℝ) < 1)])
+  obtain ⟨C, hC, h⟩ :=
+    exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow hV hdrift hα hR hmin
+  obtain ⟨C₁, ρ₁, hC₁, -, -, h₁⟩ :=
+    exists_abs_integral_comp_mul_comp_chain_le_of_drift_of_minorization_pow hV hdrift hα hR hmin
+  obtain ⟨hc0, hgM'⟩ := integral_sub_integral_eq_zero_and_sq_sub_integral_le_of_invariant_of_drift
+    hV hdrift hγ hπ hg hgM
+  set c := ∫ y, g y ∂π
+  have hM : 0 ≤ M := nonneg_of_mul_nonneg_left ((sq_nonneg _).trans (hgM x)) (by positivity)
+  have hx : ∫⁻ y, V y ∂(Measure.dirac x) ≠ ∞ := by
+    rw [lintegral_dirac' _ hV.coe_nnreal_ennreal]
+    exact ENNReal.coe_ne_top
+  set A := 1 + ∫ y, (V y : ℝ) ∂Measure.dirac x
+  have hA : 0 ≤ A := by positivity
+  have hmem (k : ℕ) := memLp_comp_chain_comp_of_drift hV hdrift hx (hg.sub_const c) hgM' k
+  have hS (n : ℕ) := h π inferInstance hπ _ inferInstance hx g hg M hgM n
+  have hY2 (k : ℕ) := h₁ π inferInstance hπ _ inferInstance hx _ _ (hg.sub_const c)
+    (hg.sub_const c) hc0 _ hgM' hgM' k 0
+  rw [Measure.dirac_bind P.chain.measurable] at hmem hS hY2
+  refine (ProbabilityTheory.ae_tendsto_inv_mul_sum_of_integral_sq_le hmem
+    (B := (C + C₁ * (2 * (2 + K / (1 - γ)))) * M * A) (fun n ↦ (hS n).trans ?_)
+    fun k ↦ ?_).mono fun ω hω ↦ ?_
+  · nlinarith [mul_nonneg (mul_nonneg (mul_nonneg hC₁ (by positivity :
+      (0 : ℝ) ≤ 2 * (2 + K / (1 - γ)))) hM) (mul_nonneg hA (Nat.cast_nonneg (α := ℝ) n))]
+  · refine ((le_abs_self _).trans_eq' ?_).trans ((hY2 k).trans ?_)
+    · simp [sq]
+    · rw [pow_zero, mul_one]
+      nlinarith [mul_nonneg (mul_nonneg hC hM) hA]
+  · have h0 := hω.add_const c
+    rw [zero_add] at h0
+    refine h0.congr' (eventually_atTop.2 ⟨1, fun n hn ↦ ?_⟩)
+    beta_reduce
+    rw [Finset.sum_sub_distrib, Finset.sum_const, card_range, nsmul_eq_mul, mul_sub,
+      inv_mul_cancel_left₀ (Nat.cast_ne_zero.2 (by omega)), sub_add_cancel]
+
+/-- **The strong law of large numbers for Harris chains, from every initial measure**: under the
+drift and the minorization of `P ^ m` on `{V ≤ R}` (`α > 0`, `K + γ R < R`), for an invariant law
+`π` and a measurable `g` with `g² ≤ M (1 + V)`, from every initial measure `μ` (no moment and no
+finiteness), `n⁻¹ ∑_{k < n} g (ω k) → ∫ g ∂π` for `P.chain ∘ₘ μ`-almost every `ω`. -/
+theorem ae_tendsto_inv_mul_sum_chain_comp_of_drift_of_minorization_pow [IsMarkovKernel P]
+    (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) {ν : Measure X}
+    [IsProbabilityMeasure ν] {α R : ℝ≥0} {m : ℕ} (hα : 0 < α) (hR : K + γ * R < R)
+    (hmin : ∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) {π : Measure X} [IsProbabilityMeasure π]
+    (hπ : Invariant P π) {g : X → ℝ} (hg : Measurable g) {M : ℝ}
+    (hgM : ∀ x, g x ^ 2 ≤ M * (1 + V x)) (μ : Measure X) :
+    ∀ᵐ ω ∂(P.chain ∘ₘ μ), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, g (ω k)) atTop
+      (𝓝 (∫ y, g y ∂π)) :=
+  Measure.ae_comp_of_ae_ae (measurableSet_tendsto _ fun _ ↦ measurable_const.mul
+    (Finset.measurable_sum _ fun k _ ↦ hg.comp (measurable_pi_apply k)))
+    (ae_of_all _ (ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow hV hdrift hα hR hmin
+      hπ hg hgM))
+
+/-! ### The hypotheses are forced, and they hold together -/
+
+/-- **The chain of a deterministic map follows the orbit**: with measurable singletons, for
+`(deterministic f hf).chain x`-almost every `ω`, `ω k = f^[k] x` for every `k`. -/
+theorem ae_forall_eq_iterate_chain_deterministic [MeasurableSingletonClass X] {f : X → X}
+    (hf : Measurable f) (x : X) :
+    ∀ᵐ ω ∂((deterministic f hf).chain x), ∀ k, ω k = f^[k] x := by
+  refine ae_all_iff.2 fun k ↦ ae_of_ae_map (f := fun ω : ℕ → X ↦ ω k)
+    (p := fun y ↦ y = f^[k] x) (measurable_pi_apply k).aemeasurable ?_
+  rw [← map_apply _ (measurable_pi_apply k), chain_map_eval, deterministic_pow,
+    deterministic_apply]
+  exact (ae_dirac_iff (measurableSet_singleton _)).2 rfl
+
+/-- **The identity chain stays at its start**: with measurable singletons, from every point `x`,
+`n⁻¹ ∑_{k < n} g (ω k) → g x` for `Kernel.id.chain x`-almost every `ω`. -/
+theorem ae_tendsto_inv_mul_sum_chain_id [MeasurableSingletonClass X] (g : X → ℝ) (x : X) :
+    ∀ᵐ ω ∂((Kernel.id : Kernel X X).chain x),
+      Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, g (ω k)) atTop (𝓝 (g x)) := by
+  filter_upwards [ae_forall_eq_iterate_chain_deterministic measurable_id x] with ω hω
+  refine tendsto_const_nhds.congr' (eventually_atTop.2 ⟨1, fun n hn ↦ ?_⟩)
+  simp only [hω, Function.iterate_id, id_eq, Finset.sum_const, card_range, nsmul_eq_mul]
+  rw [inv_mul_cancel_left₀ (Nat.cast_ne_zero.2 (by omega))]
+
+/-- **The strong law fails for the identity kernel of `Bool`**: every Dirac mass is invariant,
+and from `false` the fraction of time spent at `true` tends to `0`, not to the mass `1` of `true`
+under the invariant law `dirac true`. -/
+theorem not_forall_ae_tendsto_inv_mul_sum_chain_id_bool :
+    ¬ ∀ π : Measure Bool, IsProbabilityMeasure π → Invariant (Kernel.id : Kernel Bool Bool) π →
+      ∀ x, ∀ᵐ ω ∂((Kernel.id : Kernel Bool Bool).chain x),
+        Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, (if ω k then (1 : ℝ) else 0)) atTop
+          (𝓝 (∫ y, (if y then (1 : ℝ) else 0) ∂π)) := fun h ↦ by
+  obtain ⟨ω, h1, h2⟩ := ((h (Measure.dirac true) inferInstance Measure.id_comp false).and
+    (ae_tendsto_inv_mul_sum_chain_id (fun y : Bool ↦ if y then (1 : ℝ) else 0) false)).exists
+  simpa using tendsto_nhds_unique h1 h2
+
+/-- **The threshold `K + γ R < R` is forced**: the identity kernel of `Bool` with
+`V = 1_{true}` has the drift with `γ = 0`, `K = 1` and the minorization `dirac false ≤ P x` on
+`{V ≤ 0}` (`α = 1`, `m = 1`), but `K + γ R = 1 > 0 = R`, and the strong law fails for
+`g = 1_{true}` (`g² ≤ 1 + V`). -/
+example :
+    (∀ x, ∫⁻ y, (if y then (1 : ℝ≥0) else 0) ∂((Kernel.id : Kernel Bool Bool) x) ≤
+      (0 : ℝ≥0) * (if x then (1 : ℝ≥0) else 0) + (1 : ℝ≥0)) ∧
+    (∀ x, (if x then (1 : ℝ≥0) else 0) ≤ 0 →
+      (1 : ℝ≥0) • Measure.dirac false ≤ ((Kernel.id : Kernel Bool Bool) ^ 1) x) ∧
+    ¬ ((1 : ℝ≥0) + 0 * 0 < 0) ∧
+    ¬ ∀ π : Measure Bool, IsProbabilityMeasure π → Invariant (Kernel.id : Kernel Bool Bool) π →
+      ∀ x, ∀ᵐ ω ∂((Kernel.id : Kernel Bool Bool).chain x),
+        Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, (if ω k then (1 : ℝ) else 0)) atTop
+          (𝓝 (∫ y, (if y then (1 : ℝ) else 0) ∂π)) :=
+  ⟨fun x ↦ by cases x <;> simp [Kernel.id_apply], fun x hx ↦ by
+    cases x with
+    | false => simp [Kernel.id_apply]
+    | true => simp at hx, by simp, not_forall_ae_tendsto_inv_mul_sum_chain_id_bool⟩
+
+/-- **The drift is forced**: the identity kernel of `Bool` with `V = 2 · 1_{true}` has the
+minorization `dirac false ≤ P x` on `{V ≤ 1}` (`α = 1`, `m = 1`) and `K + γ R < R` for `γ = K = 0`,
+`R = 1`, but not the drift, and the strong law fails for `g = 1_{true}`. -/
+example :
+    (∀ x, (if x then (2 : ℝ≥0) else 0) ≤ 1 →
+      (1 : ℝ≥0) • Measure.dirac false ≤ ((Kernel.id : Kernel Bool Bool) ^ 1) x) ∧
+    (0 : ℝ≥0) + 0 * 1 < 1 ∧
+    ¬ (∀ x, ∫⁻ y, (if y then (2 : ℝ≥0) else 0) ∂((Kernel.id : Kernel Bool Bool) x) ≤
+      (0 : ℝ≥0) * (if x then (2 : ℝ≥0) else 0) + (0 : ℝ≥0)) :=
+  ⟨fun x hx ↦ by
+    cases x with
+    | false => simp [Kernel.id_apply]
+    | true => norm_num at hx, by norm_num, fun h ↦ by simpa [Kernel.id_apply] using h true⟩
+
+/-- **The minorization is forced, and `α > 0` in it**: the identity kernel of `Bool` with `V = 0`
+has the drift with `γ = K = 0` and `K + γ R < R` for `R = 1`, and the minorization of `P ^ 1`
+(every power of the identity is the identity) holds with `α = 0` and with no `α > 0`: the strong
+law fails (`not_forall_ae_tendsto_inv_mul_sum_chain_id_bool`). -/
+example {ν : Measure Bool} [IsProbabilityMeasure ν] {α : ℝ≥0} (hα : 0 < α) :
+    (∀ x, ∫⁻ _y, ((0 : ℝ≥0) : ℝ≥0∞) ∂((Kernel.id : Kernel Bool Bool) x) ≤
+      (0 : ℝ≥0) * (0 : ℝ≥0) + (0 : ℝ≥0)) ∧
+    (0 : ℝ≥0) + 0 * 1 < 1 ∧
+    (∀ x, (0 : ℝ≥0) ≤ 1 → (0 : ℝ≥0) • ν ≤ ((Kernel.id : Kernel Bool Bool) ^ 1) x) ∧
+    ¬ (∀ x, (0 : ℝ≥0) ≤ 1 → α • ν ≤ ((Kernel.id : Kernel Bool Bool) ^ 1) x) :=
+  ⟨fun _ ↦ by simp, by norm_num, fun _ _ ↦ by rw [zero_smul]; exact Measure.zero_le _,
+    fun h ↦ not_forall_smul_le_id_bool hα
+    fun x ↦ by simpa using h x zero_le_one⟩
+
+/-- **The hypotheses hold together: the halving chain** of `drift_and_minorization_of_halving`
+(`V n = n`, `γ = K = 1/2`, the minorization `(1/2) • dirac 1 ≤ P x` on `{V ≤ 3}`) has the invariant
+law `P 0 = (1/2) • dirac 0 + (1/2) • dirac 1`, and from every start the chain spends half of its
+time at `0`. -/
+example {P : Kernel ℕ ℕ} [IsMarkovKernel P] (hP : ∀ n, P n = if n ≤ 1 then
+    (1 / 2 : ℝ≥0) • Measure.dirac 0 + (1 / 2 : ℝ≥0) • Measure.dirac 1 else Measure.dirac (n / 2))
+    (x : ℕ) :
+    ∀ᵐ ω ∂(P.chain x), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n,
+      Set.indicator {0} (1 : ℕ → ℝ) (ω k)) atTop (𝓝 (1 / 2)) := by
+  obtain ⟨-, hd, hm⟩ := drift_and_minorization_of_halving hP
+  have hπ : Invariant P (P 0) := by
+    refine Measure.ext fun s hs ↦ ?_
+    rw [Measure.bind_apply hs (Kernel.aemeasurable _), hP 0]
+    simp only [zero_le_one, ↓reduceIte]
+    rw [lintegral_add_measure, lintegral_smul_measure, lintegral_smul_measure, lintegral_dirac,
+      lintegral_dirac, hP, hP]
+    simp only [zero_le_one, le_refl, ↓reduceIte]
+    rw [← add_smul, add_halves, one_smul]
+  have h := ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow (P := P)
+    (V := fun n : ℕ ↦ (n : ℝ≥0)) (γ := 1 / 2) (K := 1 / 2) (ν := Measure.dirac 1) (α := 1 / 2)
+    (R := 3) (m := 1) (measurable_of_countable _) hd (by norm_num) (by norm_num)
+    (fun y hy ↦ by rw [pow_one]; exact hm y hy) hπ (g := Set.indicator ({0} : Set ℕ) 1)
+    (measurable_of_countable _) (M := 1)
+    (fun y ↦ by by_cases hy : y = 0 <;> simp [hy]; positivity) x
+  rw [integral_indicator_one (measurableSet_singleton 0)] at h
+  convert h using 2
+  simp [Measure.real, hP 0]
+
+/-- **The hypotheses hold together: the Gaussian autoregression** `y ↦ a y + w`,
+`w ∼ N(0, v)`, `|a| < 1`, `v ≠ 0`, of `exists_drift_minorization_gaussian_ar` (`V y = y²`): from
+every start the averages of the chain tend to `0`, the mean of its invariant law
+`N(0, v / (1 - a²))`. -/
+example {a : ℝ} (ha : |a| < 1) {v : ℝ≥0} (hv : v ≠ 0) {P : Kernel ℝ ℝ} [IsMarkovKernel P]
+    (hP : P = (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map
+      fun p : ℝ × ℝ ↦ a * p.1 + p.2) (x : ℝ) :
+    ∀ᵐ ω ∂(P.chain x), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, ω k) atTop (𝓝 0) := by
+  subst hP
+  obtain ⟨R, α, hα, hR, hdrift, hmin⟩ := exists_drift_minorization_gaussian_ar ha hv
+  have : IsProbabilityMeasure (volume.restrict (Set.Icc (0 : ℝ) 1)) :=
+    ⟨by rw [Measure.restrict_apply_univ, Real.volume_Icc]; simp⟩
+  simpa [integral_id_gaussianReal] using ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow
+    (V := fun y ↦ ‖y‖₊ ^ 2) (m := 1) (by fun_prop) hdrift hα
+    (lt_of_le_of_lt (by rw [two_mul, add_assoc]; exact le_add_self) hR) (by simpa using hmin)
+    (invariant_gaussianReal_ar ha v) (g := id) measurable_id (M := 1)
+    (fun y ↦ by simp [sq_abs]) x
 
 end ProbabilityTheory.Kernel
