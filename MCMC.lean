@@ -70,6 +70,7 @@ import MCMC.ToMathlib.Dynamics.BirkhoffSum.Ergodic
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.LpConvergence
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.MaximalErgodic
 import MCMC.ToMathlib.Dynamics.BirkhoffSum.Pointwise
+import MCMC.ToMathlib.Dynamics.BirkhoffSum.Stationary
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
 import MCMC.ToMathlib.MeasureTheory.Function.LpOrder
 import MCMC.ToMathlib.MeasureTheory.Measure.UniformLimit
