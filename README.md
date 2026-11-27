@@ -25,13 +25,24 @@ Open the folder in VS Code for interactive proofs.
   - `TotalVariation.lean`: total variation distance and Dobrushin coefficient
   - `Convergence.lean`: convergence/mixing statements for finite chains
   - `MetropolisHastings.lean`: Metropolis–Hastings kernel
+  - `MetropolisHastingsKernel.lean`: its detailed balance from the general Metropolis–Hastings
+    kernel
   - `Gibbs.lean`: Gibbs sampling
 - `MCMC/PF/`
   - `Auxiliary.lean`: auxiliary lemmas
   - `LinearAlgebra/Matrix/PerronFrobenius/`: PF and spectral/JNF files
     - core: `Defs`, `Irreducible`, `Primitive`, `Aperiodic`, `CollatzWielandt`, `Multiplicity`,`Dominance`
     - stochastic/sampling: `Stochastic.lean`
-- `MCMC/ToMathlib/Probability/Kernel/`: Doeblin and Harris on a measurable space
+- `MCMC/ToMathlib/Probability/Kernel/`: Doeblin and Harris on a measurable space; reversible
+  kernels, accept–reject kernels and the Metropolis–Hastings acceptance, random walks, Gibbs
+  updates (`Invariance`, `AcceptReject`, `RandomWalk`, `Proper`, `Posterior`; counterexamples in
+  `Reversible`)
+- `MCMC/Samplers/Metropolis.lean`: random-walk Metropolis, preconditioned Crank–Nicolson, and the
+  Gibbs update of one coordinate as a Metropolis–Hastings step of acceptance `1`
+- `MCMC/Samplers/Independent.lean`: the independent Metropolis–Hastings sampler, uniformly ergodic
+  at rate `(1 - 1/M)ⁿ` when the density of the target with respect to the proposal is at most `M`
+- `MCMC/ToMathlib/Dynamics/Ergodic/Ergodic.lean`: returns of an ergodic map to a set of positive
+  measure
 - `MCMC/ToMathlib/`: Mathlib-ready additions at their Mathlib paths (below)
 
 ## Krein–Rutman (`MCMC/ToMathlib`)
