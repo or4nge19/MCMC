@@ -31,6 +31,11 @@ kernel of a random map (the nearest is `Measure.compProd_map` of `Composition/Le
 `μ ⊗ₘ κ.map f = (μ ⊗ₘ κ).map (Prod.map id f)`);
 `grep -rn "compProd_apply_singleton\|dirac_compProd_apply" Mathlib/Probability` finds only
 `dirac_compProd_apply`, for a Dirac first factor.
+
+## References
+
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021):
+  Lemma 3.3 (ii), Theorem 3.4 (ii), Lemma 8.7 (i).
 -/
 
 @[expose] public section

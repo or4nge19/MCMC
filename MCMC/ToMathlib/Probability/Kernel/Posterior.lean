@@ -19,6 +19,13 @@ leaves `μ` invariant and is its own posterior, `μ`-almost everywhere.
 Staged for `Mathlib/Probability/Kernel/Posterior.lean`. Searched on 2026-11-27 in the pinned
 Mathlib: `grep -rn "IsReversible\|Invariant" Mathlib/Probability/Kernel/Posterior.lean` has no
 hit.
+
+## References
+
+* C. P. Robert, G. Casella, *Monte Carlo Statistical Methods*, 2nd ed., Springer (2004),
+  p. 230 (the display after Theorem 6.46).
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021):
+  Theorem 3.4.
 -/
 
 @[expose] public section

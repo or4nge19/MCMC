@@ -32,6 +32,14 @@ rest on one probability measure on `ℝ`, the Gaussian `N(0, 1)`, with a Markov 
 Staged for Mathlib's `Counterexamples/` (new file): the Gaussian measure is the only reason for the
 import of `Mathlib.Probability.Distributions.Gaussian.Real`, which the files of the theorems
 (`Invariance.lean`, `AcceptReject.lean`) do not import.
+
+## References
+
+* C. P. Robert, G. Casella, *Monte Carlo Statistical Methods*, 2nd ed., Springer (2004), §6.5.3:
+  Definitions 6.44–6.45, Theorem 6.46 and its footnote 3 (p. 230).
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021): the
+  composition `ν ⊗ μ` (Chapter 3, (2), Lemma 3.3) and Theorem 3.4 (ii); reversible kernels are not
+  treated there.
 -/
 
 @[expose] public section

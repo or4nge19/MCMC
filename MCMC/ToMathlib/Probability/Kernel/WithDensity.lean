@@ -19,6 +19,11 @@ Staged for `Mathlib/Probability/Kernel/WithDensity.lean`. Searched on 2026-11-26
 Mathlib: `grep -rn "IsSFiniteKernel (withDensity\|IsSFiniteKernel (κ.withDensity"
 Mathlib/Probability` finds the instance for `ℝ≥0`-valued densities and the theorem with
 `∀ a b, f a b ≠ ∞`, nothing for arbitrary densities.
+
+## References
+
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021):
+  Lemma 3.2 (i).
 -/
 
 @[expose] public section

@@ -48,6 +48,14 @@ Searched on 2026-11-25 (Mathlib `d13f23b`): `Probability/Kernel/Invariance.lean`
 Invariant.pow" Probability` finds nothing. Searched on 2026-11-26: `grep -rn "IsReversible"
 Mathlib` finds only the definition and `IsReversible.invariant`; `grep -rn "Prod.swap"
 Mathlib/Probability/Kernel` finds no statement about reversibility.
+
+## References
+
+* C. P. Robert, G. Casella, *Monte Carlo Statistical Methods*, 2nd ed., Springer (2004), §6.5.3:
+  Definitions 6.44–6.45, Theorem 6.46 and its footnote 3 (p. 230).
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021): the
+  composition `ν ⊗ μ` (Chapter 3, (2), Lemma 3.3) and Theorem 3.4 (ii); reversible kernels are not
+  treated there.
 -/
 
 @[expose] public section

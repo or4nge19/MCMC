@@ -28,6 +28,10 @@ reversible for a reference measure `μ`, the acceptance `min 1 (f y / f x)`, and
 
 * M. Hairer, A. M. Stuart, S. J. Vollmer, *Spectral gaps for a Metropolis–Hastings algorithm in
   infinite dimensions*, Ann. Appl. Probab. 24 (2014); arXiv:1112.1392 (the pCN algorithm).
+* C. P. Robert, G. Casella, *Monte Carlo Statistical Methods*, 2nd ed., Springer (2004), §7.5,
+  Algorithm [A.29] (p. 288).
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021), Lemma 34.28
+  (time reversal, Doob): Brownian motion started from Lebesgue measure.
 -/
 
 @[expose] public section
@@ -85,7 +89,7 @@ theorem isReversible_pCN {μ₀ : Measure E} [IsGaussian μ₀] (hμ₀ : μ₀[
 /-! ### The hypotheses of the general theorems hold together
 
 Each `example` below applies a general theorem of
-`MCMC/ToMathlib/Probability/Kernel/{Reversible, AcceptReject}.lean` with all its hypotheses met by
+`MCMC/ToMathlib/Probability/Kernel/{Invariance, AcceptReject}.lean` with all its hypotheses met by
 the random-walk proposal on `ℝ` and Lebesgue measure, which is σ-finite and not finite. -/
 
 section Examples

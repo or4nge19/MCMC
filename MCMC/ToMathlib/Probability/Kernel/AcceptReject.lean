@@ -54,6 +54,13 @@ positivity is involved.
 Staged for `Mathlib/Probability/Kernel/AcceptReject.lean` (new file). Searched on 2026-11-26 in
 the pinned Mathlib: `grep -rni "acceptReject\|accept_reject\|metropolis\|hastings" Mathlib` has no
 hit.
+
+## References
+
+* C. P. Robert, G. Casella, *Monte Carlo Statistical Methods*, 2nd ed., Springer (2004), §7.3:
+  Algorithm [A.24] (p. 270) and Theorem 7.2 (p. 272), for densities with respect to a dominating
+  measure; the kernel (7.2) is `acceptReject`. Maximality on a finite state space: Problems
+  7.39–7.40 (pp. 311–312), after Peskun.
 -/
 
 @[expose] public section

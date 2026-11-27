@@ -44,6 +44,13 @@ Staged for `Mathlib/Probability/Kernel/Proper.lean`. Searched on 2026-11-26 in t
 `grep -rn "IsProper" Mathlib` finds the definition, its characterizations and the integral lemmas
 of `Probability/Kernel/Proper.lean` and no statement about invariant measures, reversibility or
 composition.
+
+## References
+
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021):
+  Theorem 8.1 (v)–(vii) (pull-out, self-adjointness, tower property) and Theorem 8.5.
+* C. P. Robert, G. Casella, *Monte Carlo Statistical Methods*, 2nd ed., Springer (2004):
+  Theorem 10.13 (p. 381).
 -/
 
 @[expose] public section
