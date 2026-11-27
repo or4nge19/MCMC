@@ -7,7 +7,7 @@ module
 
 public import Mathlib.Probability.Distributions.Gaussian.Real
 public import Mathlib.Probability.Kernel.Composition.WithDensity
-public import MCMC.ToMathlib.Probability.Kernel.Invariance
+public import MCMC.ToMathlib.Probability.Kernel.AcceptReject
 
 /-!
 # Reversibility does not determine `π ⊗ₘ κ` without σ-finiteness
@@ -25,10 +25,13 @@ rest on one probability measure on `ℝ`, the Gaussian `N(0, 1)`, with a Markov 
 * `exists_compProd_prod_eq_zero_iff_and_not_absolutelyContinuous`.
 * `exists_isReversible_smul_top_and_map_swap_compProd_ne`,
   `exists_isReversible_withDensity_top_and_map_swap_compProd_ne`.
+* `exists_isReversible_acceptReject_and_map_swap_ne`,
+  `exists_isReversible_acceptReject_top_and_map_swap_ne`: the same two failures for the
+  accepted-flow criterion `isReversible_acceptReject_iff_map_swap` of accept–reject kernels.
 
 Staged for Mathlib's `Counterexamples/` (new file): the Gaussian measure is the only reason for the
-import of `Mathlib.Probability.Distributions.Gaussian.Real`, which
-`Mathlib/Probability/Kernel/Invariance.lean` should not import.
+import of `Mathlib.Probability.Distributions.Gaussian.Real`, which the files of the theorems
+(`Invariance.lean`, `AcceptReject.lean`) do not import.
 -/
 
 @[expose] public section
@@ -122,5 +125,28 @@ theorem exists_isReversible_withDensity_top_and_map_swap_compProd_ne :
   refine ⟨ν, κ, hκ, hν, fun s t hs ht ↦ ?_, by rw [heq]; exact hne⟩
   rw [← Measure.compProd_apply_prod hs ht, ← Measure.compProd_apply_prod ht hs, heq,
     Measure.compProd_apply_prod hs ht, Measure.compProd_apply_prod ht hs, hrev hs ht]
+
+/-- σ-finiteness of `π` is needed in `isReversible_acceptReject_iff_map_swap`, already for a
+Markov proposal and the acceptance `1`. -/
+theorem exists_isReversible_acceptReject_and_map_swap_ne :
+    ∃ (π : Measure ℝ) (Q : Kernel ℝ ℝ) (_ : IsMarkovKernel Q), SFinite π ∧
+      (acceptReject Q fun _ _ ↦ 1).IsReversible π ∧
+      ((π ⊗ₘ Q).withDensity fun _ ↦ 1).map Prod.swap ≠ (π ⊗ₘ Q).withDensity fun _ ↦ 1 := by
+  obtain ⟨ν, Q, hν, hQ, hrev, hne⟩ := exists_isReversible_smul_top_and_map_swap_compProd_ne
+  refine ⟨∞ • ν, Q, hQ, inferInstance, ?_, ?_⟩
+  · rw [isReversible_acceptReject_iff, withDensity_one']
+    exact hrev
+  · rw [withDensity_const, one_smul]
+    exact hne
+
+/-- Finiteness of the accepted mass is needed in `isReversible_acceptReject_iff_map_swap`: the
+acceptance `∞` of a Markov proposal, for a probability measure `π`. -/
+theorem exists_isReversible_acceptReject_top_and_map_swap_ne :
+    ∃ (π : Measure ℝ) (Q : Kernel ℝ ℝ) (_ : IsMarkovKernel Q), IsProbabilityMeasure π ∧
+      (acceptReject Q fun _ _ ↦ ∞).IsReversible π ∧
+      ((π ⊗ₘ Q).withDensity fun _ ↦ ∞).map Prod.swap ≠ (π ⊗ₘ Q).withDensity fun _ ↦ ∞ := by
+  obtain ⟨π, Q, hQ, hπ, hrev, hne⟩ := exists_isReversible_withDensity_top_and_map_swap_compProd_ne
+  rw [Measure.compProd_withDensity measurable_const] at hne
+  exact ⟨π, Q, hQ, hπ, (isReversible_acceptReject_iff).2 hrev, hne⟩
 
 end ProbabilityTheory.Kernel
