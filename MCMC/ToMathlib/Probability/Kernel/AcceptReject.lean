@@ -135,8 +135,9 @@ theorem isReversible_acceptReject_iff_map_swap [IsSFiniteKernel Q] [SigmaFinite 
   have hκ : ∀ᵐ x ∂π, Q.withDensity a x univ ≠ ∞ := by
     filter_upwards [ha_fin] with x hx
     rwa [Kernel.withDensity_apply' _ ha, Measure.restrict_univ]
+  have := Measure.sigmaFinite_fst_compProd hκ
   exact isReversible_acceptReject_iff.trans
-    ((isReversible_iff_map_swap_compProd hκ).trans
+    (isReversible_iff_map_swap_compProd.trans
       (by rw [Measure.compProd_withDensity ha]; exact Iff.rfl))
 
 /-- σ-finiteness of `π` is needed in `isReversible_acceptReject_iff_map_swap`, already for a

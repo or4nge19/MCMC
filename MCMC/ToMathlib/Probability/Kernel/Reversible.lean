@@ -17,10 +17,11 @@ public import MCMC.ToMathlib.Probability.Kernel.WithDensity
 
 Mathlib's `ProbabilityTheory.Kernel.IsReversible κ π` is detailed balance on measurable sets:
 `∫⁻ x in s, κ x t ∂π = ∫⁻ x in t, κ x s ∂π`. It holds as soon as it holds for disjoint `s` and `t`,
-and it is the invariance of `π ⊗ₘ κ` under `Prod.swap` when `π` is σ-finite and `κ x` is a finite
-measure for `π`-almost every `x`. The invariance implies reversibility for all s-finite `π` and
-`κ`; the converse needs the finiteness: for an infinite multiple of a probability measure, or for
-a kernel of infinite mass, reversibility does not determine `π ⊗ₘ κ`.
+and it is the invariance of `π ⊗ₘ κ` under `Prod.swap` when the first marginal `(π ⊗ₘ κ).fst` is
+σ-finite (for instance, `π` σ-finite and `κ x` finite for `π`-almost every `x`). The invariance
+implies reversibility for all s-finite `π` and `κ`; the converse needs the σ-finiteness: for an
+infinite multiple of a probability measure, or for a kernel of infinite mass, reversibility does
+not determine `π ⊗ₘ κ`.
 
 ## Main statements
 
@@ -30,8 +31,9 @@ a kernel of infinite mass, reversibility does not determine `π ⊗ₘ κ`.
   a Markov kernel `κ` on `ℝ` for which `ν ⊗ₘ κ` and its swap have the same null rectangles but
   are not mutually absolutely continuous.
 * `exists_isReversible_smul_top_and_map_swap_compProd_ne`,
-  `exists_isReversible_withDensity_top_and_map_swap_compProd_ne`: the two finiteness hypotheses of
-  `isReversible_iff_map_swap_compProd` cannot be dropped.
+  `exists_isReversible_withDensity_top_and_map_swap_compProd_ne`: the σ-finiteness of the first
+  marginal in `isReversible_iff_map_swap_compProd` cannot be dropped, whether it fails through `π`
+  or through `κ`.
 
 Staged for `Mathlib/Probability/Kernel/Invariance.lean`. Searched on 2026-11-26 in the pinned
 Mathlib: `grep -rn "IsReversible" Mathlib` finds only the definition and
@@ -71,13 +73,13 @@ theorem IsReversible.of_map_swap_compProd [SFinite π] [IsSFiniteKernel κ]
   rw [← Measure.compProd_apply_prod hs ht, ← h, Measure.map_apply measurable_swap (hs.prod ht),
     preimage_swap_prod, Measure.compProd_apply_prod ht hs]
 
-/-- For σ-finite `π` and a kernel `κ` with `κ x` finite for `π`-almost every `x`, `κ` is
-`π`-reversible iff `π ⊗ₘ κ` is invariant under the swap. -/
-theorem isReversible_iff_map_swap_compProd [SigmaFinite π] [IsSFiniteKernel κ]
-    (hκ : ∀ᵐ x ∂π, κ x univ ≠ ∞) :
+/-- If the first marginal of `π ⊗ₘ κ` is σ-finite, `κ` is `π`-reversible iff `π ⊗ₘ κ` is
+invariant under the swap. The marginal is σ-finite if `π` is and `κ x` is finite for `π`-almost
+every `x` (`MeasureTheory.Measure.sigmaFinite_fst_compProd`). -/
+theorem isReversible_iff_map_swap_compProd [SFinite π] [IsSFiniteKernel κ]
+    [SigmaFinite (π ⊗ₘ κ).fst] :
     κ.IsReversible π ↔ (π ⊗ₘ κ).map Prod.swap = π ⊗ₘ κ := by
   refine ⟨fun h ↦ ?_, IsReversible.of_map_swap_compProd⟩
-  have := Measure.sigmaFinite_fst_compProd hκ
   refine (Measure.ext_prod_of_sigmaFinite_fst fun s t hs ht ↦ ?_).symm
   rw [Measure.map_apply measurable_swap (hs.prod ht), preimage_swap_prod,
     Measure.compProd_apply_prod hs ht, Measure.compProd_apply_prod ht hs, h hs ht]
@@ -129,9 +131,10 @@ theorem exists_compProd_prod_eq_zero_iff_and_not_absolutelyContinuous :
   rw [hκ₀, Measure.smul_apply, Measure.add_apply, Measure.map_apply hgm hG] at h0
   simp at h0
 
-/-- σ-finiteness of `π` is needed in `isReversible_iff_map_swap_compProd`, even for a Markov
-kernel: a Markov kernel on `ℝ` is reversible for the s-finite measure `∞ • ν` with `ν` a
-probability measure, and `(∞ • ν) ⊗ₘ κ` is not invariant under the swap. -/
+/-- σ-finiteness of the first marginal is needed in `isReversible_iff_map_swap_compProd`, even
+for a Markov kernel: a Markov kernel on `ℝ` is reversible for the s-finite measure `∞ • ν` with
+`ν` a probability measure (the first marginal is `∞ • ν`), and `(∞ • ν) ⊗ₘ κ` is not invariant
+under the swap. -/
 theorem exists_isReversible_smul_top_and_map_swap_compProd_ne :
     ∃ (ν : Measure ℝ) (κ : Kernel ℝ ℝ), IsProbabilityMeasure ν ∧ IsMarkovKernel κ ∧
       κ.IsReversible (∞ • ν) ∧ ((∞ • ν) ⊗ₘ κ).map Prod.swap ≠ (∞ • ν) ⊗ₘ κ := by
@@ -148,10 +151,10 @@ theorem exists_isReversible_smul_top_and_map_swap_compProd_ne :
     simp only [Measure.smul_apply, smul_eq_mul, hs, mul_zero] at h's
     exact (mul_eq_zero.1 h's.symm).resolve_left ENNReal.top_ne_zero
 
-/-- Finiteness of `κ x` is needed in `isReversible_iff_map_swap_compProd`: for a Markov kernel
-`Q` on `ℝ` and a probability measure `π`, the kernel `Q.withDensity fun _ _ ↦ ∞`, of infinite mass
-at every point, is `π`-reversible and its composition-product with `π` is not invariant under the
-swap. -/
+/-- σ-finiteness of the first marginal is needed in `isReversible_iff_map_swap_compProd` for a
+probability measure `π`: for a Markov kernel `Q` on `ℝ`, the kernel `Q.withDensity fun _ _ ↦ ∞`,
+of infinite mass at every point (the first marginal is `∞ • π`), is `π`-reversible and its
+composition-product with `π` is not invariant under the swap. -/
 theorem exists_isReversible_withDensity_top_and_map_swap_compProd_ne :
     ∃ (π : Measure ℝ) (Q : Kernel ℝ ℝ) (_ : IsMarkovKernel Q), IsProbabilityMeasure π ∧
       (Q.withDensity fun _ _ ↦ ∞).IsReversible π ∧

@@ -95,8 +95,11 @@ variable (v : ℝ≥0) {f : ℝ → ℝ≥0∞}
 /-- `isReversible_iff_map_swap_compProd`, in its nontrivial direction, for Lebesgue measure. -/
 example : (volume ⊗ₘ (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map
       fun p : ℝ × ℝ ↦ p.1 + p.2).map Prod.swap =
-    volume ⊗ₘ (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map fun p : ℝ × ℝ ↦ p.1 + p.2 :=
-  (Kernel.isReversible_iff_map_swap_compProd (ae_of_all _ fun _ ↦ measure_ne_top _ _)).1
+    volume ⊗ₘ (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map fun p : ℝ × ℝ ↦ p.1 + p.2 := by
+  have := Measure.sigmaFinite_fst_compProd (μ := volume)
+    (κ := (Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map fun p : ℝ × ℝ ↦ p.1 + p.2)
+    (ae_of_all _ fun _ ↦ measure_ne_top _ _)
+  exact Kernel.isReversible_iff_map_swap_compProd.1
     (Kernel.isReversible_map_add_of_map_neg
       (by simpa using gaussianReal_map_neg (μ := 0) (v := v)))
 
