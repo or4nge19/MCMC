@@ -46,7 +46,8 @@ measurable `g` with `g² ≤ M (1 + V)`, write `ḡ = g - ∫ g ∂π`:
 
 The class `g² ≤ M (1 + V)` is the class of the variance growth: at `n = 1` from a point `x` its
 left side is `(g x - ∫ g ∂π)²`. For the strong law it is the class this second-moment argument
-reaches, and it is not claimed optimal there.
+reaches: the law holds for every `g ∈ L¹(π)` (Meyn–Tweedie, Theorem 17.0.1 (i)), and that form
+is not proved here, since its proof needs the pointwise ergodic theorem (see the references).
 
 ## The hypotheses are forced, and they hold together
 
@@ -69,6 +70,44 @@ The hypotheses on the kernel are those of Harris' theorem with the minorization 
 * The hypotheses hold together on the halving chain of `Harris.lean` (the strong law and the
   asymptotic variance, with the invariant law of `invariant_of_halving`) and on the Gaussian
   autoregression of `RandomMap.lean` (the last three `example`s).
+
+## References
+
+* S. P. Meyn and R. L. Tweedie, *Markov Chains and Stochastic Stability*, Springer 1993, in the
+  authors' version compiled in September 2005, Theorem 17.0.1 (p. 416; read). For a positive
+  Harris chain with invariant probability `π`: (i) the law of large numbers holds for every `g`
+  with `π(|g|) < ∞`; (ii) if the chain is `V`-uniformly ergodic and `g² ≤ V`, then
+  `γ² = E_π[ḡ(Φ₀)²] + 2 ∑_{k ≥ 1} E_π[ḡ(Φ₀) ḡ(Φ_k)]` (17.3) is well defined, nonnegative and
+  finite, and `n⁻¹ E_π[(S_n ḡ)²] → γ²` (17.4); (iii) if `γ² = 0` then `n^(-1/2) S_n ḡ → 0` almost
+  surely; (iv) if `γ² > 0` the central limit theorem and the law of the iterated logarithm hold.
+  * The asymptotic variance theorem of this file is part (ii), for the same class of functions
+    (`g² ≤ M (1 + V)` against `g² ≤ V`). It differs in three ways: the hypotheses are the drift
+    and the minorization of a power, which give `V`-uniform ergodicity; the limit is taken from
+    every initial law integrating `V`, where (17.4) is under `E_π`, and that moment is shown
+    forced; nonnegativity of the limit is the corollary
+    `variance_add_two_mul_tsum_covariance_comp_chain_comp_nonneg_of_drift_of_minorization_pow`.
+  * The strong law of this file is the case `g² ≤ M (1 + V)` of part (i). The form for all of
+    `L¹(π)` is not proved here: its proof in the book (Theorem 17.1.2, the law for the stationary
+    chain from `π`-almost every start, by the strong law for stationary sequences; Theorem 17.1.7,
+    positive Harris iff the law for every `f ∈ L¹(π)` from every start iff the invariant σ-field
+    is `P_x`-trivial for every `x`) needs the pointwise ergodic theorem, which Mathlib does not
+    have at this pin.
+  * Parts (iii) and (iv) are not here (Theorems 17.4.4, 17.5.3 and 17.5.4 of the book).
+* G. O. Roberts and J. S. Rosenthal, *General state space Markov chains and MCMC algorithms*,
+  arXiv:math/0404033 (read, in its TeX source): the Fact labelled "SLLN" is the strong law for
+  `π(|h|) < ∞` on a countably generated state space, for a φ-irreducible aperiodic chain with a
+  stationary distribution, and cites Theorem 17.0.1 above; the formula labelled "sigmaformula"
+  gives `σ² = τ Var_π(h)`, `τ = ∑_{k ∈ ℤ} Corr(X₀, X_k)`, as a consequence of a `√n` central
+  limit theorem for the chain started in stationarity, and cites Chan–Geyer.
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed. (from the extracted text; numbers
+  to be checked against the printed book): Theorem 25.6 (ergodic theorem, Birkhoff), Theorem
+  26.10 (strong ergodicity and mixing, Orey: triviality of the tail σ-field, mixing, and
+  `‖P_μ ∘ θ_t⁻¹ - P_ν ∘ θ_t⁻¹‖ → 0`) and Theorem 26.21 (pathwise limits, stated for regular
+  Feller processes: `t⁻¹ ∫₀ᵗ f (θ_s X) ds → E_λ f(X)` almost surely for bounded measurable `f` of
+  the path) are the route to the strong law for `g ∈ L¹(π)` and for functionals of the path.
+  Their statements were read; none of them is in this file.
+* M. Hairer and J. C. Mattingly, arXiv:0810.2777: the drift and the minorization are those of
+  `Harris.lean`, which cites it; not read again for this file.
 
 ## Search
 

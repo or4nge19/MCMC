@@ -28,6 +28,12 @@ blocks control `S n / n` (`tendsto_inv_smul_sum_of_tendsto_inv_sq_smul`, in
 distribution and no measure-preserving map is used: the bound on the second moments of the
 partial sums is the only interaction between the `Y k`.
 
+## References
+
+* The argument along the squares for uncorrelated summands with bounded variances is classical and
+  attributed to Rajchman; K. L. Chung, *A Course in Probability Theory*, §5.1, Theorem 5.1.2, is
+  the usual reference for it: not read. No source was read for the statements of this file.
+
 ## Search
 
 At Mathlib `d13f23b`: `grep -rn "Rajchman\|rajchman" Mathlib` finds nothing;

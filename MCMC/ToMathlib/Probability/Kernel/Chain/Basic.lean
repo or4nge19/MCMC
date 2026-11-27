@@ -32,6 +32,18 @@ time `0`. No assumption on `X` is made.
 The two laws are identities of kernels, so they hold from every initial measure, finite or not,
 by `MeasureTheory.Measure.map_comp`.
 
+## References
+
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed. (from the extracted text; numbers
+  to be checked against the printed book): Lemma 11.7 (mixtures: the measures `P_x` form
+  a probability kernel from `S` to `S^T`, and `P_ν A = ∫ P_x A ν(dx)`) is `Kernel.chain` with
+  `chain_comp_eq_trajMeasure`; Proposition 11.2 (finite-dimensional distributions) has
+  `chain_map_eval` and `chain_map_eval_eval_add` as its cases of one time and of two times, for a
+  time-homogeneous chain. The statements were read; the proofs here are from Mathlib's
+  Ionescu-Tulcea kernel and do not follow the book's.
+* Not in this file: Lemma 11.1 (extended Markov property), Proposition 11.9 (strong Markov
+  property) and Lemma 11.11 (stationarity and invariance) of the same chapter.
+
 ## Search
 
 At Mathlib `d13f23b`: `grep -rn "def chain\|Kernel.chain\|markovChain" Mathlib` finds nothing;
