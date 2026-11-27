@@ -7,38 +7,28 @@ module
 
 public import Mathlib.Probability.Distributions.Gaussian.Real
 public import Mathlib.Probability.Kernel.Composition.WithDensity
-public import Mathlib.Probability.Kernel.Invariance
-public import MCMC.ToMathlib.MeasureTheory.Measure.Prod
-public import MCMC.ToMathlib.Probability.Kernel.Composition.MeasureCompProd
-public import MCMC.ToMathlib.Probability.Kernel.WithDensity
+public import MCMC.ToMathlib.Probability.Kernel.Invariance
 
 /-!
-# Reversible kernels and the swap of `π ⊗ₘ κ`
+# Reversibility does not determine `π ⊗ₘ κ` without σ-finiteness
 
-Mathlib's `ProbabilityTheory.Kernel.IsReversible κ π` is detailed balance on measurable sets:
-`∫⁻ x in s, κ x t ∂π = ∫⁻ x in t, κ x s ∂π`. It holds as soon as it holds for disjoint `s` and `t`,
-and it is the invariance of `π ⊗ₘ κ` under `Prod.swap` when the first marginal `(π ⊗ₘ κ).fst` is
-σ-finite (for instance, `π` σ-finite and `κ x` finite for `π`-almost every `x`). The invariance
-implies reversibility for all s-finite `π` and `κ`; the converse needs the σ-finiteness: for an
-infinite multiple of a probability measure, or for a kernel of infinite mass, reversibility does
-not determine `π ⊗ₘ κ`.
+`ProbabilityTheory.Kernel.isReversible_iff_map_swap_compProd` (in
+`MCMC/ToMathlib/Probability/Kernel/Invariance.lean`) identifies reversibility with the invariance
+of `π ⊗ₘ κ` under `Prod.swap` when the first marginal `(π ⊗ₘ κ).fst` is σ-finite. The
+counterexamples below show that this hypothesis cannot be dropped, whether it fails through `π`
+(an infinite multiple of a probability measure) or through `κ` (a kernel of infinite mass). They
+rest on one probability measure on `ℝ`, the Gaussian `N(0, 1)`, with a Markov kernel for which
+`ν ⊗ₘ κ` and its swap have the same null rectangles but are not mutually absolutely continuous.
 
 ## Main statements
 
-* `isReversible_iff_forall_disjoint`: detailed balance on disjoint pairs of sets suffices.
-* `IsReversible.of_map_swap_compProd`, `isReversible_iff_map_swap_compProd`.
-* `exists_compProd_prod_eq_zero_iff_and_not_absolutelyContinuous`: a probability measure `ν` and
-  a Markov kernel `κ` on `ℝ` for which `ν ⊗ₘ κ` and its swap have the same null rectangles but
-  are not mutually absolutely continuous.
+* `exists_compProd_prod_eq_zero_iff_and_not_absolutelyContinuous`.
 * `exists_isReversible_smul_top_and_map_swap_compProd_ne`,
-  `exists_isReversible_withDensity_top_and_map_swap_compProd_ne`: the σ-finiteness of the first
-  marginal in `isReversible_iff_map_swap_compProd` cannot be dropped, whether it fails through `π`
-  or through `κ`.
+  `exists_isReversible_withDensity_top_and_map_swap_compProd_ne`.
 
-Staged for `Mathlib/Probability/Kernel/Invariance.lean`. Searched on 2026-11-26 in the pinned
-Mathlib: `grep -rn "IsReversible" Mathlib` finds only the definition and
-`IsReversible.invariant`; `grep -rn "Prod.swap" Mathlib/Probability/Kernel` finds no statement
-about reversibility.
+Staged for Mathlib's `Counterexamples/` (new file): the Gaussian measure is the only reason for the
+import of `Mathlib.Probability.Distributions.Gaussian.Real`, which
+`Mathlib/Probability/Kernel/Invariance.lean` should not import.
 -/
 
 @[expose] public section
@@ -49,40 +39,6 @@ open scoped ENNReal
 namespace ProbabilityTheory.Kernel
 
 variable {X : Type*} {mX : MeasurableSpace X} {κ : Kernel X X} {π : Measure X}
-
-/-- Detailed balance on pairs of disjoint measurable sets implies detailed balance. -/
-theorem isReversible_iff_forall_disjoint :
-    κ.IsReversible π ↔ ∀ ⦃s t : Set X⦄, MeasurableSet s → MeasurableSet t → Disjoint s t →
-      ∫⁻ x in s, κ x t ∂π = ∫⁻ x in t, κ x s ∂π := by
-  refine ⟨fun h s t hs ht _ ↦ h hs ht, fun h s t hs ht ↦ ?_⟩
-  have split : ∀ ⦃A B : Set X⦄, MeasurableSet A → MeasurableSet B → ∫⁻ x in A, κ x B ∂π =
-      ∫⁻ x in A ∩ B, κ x (B ∩ A) ∂π + ∫⁻ x in A ∩ B, κ x (B \ A) ∂π +
-        (∫⁻ x in A \ B, κ x (B ∩ A) ∂π + ∫⁻ x in A \ B, κ x (B \ A) ∂π) := fun A B hA hB ↦ by
-    rw [← lintegral_add_left (κ.measurable_coe (hB.inter hA)),
-      ← lintegral_add_left (κ.measurable_coe (hB.inter hA)), lintegral_inter_add_sdiff _ _ hB]
-    simp_rw [measure_inter_add_sdiff _ hA]
-  rw [split hs ht, split ht hs, inter_comm t s,
-    h (hs.inter ht) (ht.diff hs) (disjoint_sdiff_right.mono_left inter_subset_left),
-    h (hs.diff ht) (hs.inter ht) (disjoint_sdiff_left.mono_right inter_subset_right),
-    h (hs.diff ht) (ht.diff hs) disjoint_sdiff_sdiff]
-  ring
-
-/-- A kernel whose composition-product with `π` is invariant under the swap is `π`-reversible. -/
-theorem IsReversible.of_map_swap_compProd [SFinite π] [IsSFiniteKernel κ]
-    (h : (π ⊗ₘ κ).map Prod.swap = π ⊗ₘ κ) : κ.IsReversible π := fun s t hs ht ↦ by
-  rw [← Measure.compProd_apply_prod hs ht, ← h, Measure.map_apply measurable_swap (hs.prod ht),
-    preimage_swap_prod, Measure.compProd_apply_prod ht hs]
-
-/-- If the first marginal of `π ⊗ₘ κ` is σ-finite, `κ` is `π`-reversible iff `π ⊗ₘ κ` is
-invariant under the swap. The marginal is σ-finite if `π` is and `κ x` is finite for `π`-almost
-every `x` (`MeasureTheory.Measure.sigmaFinite_fst_compProd`). -/
-theorem isReversible_iff_map_swap_compProd [SFinite π] [IsSFiniteKernel κ]
-    [SigmaFinite (π ⊗ₘ κ).fst] :
-    κ.IsReversible π ↔ (π ⊗ₘ κ).map Prod.swap = π ⊗ₘ κ := by
-  refine ⟨fun h ↦ ?_, IsReversible.of_map_swap_compProd⟩
-  refine (Measure.ext_prod_of_sigmaFinite_fst fun s t hs ht ↦ ?_).symm
-  rw [Measure.map_apply measurable_swap (hs.prod ht), preimage_swap_prod,
-    Measure.compProd_apply_prod hs ht, Measure.compProd_apply_prod ht hs, h hs ht]
 
 /-- With `ν = N(0, 1)` on `ℝ` and the Markov kernel `κ x = (N(0, 1) + δ_{x + 1}) / 2`, the
 measure `ν ⊗ₘ κ` and its image under the swap have the same null rectangles, but the graph

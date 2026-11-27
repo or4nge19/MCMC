@@ -10,9 +10,12 @@ public import MCMC.ToMathlib.Probability.Kernel.Composition.Comp
 public import MCMC.ToMathlib.Probability.Kernel.Composition.IntegralCompProd
 public import Mathlib.Probability.Kernel.Invariance
 public import MCMC.ToMathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
+public import MCMC.ToMathlib.MeasureTheory.Measure.Prod
+public import MCMC.ToMathlib.Probability.Kernel.Composition.MeasureCompProd
+public import MCMC.ToMathlib.Probability.Kernel.WithDensity
 
 /-!
-# Invariant measures of a Markov kernel: powers and differences
+# Invariant measures and reversible kernels: powers, differences, swaps and mixtures
 
 The powers `κ ^ n` of a kernel on one space are Mathlib's (`Kernel.instMonoid`, multiplication
 `∘ₖ`); the `n`-step law from an initial law `μ` is `(κ ^ n) ∘ₘ μ`. This file adds:
@@ -23,11 +26,23 @@ The powers `κ ^ n` of a kernel on one space are Mathlib's (`Kernel.instMonoid`,
   invariant law of a power `κ ^ m` is the unique invariant law of the Markov kernel `κ`;
 * `ProbabilityTheory.Kernel.Invariant.sub`: for a Markov kernel and finite invariant measures `μ`,
   `ν`, Mathlib's truncated difference `μ - ν` is invariant; for a finite kernel it need not be
-  (`ProbabilityTheory.Kernel.exists_not_invariant_sub_fin_three`).
+  (`ProbabilityTheory.Kernel.exists_not_invariant_sub_fin_three`);
+* `ProbabilityTheory.Kernel.isReversible_iff_forall_disjoint`: detailed balance on disjoint pairs
+  of sets suffices for reversibility;
+* `ProbabilityTheory.Kernel.IsReversible.of_map_swap_compProd`,
+  `ProbabilityTheory.Kernel.isReversible_iff_map_swap_compProd`: reversibility is the invariance
+  of `π ⊗ₘ κ` under `Prod.swap` when the first marginal `(π ⊗ₘ κ).fst` is σ-finite; the
+  counterexamples for the σ-finiteness are in `MCMC/ToMathlib/Probability/Kernel/Reversible.lean`;
+* `ProbabilityTheory.Kernel.IsReversible.add`, `ProbabilityTheory.Kernel.IsReversible.sum`,
+  `ProbabilityTheory.Kernel.IsReversible.withDensity_const`,
+  `ProbabilityTheory.Kernel.isReversible_sum_withDensity_const`: mixtures of `π`-reversible kernels
+  (random-scan samplers) are `π`-reversible, as are `0` and `Kernel.id`.
 
 Searched on 2026-11-25 (Mathlib `d13f23b`): `Probability/Kernel/Invariance.lean` has
 `Invariant.comp` and no statement on powers or differences; `grep -rn "Invariant.*sub\|
-Invariant.pow" Probability` finds nothing.
+Invariant.pow" Probability` finds nothing. Searched on 2026-11-26: `grep -rn "IsReversible"
+Mathlib` finds only the definition and `IsReversible.invariant`; `grep -rn "Prod.swap"
+Mathlib/Probability/Kernel` finds no statement about reversibility.
 -/
 
 @[expose] public section
@@ -147,3 +162,89 @@ theorem exists_not_invariant_sub_fin_three :
 end Kernel
 
 end ProbabilityTheory
+
+/-! ### Reversible kernels
+
+Mathlib's `ProbabilityTheory.Kernel.IsReversible κ π` is detailed balance on measurable sets. -/
+
+namespace ProbabilityTheory.Kernel
+
+variable {X : Type*} {mX : MeasurableSpace X} {κ : Kernel X X} {π : Measure X}
+
+/-- Detailed balance on pairs of disjoint measurable sets implies detailed balance. -/
+theorem isReversible_iff_forall_disjoint :
+    κ.IsReversible π ↔ ∀ ⦃s t : Set X⦄, MeasurableSet s → MeasurableSet t → Disjoint s t →
+      ∫⁻ x in s, κ x t ∂π = ∫⁻ x in t, κ x s ∂π := by
+  refine ⟨fun h s t hs ht _ ↦ h hs ht, fun h s t hs ht ↦ ?_⟩
+  have split : ∀ ⦃A B : Set X⦄, MeasurableSet A → MeasurableSet B → ∫⁻ x in A, κ x B ∂π =
+      ∫⁻ x in A ∩ B, κ x (B ∩ A) ∂π + ∫⁻ x in A ∩ B, κ x (B \ A) ∂π +
+        (∫⁻ x in A \ B, κ x (B ∩ A) ∂π + ∫⁻ x in A \ B, κ x (B \ A) ∂π) := fun A B hA hB ↦ by
+    rw [← lintegral_add_left (κ.measurable_coe (hB.inter hA)),
+      ← lintegral_add_left (κ.measurable_coe (hB.inter hA)), lintegral_inter_add_sdiff _ _ hB]
+    simp_rw [measure_inter_add_sdiff _ hA]
+  rw [split hs ht, split ht hs, inter_comm t s,
+    h (hs.inter ht) (ht.diff hs) (disjoint_sdiff_right.mono_left inter_subset_left),
+    h (hs.diff ht) (hs.inter ht) (disjoint_sdiff_left.mono_right inter_subset_right),
+    h (hs.diff ht) (ht.diff hs) disjoint_sdiff_sdiff]
+  ring
+
+/-- A kernel whose composition-product with `π` is invariant under the swap is `π`-reversible. -/
+theorem IsReversible.of_map_swap_compProd [SFinite π] [IsSFiniteKernel κ]
+    (h : (π ⊗ₘ κ).map Prod.swap = π ⊗ₘ κ) : κ.IsReversible π := fun s t hs ht ↦ by
+  rw [← Measure.compProd_apply_prod hs ht, ← h, Measure.map_apply measurable_swap (hs.prod ht),
+    preimage_swap_prod, Measure.compProd_apply_prod ht hs]
+
+/-- If the first marginal of `π ⊗ₘ κ` is σ-finite, `κ` is `π`-reversible iff `π ⊗ₘ κ` is
+invariant under the swap. The marginal is σ-finite if `π` is and `κ x` is finite for `π`-almost
+every `x` (`MeasureTheory.Measure.sigmaFinite_fst_compProd`). -/
+theorem isReversible_iff_map_swap_compProd [SFinite π] [IsSFiniteKernel κ]
+    [SigmaFinite (π ⊗ₘ κ).fst] :
+    κ.IsReversible π ↔ (π ⊗ₘ κ).map Prod.swap = π ⊗ₘ κ := by
+  refine ⟨fun h ↦ ?_, IsReversible.of_map_swap_compProd⟩
+  refine (Measure.ext_prod_of_sigmaFinite_fst fun s t hs ht ↦ ?_).symm
+  rw [Measure.map_apply measurable_swap (hs.prod ht), preimage_swap_prod,
+    Measure.compProd_apply_prod hs ht, Measure.compProd_apply_prod ht hs, h hs ht]
+
+/-- The zero kernel is reversible for every measure. -/
+theorem isReversible_zero : (0 : Kernel X X).IsReversible π := fun s t _ _ ↦ by simp
+
+/-- The identity kernel is reversible for every measure. -/
+theorem isReversible_id : (Kernel.id : Kernel X X).IsReversible π := fun s t hs ht ↦ by
+  simp only [Kernel.id_apply, Measure.dirac_apply' _ ht, Measure.dirac_apply' _ hs]
+  rw [← lintegral_indicator hs, ← lintegral_indicator ht]
+  refine lintegral_congr fun x ↦ ?_
+  by_cases hxs : x ∈ s <;> by_cases hxt : x ∈ t <;> simp [hxs, hxt]
+
+/-- The sum of two `π`-reversible kernels is `π`-reversible. -/
+theorem IsReversible.add {η : Kernel X X} (hκ : κ.IsReversible π) (hη : η.IsReversible π) :
+    (κ + η).IsReversible π := fun s t hs ht ↦ by
+  simp only [add_apply, Measure.add_apply]
+  rw [lintegral_add_left (κ.measurable_coe ht), lintegral_add_left (κ.measurable_coe hs),
+    hκ hs ht, hη hs ht]
+
+/-- A countable sum of `π`-reversible kernels is `π`-reversible. -/
+theorem IsReversible.sum {ι : Type*} [Countable ι] {κ : ι → Kernel X X}
+    (h : ∀ i, (κ i).IsReversible π) : (Kernel.sum κ).IsReversible π := fun s t hs ht ↦ by
+  simp only [Kernel.sum_apply' _ _ ht, Kernel.sum_apply' _ _ hs]
+  rw [lintegral_tsum fun i ↦ ((κ i).measurable_coe ht).aemeasurable,
+    lintegral_tsum fun i ↦ ((κ i).measurable_coe hs).aemeasurable]
+  exact tsum_congr fun i ↦ h i hs ht
+
+/-- A constant multiple `κ.withDensity fun _ _ ↦ c` of a `π`-reversible kernel is
+`π`-reversible. -/
+theorem IsReversible.withDensity_const [IsSFiniteKernel κ] (hκ : κ.IsReversible π) (c : ℝ≥0∞) :
+    (κ.withDensity fun _ _ ↦ c).IsReversible π := fun s t hs ht ↦ by
+  have hc : Measurable (Function.uncurry fun (_ : X) (_ : X) ↦ c) := measurable_const
+  simp only [Kernel.withDensity_apply _ hc, MeasureTheory.withDensity_const, Measure.smul_apply,
+    smul_eq_mul]
+  rw [lintegral_const_mul _ (κ.measurable_coe ht), lintegral_const_mul _ (κ.measurable_coe hs),
+    hκ hs ht]
+
+/-- **Random-scan mixtures are reversible**: the mixture `∑ i, w i • κ i` of `π`-reversible
+kernels, written with Mathlib's `Kernel.sum` and constant densities, is `π`-reversible. -/
+theorem isReversible_sum_withDensity_const {ι : Type*} [Countable ι] {κ : ι → Kernel X X}
+    [∀ i, IsSFiniteKernel (κ i)] (h : ∀ i, (κ i).IsReversible π) (w : ι → ℝ≥0∞) :
+    (Kernel.sum fun i ↦ (κ i).withDensity fun _ _ ↦ w i).IsReversible π :=
+  IsReversible.sum fun i ↦ (h i).withDensity_const (w i)
+
+end ProbabilityTheory.Kernel

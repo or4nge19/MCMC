@@ -7,7 +7,7 @@ module
 
 public import Mathlib.MeasureTheory.Group.Prod
 public import Mathlib.MeasureTheory.Measure.Count
-public import MCMC.ToMathlib.Probability.Kernel.Reversible
+public import MCMC.ToMathlib.Probability.Kernel.Invariance
 
 /-!
 # Random walks with symmetric increments are reversible for invariant measures

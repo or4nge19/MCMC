@@ -6,8 +6,8 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.Probability.Distributions.Gaussian.Fernique
+public import MCMC.ToMathlib.Probability.Kernel.Invariance
 public import MCMC.ToMathlib.Probability.Kernel.RandomMap
-public import MCMC.ToMathlib.Probability.Kernel.Reversible
 
 /-!
 # The Gaussian autoregressive kernel is reversible
