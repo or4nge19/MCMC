@@ -85,10 +85,8 @@ theorem ae_eq_mhAcceptance (hQ : IsStochastic Q) :
     (fun h ↦ hxy (by rw [← ENNReal.ofReal_mul (π.property.1 x), ← h, ENNReal.ofReal_zero]))
   have h0 : vecToMeasure π {x} * matrixToKernel Q hQ x {y} ≠ 0 := by
     rwa [vecToMeasure_singleton, matrixToKernel_singleton]
-  have htop : vecToMeasure π {x} * matrixToKernel Q hQ x {y} ≠ ∞ :=
-    ENNReal.mul_ne_top (measure_ne_top _ _) (measure_ne_top _ _)
   rw [Function.uncurry_apply_pair, Function.uncurry_apply_pair,
-    Kernel.mhAcceptance_eq_min_one_div h0 htop, vecToMeasure_singleton, vecToMeasure_singleton,
+    Kernel.mhAcceptance_eq_min_one_div h0, vecToMeasure_singleton, vecToMeasure_singleton,
     matrixToKernel_singleton, matrixToKernel_singleton]
   simp only [mh_acceptance_prob, hpos.ne', ↓reduceIte]
   rw [ENNReal.ofReal_min, ENNReal.ofReal_one, ENNReal.ofReal_div_of_pos hpos,

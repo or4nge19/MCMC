@@ -417,12 +417,15 @@ theorem exists_not_isReversible_acceptReject_min_one_div_one :
     Measure.restrict_singleton] at h1
   simp at h1
 
-/-- **The Metropolis–Hastings ratio on atoms.** At a point `(x, y)` charged by `π ⊗ₘ Q` with
-finite mass, the Metropolis–Hastings acceptance is `min 1 (π {y} * Q y {x} / (π {x} * Q x {y}))`.
+/-- **The Metropolis–Hastings ratio on atoms.** At a point `(x, y)` charged by a σ-finite
+`π ⊗ₘ Q`, the Metropolis–Hastings acceptance is `min 1 (π {y} * Q y {x} / (π {x} * Q x {y}))`.
 On a countable space this determines the acceptance `π ⊗ₘ Q`-almost everywhere. -/
 theorem mhAcceptance_eq_min_one_div [MeasurableSingletonClass X] [SFinite π] [IsSFiniteKernel Q]
-    [SigmaFinite (π ⊗ₘ Q)] {x y : X} (h0 : π {x} * Q x {y} ≠ 0) (htop : π {x} * Q x {y} ≠ ∞) :
+    [SigmaFinite (π ⊗ₘ Q)] {x y : X} (h0 : π {x} * Q x {y} ≠ 0) :
     π.mhAcceptance Q x y = min 1 (π {y} * Q y {x} / (π {x} * Q x {y})) := by
+  have htop : π {x} * Q x {y} ≠ ∞ := by
+    rw [← Measure.compProd_apply_singleton]
+    exact measure_singleton_lt_top.ne
   have h := congrArg (· {(x, y)}) (withDensity_mhAcceptance (π := π) (Q := Q))
   rw [withDensity_apply _ (measurableSet_singleton _), lintegral_singleton,
     Measure.inf_apply_singleton, Measure.map_apply measurable_swap (measurableSet_singleton _),
