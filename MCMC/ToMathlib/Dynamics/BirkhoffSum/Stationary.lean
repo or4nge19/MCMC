@@ -12,7 +12,8 @@ public import MCMC.ToMathlib.Dynamics.BirkhoffSum.Ergodic
 
 Let `ξ : Ω → S` be a random element on `(Ω, P)` and `T : S → S` a measurable map with `T ∘ ξ`
 equal in law to `ξ`, that is, `T` preserves the law `P.map ξ`
-(`MeasureTheory.measurePreserving_map_iff`). For `φ` integrable for the law of `ξ`, almost surely
+(`MeasureTheory.measurePreserving_map_iff`). For `φ` integrable for the law of `ξ`, with values in
+a Banach space, almost surely
 
 `n⁻¹ ∑ k < n, φ (T^[k] (ξ ω)) → P[φ ∘ ξ | (MeasurableSpace.invariants T).comap ξ] ω`
 
@@ -23,7 +24,11 @@ the conditional expectation of `φ` given the invariant σ-algebra for the law o
 identity this is the law of large numbers for a functional of a stationary process.
 
 Source: O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Theorem 25.6, formula (1),
-read from an extracted text of the 3rd edition; there `P` is a probability measure.
+read from an extracted text of the 3rd edition; there `P` is a probability measure. The use for
+Markov chains is S. Meyn and R. Tweedie, *Markov Chains and Stochastic Stability*, Theorem 17.1.2
+(a function of the whole path, integrable for the law of the stationary chain; the shift of the
+path space), read from an extracted text of the authors' version of 2005 in which the displayed
+formulas are missing; no statement about Markov chains is proved here.
 
 Searched on 2026-11-27 (Mathlib `v4.34.1`): `grep -rn "condExp.*map\|condExp.*comap" Mathlib`
 finds Jensen's inequality (`ConcaveOn.condExp_map_le`) and kernels
@@ -69,7 +74,8 @@ theorem measurePreserving_map_iff (hT : Measurable T) (hξ : AEMeasurable ξ P) 
 of `ξ` and `φ` is integrable for that law, then almost surely the averages of `φ` along the orbit
 of `ξ` under `T` tend to the conditional expectation of `φ` given the invariant σ-algebra,
 evaluated at `ξ`. -/
-theorem ae_tendsto_birkhoffAverage_comp_condExp (hT : Measurable T) (hξ : AEMeasurable ξ P)
+theorem ae_tendsto_birkhoffAverage_comp_condExp {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℝ E] [CompleteSpace E] {φ : S → E} (hT : Measurable T) (hξ : AEMeasurable ξ P)
     (h : P.map (T ∘ ξ) = P.map ξ) [SigmaFinite ((P.map ξ).trim (invariants_le T))]
     (hφ : Integrable φ (P.map ξ)) :
     ∀ᵐ ω ∂P, Tendsto (fun n ↦ birkhoffAverage ℝ T φ n (ξ ω)) atTop
@@ -79,7 +85,8 @@ theorem ae_tendsto_birkhoffAverage_comp_condExp (hT : Measurable T) (hξ : AEMea
 
 /-- **The ergodic theorem for a random element with a stationary orbit**, with the limit as a
 conditional expectation on the underlying probability space. -/
-theorem ae_tendsto_birkhoffAverage_comp_condExp_comap [IsFiniteMeasure P] (hT : Measurable T)
+theorem ae_tendsto_birkhoffAverage_comp_condExp_comap {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℝ E] [CompleteSpace E] {φ : S → E} [IsFiniteMeasure P] (hT : Measurable T)
     (hξ : Measurable ξ) (h : P.map (T ∘ ξ) = P.map ξ) (hφ : Integrable φ (P.map ξ)) :
     ∀ᵐ ω ∂P, Tendsto (fun n ↦ birkhoffAverage ℝ T φ n (ξ ω)) atTop
       (𝓝 (P[φ ∘ ξ | (invariants T).comap ξ] ω)) := by
