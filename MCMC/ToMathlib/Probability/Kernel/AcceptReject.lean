@@ -34,13 +34,20 @@ positivity is involved.
   proposed flow; `isReversible_acceptReject_mhAcceptance`,
   `isReversible_acceptReject_of_ae_eq_mhAcceptance`: the Metropolis–Hastings kernel is
   `π`-reversible.
-* `ae_le_mhAcceptance_of_isReversible_acceptReject`: every acceptance `a ≤ 1` with a
-  `π`-reversible accept–reject kernel is at most `π.mhAcceptance Q`, `π ⊗ₘ Q`-almost everywhere.
+* `ae_le_mhAcceptance_of_isReversible_acceptReject`: for σ-finite `π` and `π ⊗ₘ Q`, every
+  acceptance `a ≤ 1` with accepted mass finite almost everywhere and a `π`-reversible
+  accept–reject kernel is at most `π.mhAcceptance Q`, `π ⊗ₘ Q`-almost everywhere;
+  `ae_le_mhAcceptance_of_isReversible_acceptReject_of_ae_ne_top` for a proposal finite
+  `π`-almost everywhere.
 * `IsReversible.withDensity_min`, `isReversible_acceptReject_min_one_div`: for a proposal
   reversible for a reference measure `μ`, the acceptance `min 1 (f y / f x)` gives a kernel
   reversible for `μ.withDensity f`; `μ` and `Q` need not be finite.
 * `mhAcceptance_eq_min_one_div` (on atoms) and `mhAcceptance_withDensity_ae_eq` (with densities):
-  `π.mhAcceptance Q` is the classical ratio `min 1 (π(y) q(y, x) / (π(x) q(x, y)))`.
+  `π.mhAcceptance Q` is the classical ratio `min 1 (π(y) q(y, x) / (π(x) q(x, y)))`;
+  `mhAcceptance_ae_eq_of_compProd_eq_withDensity` for any flow with a density with respect to a
+  swap-invariant σ-finite measure, and `mhAcceptance_withDensity_ae_eq_min_one_div`: for a
+  `μ`-reversible proposal and the target `μ.withDensity f`, it is the Metropolis acceptance
+  `min 1 (f y / f x)`.
 * For each hypothesis that cannot be dropped, a counterexample (`exists_…`).
 
 Staged for `Mathlib/Probability/Kernel/AcceptReject.lean` (new file). Searched on 2026-11-26 in
@@ -273,17 +280,15 @@ theorem isReversible_acceptReject_mhAcceptance [SFinite π] [IsSFiniteKernel Q] 
   isReversible_acceptReject_of_ae_eq_mhAcceptance (π.measurable_mhAcceptance Q)
     Filter.EventuallyEq.rfl
 
-/-- **Maximality of the Metropolis–Hastings acceptance.** Among the acceptances `a ≤ 1` whose
-accept–reject kernel is `π`-reversible, the Metropolis–Hastings acceptance is the largest,
-`π ⊗ₘ Q`-almost everywhere. -/
+/-- **Maximality of the Metropolis–Hastings acceptance.** For σ-finite `π` and `π ⊗ₘ Q`, among
+the acceptances `a ≤ 1` with accepted mass finite `π`-almost everywhere whose accept–reject kernel
+is `π`-reversible, the Metropolis–Hastings acceptance is the largest, `π ⊗ₘ Q`-almost
+everywhere. -/
 theorem ae_le_mhAcceptance_of_isReversible_acceptReject [IsSFiniteKernel Q] [SigmaFinite π]
-    (hQ : ∀ᵐ x ∂π, Q x univ ≠ ∞) (ha : Measurable (Function.uncurry a))
+    [SigmaFinite (π ⊗ₘ Q)] (ha : Measurable (Function.uncurry a))
+    (ha_fin : ∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞)
     (ha1 : ∀ᵐ p ∂(π ⊗ₘ Q), Function.uncurry a p ≤ 1) (h : (acceptReject Q a).IsReversible π) :
     Function.uncurry a ≤ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q) := by
-  have := Measure.sigmaFinite_compProd hQ
-  have ha_fin : ∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞ := by
-    filter_upwards [hQ, Measure.ae_ae_of_ae_compProd ha1] with x hx h1
-    exact ((lintegral_mono_ae h1).trans_eq lintegral_one).trans_lt hx.lt_top |>.ne
   have hα : (π ⊗ₘ Q).withDensity (Function.uncurry a) ≤ π ⊗ₘ Q :=
     (withDensity_mono ha1).trans_eq MeasureTheory.withDensity_one
   have hsymm := (isReversible_acceptReject_iff_map_swap ha ha_fin).1 h
@@ -295,7 +300,20 @@ theorem ae_le_mhAcceptance_of_isReversible_acceptReject [IsSFiniteKernel Q] [Sig
   rw [← withDensity_apply _ hs, ← withDensity_apply _ hs]
   exact Measure.le_iff'.1 hle s
 
-/-- The bound `a ≤ 1` is needed in `ae_le_mhAcceptance_of_isReversible_acceptReject`: on `Unit`
+/-- **Maximality of the Metropolis–Hastings acceptance** for a proposal finite `π`-almost
+everywhere: among the acceptances `a ≤ 1` whose accept–reject kernel is `π`-reversible, the
+Metropolis–Hastings acceptance is the largest, `π ⊗ₘ Q`-almost everywhere. -/
+theorem ae_le_mhAcceptance_of_isReversible_acceptReject_of_ae_ne_top [IsSFiniteKernel Q]
+    [SigmaFinite π] (hQ : ∀ᵐ x ∂π, Q x univ ≠ ∞) (ha : Measurable (Function.uncurry a))
+    (ha1 : ∀ᵐ p ∂(π ⊗ₘ Q), Function.uncurry a p ≤ 1) (h : (acceptReject Q a).IsReversible π) :
+    Function.uncurry a ≤ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q) := by
+  have := Measure.sigmaFinite_compProd hQ
+  refine ae_le_mhAcceptance_of_isReversible_acceptReject ha ?_ ha1 h
+  filter_upwards [hQ, Measure.ae_ae_of_ae_compProd ha1] with x hx h1
+  exact ((lintegral_mono_ae h1).trans_eq lintegral_one).trans_lt hx.lt_top |>.ne
+
+/-- The bound `a ≤ 1` is needed in `ae_le_mhAcceptance_of_isReversible_acceptReject_of_ae_ne_top`
+and `ae_le_mhAcceptance_of_isReversible_acceptReject`: on `Unit`
 every kernel is reversible, and the acceptance `2` exceeds the Metropolis–Hastings acceptance. -/
 theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance :
     ∃ (π : Measure Unit) (Q : Kernel Unit Unit) (_ : IsMarkovKernel Q), IsProbabilityMeasure π ∧
@@ -346,7 +364,8 @@ theorem mhAcceptance_eq_zero_and_isReversible_acceptReject_of_compProd_eq {π : 
     one_smul, Measure.map_dirac' measurable_swap]
   rfl
 
-/-- σ-finiteness of `π` is needed in `ae_le_mhAcceptance_of_isReversible_acceptReject`: on `Fin 3`,
+/-- σ-finiteness of `π` is needed in
+`ae_le_mhAcceptance_of_isReversible_acceptReject_of_ae_ne_top`: on `Fin 3`,
 `π = ∞ • δ_0 + δ_1 + δ_2` (s-finite) and the deterministic Markov proposal `0 ↦ 1, 1 ↦ 0, 2 ↦ 2`;
 the acceptance of the move from `2` to `2` alone is not below the Metropolis–Hastings
 acceptance, which is `0`. -/
@@ -374,13 +393,15 @@ theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance_sFinite :
   have h22 := ae_iff_of_countable.1 h (2, 2) (by rw [hρ]; simp)
   simp [h0] at h22
 
-/-- Finiteness of the proposal is needed in `ae_le_mhAcceptance_of_isReversible_acceptReject`:
-the same flow on `Fin 3`, from the finite `π = δ_0 + δ_1 + δ_2` and the proposal with
-`Q 0 = ∞ • δ_1`. -/
+/-- Finiteness of the proposal is needed in
+`ae_le_mhAcceptance_of_isReversible_acceptReject_of_ae_ne_top`, and σ-finiteness of `π ⊗ₘ Q` in
+`ae_le_mhAcceptance_of_isReversible_acceptReject`: the same flow on `Fin 3`, from the finite
+`π = δ_0 + δ_1 + δ_2` and the proposal with `Q 0 = ∞ • δ_1`; the accepted mass is finite. -/
 theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance_isFiniteMeasure :
     ∃ (π : Measure (Fin 3)) (Q : Kernel (Fin 3) (Fin 3)) (_ : IsSFiniteKernel Q)
       (a : Fin 3 → Fin 3 → ℝ≥0∞), IsFiniteMeasure π ∧
-        Measurable (Function.uncurry a) ∧ (∀ᵐ p ∂(π ⊗ₘ Q), Function.uncurry a p ≤ 1) ∧
+        Measurable (Function.uncurry a) ∧ (∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞) ∧
+        (∀ᵐ p ∂(π ⊗ₘ Q), Function.uncurry a p ≤ 1) ∧
         (acceptReject Q a).IsReversible π ∧
         ¬ Function.uncurry a ≤ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q) := by
   have hg : Measurable fun x : Fin 3 ↦ (x, (![1, 0, 2] : Fin 3 → Fin 3) x) :=
@@ -396,10 +417,13 @@ theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance_isFiniteMeasure 
     simp
   obtain ⟨h0, hrev⟩ := mhAcceptance_eq_zero_and_isReversible_acceptReject_of_compProd_eq hρ
   refine ⟨_, _, inferInstance, fun x y ↦ if x = 2 ∧ y = 2 then 1 else 0, inferInstance,
-    measurable_of_countable _,
+    measurable_of_countable _, ae_of_all _ fun x ↦ ?_,
     ae_of_all _ fun p ↦ by
       rcases p with ⟨x, y⟩; simp only [Function.uncurry_apply_pair]; split_ifs <;> simp, hrev,
     fun h ↦ ?_⟩
+  · rw [Kernel.withDensity_apply _ (measurable_of_countable _), Kernel.deterministic_apply,
+      dirac_withDensity, lintegral_smul_measure, lintegral_dirac]
+    fin_cases x <;> simp
   have h22 := ae_iff_of_countable.1 h (2, 2) (by rw [hρ]; simp)
   simp [h0] at h22
 
@@ -560,6 +584,41 @@ theorem exists_mhAcceptance_ne_min_one_div :
     ← Measure.compProd_apply_singleton, hρ]
   simp
 
+/-- **The Metropolis–Hastings ratio for a flow with a density.** If the proposed flow is
+`π ⊗ₘ Q = ρ.withDensity g` for a σ-finite measure `ρ` invariant under the swap and a measurable `g`
+finite `ρ`-almost everywhere, the Metropolis–Hastings acceptance is `min 1 (g (y, x) / g (x, y))`,
+`π ⊗ₘ Q`-almost everywhere. -/
+theorem mhAcceptance_ae_eq_of_compProd_eq_withDensity {ρ : Measure (X × X)} [SigmaFinite ρ]
+    (hρ : ρ.map Prod.swap = ρ) {g : X × X → ℝ≥0∞} (hg : Measurable g)
+    (hg_top : ∀ᵐ z ∂ρ, g z ≠ ∞) (h : π ⊗ₘ Q = ρ.withDensity g) :
+    Function.uncurry (π.mhAcceptance Q) =ᵐ[π ⊗ₘ Q] fun z ↦ min 1 (g z.swap / g z) := by
+  have hgs : Measurable fun z : X × X ↦ g z.swap := hg.comp measurable_swap
+  have hh : Measurable fun z ↦ min (g z) (g z.swap) / g z := (hg.min hgs).div hg
+  have := SigmaFinite.withDensity_of_ne_top hg_top
+  have hmap : (ρ.withDensity g).map Prod.swap = ρ.withDensity fun z ↦ g z.swap :=
+    (map_withDensity_comp measurable_swap hgs).trans (by rw [hρ])
+  have hinf : ρ.withDensity g ⊓ (ρ.withDensity g).map Prod.swap =
+      (ρ.withDensity g).withDensity fun z ↦ min (g z) (g z.swap) / g z := by
+    rw [hmap, withDensity_inf_withDensity hg hgs, ← MeasureTheory.withDensity_mul _ hg hh]
+    refine MeasureTheory.withDensity_congr_ae ?_
+    filter_upwards [hg_top] with z hz
+    change min (g z) (g z.swap) = g z * (min (g z) (g z.swap) / g z)
+    rcases eq_or_ne (g z) 0 with h0 | h0
+    · rw [h0, zero_mul]
+      exact min_eq_left zero_le
+    · exact (ENNReal.mul_div_cancel h0 hz).symm
+  have hmh : ∀ z, Function.uncurry (π.mhAcceptance Q) z = min 1 ((ρ.withDensity g ⊓
+      (ρ.withDensity g).map Prod.swap).rnDeriv (ρ.withDensity g) z) :=
+    fun z ↦ by simp only [Function.uncurry_def, Measure.mhAcceptance, h, Prod.mk.eta]
+  rw [h]
+  filter_upwards [Measure.rnDeriv_withDensity (ρ.withDensity g) hh,
+    (ae_withDensity_iff hg).2 (ae_of_all _ fun z hz ↦ hz),
+    (ae_withDensity_iff hg).2 (hg_top.mono fun z hz _ ↦ hz)] with z hz h0 htop
+  rw [hmh z, hinf, hz]
+  rw [(show Monotone fun t : ℝ≥0∞ ↦ t / g z from
+    fun _ _ hst ↦ ENNReal.div_le_div_right hst _).map_min, ENNReal.div_self h0 htop, ← min_assoc,
+    min_self]
+
 /-- **The Metropolis–Hastings ratio.** For a target `π = ν.withDensity p` and a proposal with
 densities `Q x = ν.withDensity (q x)` with respect to a σ-finite `ν`, the Metropolis–Hastings
 acceptance is `min 1 (p y * q y x / (p x * q x y))`, `π ⊗ₘ Q`-almost everywhere. -/
@@ -568,40 +627,26 @@ theorem mhAcceptance_withDensity_ae_eq {ν : Measure X} [SigmaFinite ν] {p : X 
     (hpq : ∀ᵐ z ∂(ν.prod ν), p z.1 * q z.1 z.2 ≠ ∞) :
     Function.uncurry ((ν.withDensity p).mhAcceptance ((Kernel.const X ν).withDensity q))
       =ᵐ[(ν.withDensity p) ⊗ₘ (Kernel.const X ν).withDensity q]
-        fun z ↦ min 1 (p z.2 * q z.2 z.1 / (p z.1 * q z.1 z.2)) := by
-  set g : X × X → ℝ≥0∞ := fun z ↦ p z.1 * q z.1 z.2 with hg_def
-  have hg : Measurable g := (hp.comp measurable_fst).mul hq
-  have hgs : Measurable fun z : X × X ↦ g z.swap := hg.comp measurable_swap
-  have hh : Measurable fun z ↦ min (g z) (g z.swap) / g z := (hg.min hgs).div hg
-  have hρ : (ν.withDensity p) ⊗ₘ (Kernel.const X ν).withDensity q = (ν.prod ν).withDensity g := by
-    rw [Measure.withDensity_compProd_withDensity hp hq, Measure.compProd_const]
-  have := SigmaFinite.withDensity_of_ne_top hpq
-  have hmap : ((ν.prod ν).withDensity g).map Prod.swap =
-      (ν.prod ν).withDensity fun z ↦ g z.swap :=
-    (map_withDensity_comp measurable_swap hgs).trans (by rw [Measure.prod_swap])
-  have hinf : (ν.prod ν).withDensity g ⊓ ((ν.prod ν).withDensity g).map Prod.swap =
-      ((ν.prod ν).withDensity g).withDensity fun z ↦ min (g z) (g z.swap) / g z := by
-    rw [hmap, withDensity_inf_withDensity hg hgs, ← MeasureTheory.withDensity_mul _ hg hh]
-    refine MeasureTheory.withDensity_congr_ae ?_
-    filter_upwards [hpq] with z hz
-    change min (g z) (g z.swap) = g z * (min (g z) (g z.swap) / g z)
-    rcases eq_or_ne (g z) 0 with h0 | h0
-    · rw [h0, zero_mul]
-      exact min_eq_left zero_le
-    · exact (ENNReal.mul_div_cancel h0 hz).symm
-  have hmh : ∀ z, Function.uncurry ((ν.withDensity p).mhAcceptance
-      ((Kernel.const X ν).withDensity q)) z = min 1 ((((ν.prod ν).withDensity g) ⊓
-        ((ν.prod ν).withDensity g).map Prod.swap).rnDeriv ((ν.prod ν).withDensity g) z) :=
-    fun z ↦ by simp only [Function.uncurry_def, Measure.mhAcceptance, hρ, Prod.mk.eta]
-  rw [hρ]
-  filter_upwards [Measure.rnDeriv_withDensity ((ν.prod ν).withDensity g) hh,
-    (ae_withDensity_iff hg).2 (ae_of_all _ fun z hz ↦ hz),
-    (ae_withDensity_iff hg).2 (hpq.mono fun z hz _ ↦ hz)] with z hz h0 htop
-  rw [hmh z, hinf, hz]
-  rw [(show Monotone fun t : ℝ≥0∞ ↦ t / g z from
-    fun _ _ hst ↦ ENNReal.div_le_div_right hst _).map_min, ENNReal.div_self h0 htop, ← min_assoc,
-    min_self]
-  rfl
+        fun z ↦ min 1 (p z.2 * q z.2 z.1 / (p z.1 * q z.1 z.2)) :=
+  mhAcceptance_ae_eq_of_compProd_eq_withDensity (g := fun z ↦ p z.1 * q z.1 z.2) Measure.prod_swap
+    ((hp.comp measurable_fst).mul hq) hpq
+    (by rw [Measure.withDensity_compProd_withDensity hp hq, Measure.compProd_const])
+
+/-- **The Metropolis acceptance is the Metropolis–Hastings acceptance.** For a proposal `Q`
+reversible for a reference measure `μ`, with the first marginal of `μ ⊗ₘ Q` σ-finite, and a target
+`μ.withDensity f` with `f` finite `μ`-almost everywhere, the Metropolis–Hastings acceptance is
+`min 1 (f y / f x)`, `(μ.withDensity f) ⊗ₘ Q`-almost everywhere. -/
+theorem mhAcceptance_withDensity_ae_eq_min_one_div [SFinite μ] [IsSFiniteKernel Q]
+    [SigmaFinite (μ ⊗ₘ Q).fst] (hQ : Q.IsReversible μ) {f : X → ℝ≥0∞} (hf : Measurable f)
+    (hf_top : ∀ᵐ x ∂μ, f x ≠ ∞) :
+    Function.uncurry ((μ.withDensity f).mhAcceptance Q) =ᵐ[(μ.withDensity f) ⊗ₘ Q]
+      fun z ↦ min 1 (f z.2 / f z.1) := by
+  have : SigmaFinite (μ ⊗ₘ Q) := SigmaFinite.of_map _ measurable_fst.aemeasurable ‹_›
+  exact mhAcceptance_ae_eq_of_compProd_eq_withDensity (g := fun z ↦ f z.1)
+    (isReversible_iff_map_swap_compProd.1 hQ) (hf.comp measurable_fst)
+    (Measure.ae_compProd_of_ae_ae ((measurableSet_singleton ∞).compl.preimage
+      (hf.comp measurable_fst)) (hf_top.mono fun _ hx ↦ ae_of_all _ fun _ ↦ hx))
+    (Measure.withDensity_compProd hf)
 
 /-- The hypotheses of `mhAcceptance_withDensity_ae_eq` hold together, for instance for densities
 of a finite target and of a proposal with respect to Lebesgue measure. -/

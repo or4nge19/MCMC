@@ -125,7 +125,7 @@ example (hf : Measurable f) (hf_top : ∀ᵐ x, f x ≠ ∞) :
       Function.uncurry ((volume.withDensity f).mhAcceptance
         ((Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map fun p : ℝ × ℝ ↦ p.1 + p.2)) := by
   have := SigmaFinite.withDensity_of_ne_top hf_top
-  exact Kernel.ae_le_mhAcceptance_of_isReversible_acceptReject
+  exact Kernel.ae_le_mhAcceptance_of_isReversible_acceptReject_of_ae_ne_top
     (ae_of_all _ fun _ ↦ measure_ne_top _ _)
     (measurable_const.min ((hf.comp measurable_snd).div (hf.comp measurable_fst)))
     (ae_of_all _ fun _ ↦ min_le_left _ _) (isReversible_randomWalkMetropolis
