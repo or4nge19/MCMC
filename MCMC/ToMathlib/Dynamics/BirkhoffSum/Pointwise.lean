@@ -7,7 +7,7 @@ module
 
 public import MCMC.ToMathlib.Dynamics.BirkhoffSum.MaximalErgodic
 public import Mathlib.Dynamics.BirkhoffSum.QuasiMeasurePreserving
-public import Mathlib.MeasureTheory.Function.ConditionalExpectation.Basic
+public import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
 public import Mathlib.MeasureTheory.MeasurableSpace.Invariants
 
 /-!
@@ -18,7 +18,7 @@ Let `f` preserve a measure `μ` and let `φ : α → ℝ` be integrable.
 * `MeasureTheory.MeasurePreserving.ae_tendsto_birkhoffAverage_condExp`: if `μ` is σ-finite on the
   σ-algebra `MeasurableSpace.invariants f` of invariant sets (in particular if `μ` is finite), then
   for `μ`-almost every `x` the averages `birkhoffAverage ℝ f φ n x` tend to
-  `μ[φ | MeasurableSpace.invariants f] x`.
+  `μ[φ | MeasurableSpace.invariants f] x`. This holds for `φ` with values in a Banach space.
 * `MeasureTheory.MeasurePreserving.ae_tendsto_birkhoffAverage_zero`, for any measure: if the
   integral of `φ` vanishes on every invariant set of finite measure, the averages tend to `0`
   almost everywhere. The one-sided form is
@@ -33,9 +33,15 @@ The proof is the one of Yosida and Kakutani. The upper limit of the Birkhoff ave
 `ε > 0` is an invariant set `D` inside the set where some average exceeds `ε`; the maximal ergodic
 lemma on `D` gives `ε * μ D ≤ ∫ x in D, φ x ∂μ`, and `D` has finite measure.
 
+For values in a Banach space the theorem follows from the real case by density: it holds for
+`s.indicator fun _ ↦ e`, and the functions for which it holds are closed in `L¹` by the maximal
+ergodic inequality and the weak `L¹` bound for the conditional expectation
+(`MeasureTheory.ofReal_mul_measure_le_norm_condExp_le`).
+
 Source: O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Theorem 25.6 (ergodic
 theorem, Birkhoff) and its proof (Yosida and Kakutani), read from an extracted text of the 3rd
-edition; there `μ` is a probability measure.
+edition; there `μ` is a probability measure and `φ` is real. The extension to a Banach space by
+density is the standard argument; no source was read for it.
 
 Searched on 2026-11-27 (Mathlib `v4.34.1`): `grep -rln "birkhoffAverage" Mathlib` finds
 `Dynamics/BirkhoffSum/{Average, NormedSpace, QuasiMeasurePreserving}.lean` and
@@ -165,11 +171,9 @@ theorem ae_tendsto_birkhoffAverage_zero (hf : MeasurePreserving f μ μ) (hψ : 
   rw [birkhoffAverage_neg_apply] at hn
   exact neg_lt_neg_iff.1 hn
 
-/-- **Birkhoff's pointwise ergodic theorem**: for a map `f` preserving a measure `μ` that is
-σ-finite on the invariant sets (for instance a finite measure) and an integrable `φ`, the Birkhoff
-averages of `φ` tend almost everywhere to the conditional expectation of `φ` given the invariant
-σ-algebra. -/
-theorem ae_tendsto_birkhoffAverage_condExp (hf : MeasurePreserving f μ μ)
+/-- Birkhoff's pointwise ergodic theorem for a real function; the statement for functions with
+values in a Banach space is `MeasureTheory.MeasurePreserving.ae_tendsto_birkhoffAverage_condExp`. -/
+theorem ae_tendsto_birkhoffAverage_condExp_real (hf : MeasurePreserving f μ μ)
     [SigmaFinite (μ.trim (invariants_le f))] (hφ : Integrable φ μ) :
     ∀ᵐ x ∂μ, Tendsto (fun n ↦ birkhoffAverage ℝ f φ n x) atTop
       (𝓝 (μ[φ | invariants f] x)) := by
@@ -186,5 +190,145 @@ theorem ae_tendsto_birkhoffAverage_condExp (hf : MeasurePreserving f μ μ)
   refine h.congr' ((eventually_ne_atTop 0).mono fun n hn ↦ ?_)
   rw [birkhoffAverage_sub_apply, birkhoffAverage_apply_of_comp_eq ℝ hinv (Nat.cast_ne_zero.2 hn),
     sub_add_cancel]
+
+end MeasureTheory.MeasurePreserving
+
+theorem eventually_norm_sub_lt_of_tendsto_of_norm_sub_le {ι E : Type*} [NormedAddCommGroup E]
+    {l : Filter ι} {a b : ι → E} {L L' : E} {c : ℝ} (hb : Tendsto b l (𝓝 L'))
+    (hab : ∀ n, ‖a n - b n‖ ≤ c) (hL : ‖L - L'‖ < c) : ∀ᶠ n in l, ‖a n - L‖ < 3 * c := by
+  filter_upwards [hb.eventually (Metric.ball_mem_nhds L' ((norm_nonneg _).trans_lt hL))] with n hn
+  have h1 : a n - L = a n - b n + (b n - L') - (L - L') := by abel
+  have h2 := norm_sub_le (a n - b n + (b n - L')) (L - L')
+  have h3 := norm_add_le (a n - b n) (b n - L')
+  have h4 : ‖b n - L'‖ < c := mem_ball_iff_norm.1 hn
+  rw [h1]
+  linarith [hab n]
+
+/-- The weak `L¹` bound for the conditional expectation. -/
+theorem MeasureTheory.ofReal_mul_measure_le_norm_condExp_le {α E : Type*} {m m0 : MeasurableSpace α}
+    {μ : Measure α} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E] {g : α → E}
+    (hg : Integrable g μ) (c : ℝ) :
+    ENNReal.ofReal c * μ {x | c ≤ ‖μ[g | m] x‖} ≤ ∫⁻ x, ‖g x‖ₑ ∂μ :=
+  calc ENNReal.ofReal c * μ {x | c ≤ ‖μ[g | m] x‖}
+      ≤ ENNReal.ofReal c * μ {x | ENNReal.ofReal c ≤ ‖μ[g | m] x‖ₑ} :=
+        mul_le_mul' le_rfl (measure_mono fun x (hx : c ≤ ‖μ[g | m] x‖) ↦
+          (ENNReal.ofReal_le_ofReal hx).trans_eq (ofReal_norm _))
+    _ ≤ ∫⁻ x, ‖μ[g | m] x‖ₑ ∂μ := mul_meas_ge_le_lintegral₀ integrable_condExp.1.enorm _
+    _ = eLpNorm (μ[g | m]) 1 μ := (eLpNorm_one_eq_lintegral_enorm integrable_condExp.1).symm
+    _ ≤ eLpNorm g 1 μ := eLpNorm_condExp_le_eLpNorm _ le_rfl
+    _ = ∫⁻ x, ‖g x‖ₑ ∂μ := eLpNorm_one_eq_lintegral_enorm hg.1
+
+namespace MeasureTheory.MeasurePreserving
+
+variable {α E : Type*} [MeasurableSpace α] {μ : Measure α} {f : α → α} [NormedAddCommGroup E]
+  [NormedSpace ℝ E] [CompleteSpace E] {φ ψ : α → E}
+
+/-- If the Birkhoff averages of `ψ` tend almost everywhere to its conditional expectation, the set
+where those of `φ` are frequently `3 * c` away from the conditional expectation of `φ` has measure
+at most `2 * c⁻¹ * ∫⁻ ‖φ - ψ‖ₑ`. -/
+theorem ofReal_mul_measure_frequently_lt_norm_birkhoffAverage_sub_condExp_le
+    (hf : MeasurePreserving f μ μ) (hφ : Integrable φ μ) (hψ : Integrable ψ μ)
+    (h : ∀ᵐ x ∂μ, Tendsto (fun n ↦ birkhoffAverage ℝ f ψ n x) atTop
+      (𝓝 (μ[ψ | invariants f] x))) (c : ℝ) :
+    ENNReal.ofReal c * μ {x | ∃ᶠ n in atTop,
+        3 * c < ‖birkhoffAverage ℝ f φ n x - μ[φ | invariants f] x‖} ≤
+      2 * ∫⁻ x, ‖φ x - ψ x‖ₑ ∂μ := by
+  have hsub : ∀ᵐ x ∂μ, x ∈ {x | ∃ᶠ n in atTop,
+        3 * c < ‖birkhoffAverage ℝ f φ n x - μ[φ | invariants f] x‖} →
+      x ∈ {x | ∃ n, c < ‖birkhoffAverage ℝ f (φ - ψ) n x‖} ∪
+        {x | c ≤ ‖μ[φ - ψ | invariants f] x‖} := by
+    filter_upwards [h, condExp_sub hφ hψ (invariants f)] with x hx hsx hfreq
+    by_contra hcon
+    rw [mem_union, not_or] at hcon
+    refine hfreq ((eventually_norm_sub_lt_of_tendsto_of_norm_sub_le hx (fun n ↦ ?_)
+      ((congrArg norm hsx).symm.trans_lt (not_le.1 hcon.2))).mono fun n hn ↦ not_lt.2 hn.le)
+    rw [← birkhoffAverage_sub_apply]
+    exact not_lt.1 fun hlt ↦ hcon.1 ⟨n, hlt⟩
+  calc ENNReal.ofReal c * μ {x | ∃ᶠ n in atTop,
+        3 * c < ‖birkhoffAverage ℝ f φ n x - μ[φ | invariants f] x‖}
+      ≤ ENNReal.ofReal c * (μ {x | ∃ n, c < ‖birkhoffAverage ℝ f (φ - ψ) n x‖} +
+          μ {x | c ≤ ‖μ[φ - ψ | invariants f] x‖}) :=
+        mul_le_mul' le_rfl ((measure_mono_ae hsub).trans (measure_union_le _ _))
+    _ = ENNReal.ofReal c * μ {x | ∃ n, c < ‖birkhoffAverage ℝ f (φ - ψ) n x‖} +
+          ENNReal.ofReal c * μ {x | c ≤ ‖μ[φ - ψ | invariants f] x‖} := mul_add _ _ _
+    _ ≤ ∫⁻ x, ‖(φ - ψ) x‖ₑ ∂μ + ∫⁻ x, ‖(φ - ψ) x‖ₑ ∂μ :=
+        add_le_add (hf.ofReal_mul_measure_exists_lt_norm_birkhoffAverage_le ℝ (hφ.sub hψ).1 c)
+          (ofReal_mul_measure_le_norm_condExp_le (hφ.sub hψ) c)
+    _ = 2 * ∫⁻ x, ‖φ x - ψ x‖ₑ ∂μ := (two_mul _).symm
+
+theorem measure_frequently_lt_norm_birkhoffAverage_sub_condExp_eq_zero
+    (hf : MeasurePreserving f μ μ) (hφ : Integrable φ μ)
+    (happrox : ∀ ε : ℝ≥0∞, 0 < ε → ∃ ψ : α → E, Integrable ψ μ ∧
+      (∀ᵐ x ∂μ, Tendsto (fun n ↦ birkhoffAverage ℝ f ψ n x) atTop
+        (𝓝 (μ[ψ | invariants f] x))) ∧ ∫⁻ x, ‖φ x - ψ x‖ₑ ∂μ < ε) {c : ℝ} (hc : 0 < c) :
+    μ {x | ∃ᶠ n in atTop,
+      3 * c < ‖birkhoffAverage ℝ f φ n x - μ[φ | invariants f] x‖} = 0 := by
+  refine (mul_eq_zero.1 (le_antisymm (ENNReal.le_of_forall_pos_le_add fun ε hε _ ↦ ?_)
+    zero_le)).resolve_left (ENNReal.ofReal_pos.2 hc).ne'
+  obtain ⟨ψ, hψ, hP, hlt⟩ := happrox (ε / 2) (ENNReal.half_pos (ENNReal.coe_ne_zero.2 hε.ne'))
+  calc ENNReal.ofReal c * μ {x | ∃ᶠ n in atTop,
+        3 * c < ‖birkhoffAverage ℝ f φ n x - μ[φ | invariants f] x‖}
+      ≤ 2 * ∫⁻ x, ‖φ x - ψ x‖ₑ ∂μ :=
+        hf.ofReal_mul_measure_frequently_lt_norm_birkhoffAverage_sub_condExp_le hφ hψ hP c
+    _ ≤ 2 * (ε / 2) := mul_le_mul' le_rfl hlt.le
+    _ = 0 + ε := by rw [ENNReal.mul_div_cancel two_ne_zero ENNReal.ofNat_ne_top, zero_add]
+
+/-- The integrable functions whose Birkhoff averages tend almost everywhere to the conditional
+expectation given the invariant σ-algebra are closed under limits in `L¹`. -/
+theorem ae_tendsto_birkhoffAverage_condExp_of_forall_exists_lintegral_lt
+    (hf : MeasurePreserving f μ μ) (hφ : Integrable φ μ)
+    (happrox : ∀ ε : ℝ≥0∞, 0 < ε → ∃ ψ : α → E, Integrable ψ μ ∧
+      (∀ᵐ x ∂μ, Tendsto (fun n ↦ birkhoffAverage ℝ f ψ n x) atTop
+        (𝓝 (μ[ψ | invariants f] x))) ∧ ∫⁻ x, ‖φ x - ψ x‖ₑ ∂μ < ε) :
+    ∀ᵐ x ∂μ, Tendsto (fun n ↦ birkhoffAverage ℝ f φ n x) atTop
+      (𝓝 (μ[φ | invariants f] x)) := by
+  have hnull : ∀ k : ℕ, ∀ᵐ x ∂μ, ¬ ∃ᶠ n in atTop, 3 * (1 / ((k : ℝ) + 1)) <
+      ‖birkhoffAverage ℝ f φ n x - μ[φ | invariants f] x‖ := fun k ↦
+    measure_eq_zero_iff_ae_notMem.1
+      (hf.measure_frequently_lt_norm_birkhoffAverage_sub_condExp_eq_zero hφ happrox
+        (by positivity))
+  filter_upwards [ae_all_iff.2 hnull] with x hx
+  refine Metric.tendsto_nhds.2 fun ε hε ↦ ?_
+  obtain ⟨k, hk⟩ := exists_nat_one_div_lt (div_pos hε three_pos)
+  refine (not_frequently.1 (hx k)).mono fun n hn ↦ ?_
+  rw [dist_eq_norm]
+  linarith [not_lt.1 hn]
+
+/-- **Birkhoff's pointwise ergodic theorem**: for a map `f` preserving a measure `μ` that is
+σ-finite on the invariant sets (for instance a finite measure) and an integrable `φ` with values
+in a Banach space, the Birkhoff averages of `φ` tend almost everywhere to the conditional
+expectation of `φ` given the invariant σ-algebra. -/
+theorem ae_tendsto_birkhoffAverage_condExp (hf : MeasurePreserving f μ μ)
+    [SigmaFinite (μ.trim (invariants_le f))] (hφ : Integrable φ μ) :
+    ∀ᵐ x ∂μ, Tendsto (fun n ↦ birkhoffAverage ℝ f φ n x) atTop
+      (𝓝 (μ[φ | invariants f] x)) := by
+  refine Integrable.induction (P := fun φ : α → E ↦ ∀ᵐ x ∂μ,
+    Tendsto (fun n ↦ birkhoffAverage ℝ f φ n x) atTop (𝓝 (μ[φ | invariants f] x)))
+    (fun e s hs hμs ↦ ?_) (fun φ₁ φ₂ _ h₁ h₂ hP₁ hP₂ ↦ ?_) ?_ (fun φ₁ φ₂ h12 _ hP ↦ ?_) hφ
+  · have hint : Integrable (s.indicator (1 : α → ℝ)) μ :=
+      (integrable_indicator_iff hs).2 (integrableOn_const hμs.ne)
+    have heq : (s.indicator fun _ ↦ e) =
+        ContinuousLinearMap.toSpanSingleton ℝ e ∘ s.indicator (1 : α → ℝ) := by
+      funext x
+      by_cases hx : x ∈ s <;> simp [hx]
+    filter_upwards [hf.ae_tendsto_birkhoffAverage_condExp_real hint,
+      (ContinuousLinearMap.toSpanSingleton ℝ e).comp_condExp_comm hint (m := invariants f)]
+      with x hx hT
+    rw [heq, ← hT]
+    exact (((ContinuousLinearMap.toSpanSingleton ℝ e).continuous.tendsto _).comp hx).congr
+      fun n ↦ map_birkhoffAverage ℝ ℝ (ContinuousLinearMap.toSpanSingleton ℝ e) f _ n x
+  · filter_upwards [hP₁, hP₂, condExp_add h₁ h₂ (invariants f)] with x h1 h2 hadd
+    rw [hadd]
+    exact (h1.add h2).congr fun n ↦ (birkhoffAverage_add_apply ℝ n x).symm
+  · refine isClosed_of_closure_subset fun g hg ↦
+      hf.ae_tendsto_birkhoffAverage_condExp_of_forall_exists_lintegral_lt (L1.integrable_coeFn g)
+        fun ε hε ↦ ?_
+    obtain ⟨g', hg', hlt⟩ := EMetric.mem_closure_iff.1 hg ε hε
+    exact ⟨g', L1.integrable_coeFn g', hg', (lintegral_congr fun x ↦
+      (edist_eq_enorm_sub _ _).symm).trans_lt ((L1.edist_def g g').symm.trans_lt hlt)⟩
+  · filter_upwards [hP, condExp_congr_ae h12 (m := invariants f), ae_all_iff.2 fun n ↦
+      hf.quasiMeasurePreserving.birkhoffAverage_ae_eq_of_ae_eq ℝ h12 n] with x hx hc hn
+    rw [← hc]
+    exact hx.congr hn
 
 end MeasureTheory.MeasurePreserving
