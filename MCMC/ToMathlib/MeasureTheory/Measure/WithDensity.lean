@@ -13,8 +13,9 @@ public import Mathlib.MeasureTheory.Measure.CompleteLattice
 
 The infimum of `μ.withDensity f` and `μ.withDensity g` is `μ.withDensity (f ⊓ g)`, for measurable
 `f` and `g` and any measure `μ`; if `μ.withDensity f ≤ μ`, truncating `f` at `1` does not change
-`μ.withDensity f`, with no finiteness of `μ`; and the image of `μ.withDensity f` under a measurable
-equivalence `e` is `(μ.map e).withDensity (f ∘ e.symm)`.
+`μ.withDensity f`, with no finiteness of `μ`; and the image of `μ.withDensity (h ∘ g)` under `g` is
+`(μ.map g).withDensity h`, for measurable `g` and `h`, or for a measurable embedding `g` and any
+`h`.
 
 Staged for `Mathlib/MeasureTheory/Measure/WithDensity.lean`. Searched on 2026-11-26 in the pinned
 Mathlib: `grep -rn "withDensity_inf\|inf_withDensity\|withDensity_min" Mathlib` has no hit
@@ -73,12 +74,22 @@ theorem withDensity_min_one_of_le {f : α → ℝ≥0∞} (hf : Measurable f)
   congr 1
   exact setLIntegral_congr_fun (hs.inter hA) fun x hx ↦ min_eq_right hx.2
 
-/-- The image of a measure with density under a measurable equivalence. -/
-theorem _root_.MeasurableEquiv.map_withDensity (e : α ≃ᵐ β) (f : α → ℝ≥0∞) :
-    (μ.withDensity f).map e = (μ.map e).withDensity (f ∘ e.symm) := by
+/-- The image of a measure with a density pulled back from the target, for a measurable map and a
+measurable density. -/
+theorem map_withDensity_comp {g : α → β} (hg : Measurable g) {h : β → ℝ≥0∞} (hh : Measurable h) :
+    (μ.withDensity (h ∘ g)).map g = (μ.map g).withDensity h := by
   ext s hs
-  rw [e.map_apply, withDensity_apply _ (e.measurable hs), withDensity_apply _ hs, e.restrict_map,
-    lintegral_map_equiv]
-  simp
+  rw [Measure.map_apply hg hs, withDensity_apply _ (hg hs), withDensity_apply _ hs,
+    setLIntegral_map hs hh hg]
+  rfl
+
+/-- The image of a measure with a density pulled back from the target, for a measurable embedding
+and any density. -/
+theorem _root_.MeasurableEmbedding.map_withDensity_comp {g : α → β} (hg : MeasurableEmbedding g)
+    (h : β → ℝ≥0∞) : (μ.withDensity (h ∘ g)).map g = (μ.map g).withDensity h := by
+  ext s hs
+  rw [hg.map_apply, withDensity_apply _ (hg.measurable hs), withDensity_apply _ hs, hg.restrict_map,
+    hg.lintegral_map]
+  rfl
 
 end MeasureTheory

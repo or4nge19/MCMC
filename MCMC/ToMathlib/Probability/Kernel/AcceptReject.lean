@@ -256,7 +256,8 @@ theorem isReversible_acceptReject_of_ae_eq_mhAcceptance [SFinite π] [IsSFiniteK
     (π ⊗ₘ Q).withDensity (Function.uncurry a)
   rw [MeasureTheory.withDensity_congr_ae h]
   by_cases hL : ((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).HaveLebesgueDecomposition (π ⊗ₘ Q)
-  · have hswap := MeasurableEquiv.prodComm.map_inf (π ⊗ₘ Q) ((π ⊗ₘ Q).map Prod.swap)
+  · have hswap := (MeasurableEquiv.prodComm : X × X ≃ᵐ X × X).measurableEmbedding.map_inf (π ⊗ₘ Q)
+      ((π ⊗ₘ Q).map Prod.swap)
     rw [show ⇑(MeasurableEquiv.prodComm : X × X ≃ᵐ X × X) = Prod.swap from rfl,
       Measure.map_map measurable_swap measurable_swap, Prod.swap_swap_eq, Measure.map_id] at hswap
     rw [withDensity_mhAcceptance, hswap, inf_comm]
@@ -575,12 +576,8 @@ theorem mhAcceptance_withDensity_ae_eq {ν : Measure X} [SigmaFinite ν] {p : X 
     rw [Measure.withDensity_compProd_withDensity hp hq, Measure.compProd_const]
   have := SigmaFinite.withDensity_of_ne_top hpq
   have hmap : ((ν.prod ν).withDensity g).map Prod.swap =
-      (ν.prod ν).withDensity fun z ↦ g z.swap := by
-    rw [show ((ν.prod ν).withDensity g).map Prod.swap =
-        ((ν.prod ν).withDensity g).map (MeasurableEquiv.prodComm : X × X ≃ᵐ X × X) from rfl,
-      MeasurableEquiv.map_withDensity, show (ν.prod ν).map (MeasurableEquiv.prodComm :
-        X × X ≃ᵐ X × X) = (ν.prod ν).map Prod.swap from rfl, Measure.prod_swap]
-    rfl
+      (ν.prod ν).withDensity fun z ↦ g z.swap :=
+    (map_withDensity_comp measurable_swap hgs).trans (by rw [Measure.prod_swap])
   have hinf : (ν.prod ν).withDensity g ⊓ ((ν.prod ν).withDensity g).map Prod.swap =
       ((ν.prod ν).withDensity g).withDensity fun z ↦ min (g z) (g z.swap) / g z := by
     rw [hmap, withDensity_inf_withDensity hg hgs, ← MeasureTheory.withDensity_mul _ hg hh]

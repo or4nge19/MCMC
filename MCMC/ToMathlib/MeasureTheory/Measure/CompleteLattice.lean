@@ -5,22 +5,22 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import Mathlib.MeasureTheory.Measure.Map
+public import Mathlib.MeasureTheory.Measure.Restrict
 public import Mathlib.MeasureTheory.Measure.CompleteLattice
 
 /-!
-# The infimum of two measures on singletons and under a measurable equivalence
+# The infimum of two measures on singletons and under a measurable embedding
 
 The infimum `μ ⊓ ν` of two measures (Mathlib's `CompleteLattice (Measure α)`) is the minimum of
-`μ {a}` and `ν {a}` on a measurable singleton `{a}`, and `Measure.map e` preserves it for a
-measurable equivalence `e`, being an order isomorphism of measures with inverse
-`Measure.map e.symm`.
+`μ {a}` and `ν {a}` on a measurable singleton `{a}`, and `Measure.map f` preserves it for a
+measurable embedding `f`: both sides vanish off the range of `f`, and on it `Measure.comap f`
+inverts `Measure.map f`.
 
 Staged for `Mathlib/MeasureTheory/Measure/CompleteLattice.lean` and
-`Mathlib/MeasureTheory/Measure/Map.lean`. Searched on 2026-11-26 in the pinned Mathlib:
-`grep -rn "map_inf" Mathlib/MeasureTheory` has no hit (`grep -rn "map_inf" Mathlib` finds the
-statements for filters, sublattices and ideals only); `grep -rn "inf_apply" Mathlib/MeasureTheory`
-finds only `Measure.inf_apply`.
+`Mathlib/MeasureTheory/Measure/Restrict.lean`. Searched on 2026-11-26 in the pinned Mathlib:
+`grep -rn "map_inf" Mathlib/MeasureTheory` finds only `MeasurableSpace.map_inf`, for σ-algebras
+(`grep -rn "map_inf" Mathlib` finds the statements for filters, sublattices and ideals);
+`grep -rn "inf_apply" Mathlib/MeasureTheory` finds only `Measure.inf_apply`.
 -/
 
 @[expose] public section
@@ -43,20 +43,29 @@ theorem inf_apply_singleton [MeasurableSingletonClass α] (μ ν : Measure α) (
 
 end MeasureTheory.Measure
 
-namespace MeasurableEquiv
+namespace MeasurableEmbedding
 
 open MeasureTheory
 
 variable {α β : Type*} {mα : MeasurableSpace α} {mβ : MeasurableSpace β}
 
-/-- The image of the infimum of two measures under a measurable equivalence is the infimum of the
+/-- The image of the infimum of two measures under a measurable embedding is the infimum of the
 images. -/
-theorem map_inf (e : α ≃ᵐ β) (μ ν : Measure α) : (μ ⊓ ν).map e = μ.map e ⊓ ν.map e := by
-  refine le_antisymm (le_inf (Measure.map_mono inf_le_left e.measurable)
-    (Measure.map_mono inf_le_right e.measurable)) ?_
-  calc μ.map e ⊓ ν.map e = ((μ.map e ⊓ ν.map e).map e.symm).map e := (e.map_map_symm).symm
-    _ ≤ (μ ⊓ ν).map e := Measure.map_mono (le_inf
-        ((Measure.map_mono inf_le_left e.symm.measurable).trans_eq e.map_symm_map)
-        ((Measure.map_mono inf_le_right e.symm.measurable).trans_eq e.map_symm_map)) e.measurable
+theorem map_inf {f : α → β} (hf : MeasurableEmbedding f) (μ ν : Measure α) :
+    (μ ⊓ ν).map f = μ.map f ⊓ ν.map f := by
+  refine le_antisymm (le_inf (Measure.map_mono inf_le_left hf.measurable)
+    (Measure.map_mono inf_le_right hf.measurable)) ?_
+  have h0 : (μ.map f ⊓ ν.map f) (range f)ᶜ = 0 :=
+    le_antisymm ((Measure.le_iff'.1 inf_le_left _).trans_eq (by rw [hf.map_apply]; simp)) zero_le
+  have hle : ∀ m : Measure α, μ.map f ⊓ ν.map f ≤ m.map f →
+      (μ.map f ⊓ ν.map f).comap f ≤ m := fun m hm ↦ Measure.le_iff.2 fun s _ ↦ by
+    rw [hf.comap_apply]
+    calc (μ.map f ⊓ ν.map f) (f '' s) ≤ m.map f (f '' s) := Measure.le_iff'.1 hm _
+      _ = m s := by rw [hf.map_apply, preimage_image_eq _ hf.injective]
+  calc μ.map f ⊓ ν.map f = ((μ.map f ⊓ ν.map f).comap f).map f := by
+        rw [hf.map_comap]
+        exact (Measure.restrict_eq_self_of_ae_mem (s := range f) (mem_ae_iff.2 h0)).symm
+    _ ≤ (μ ⊓ ν).map f :=
+        Measure.map_mono (le_inf (hle μ inf_le_left) (hle ν inf_le_right)) hf.measurable
 
-end MeasurableEquiv
+end MeasurableEmbedding
