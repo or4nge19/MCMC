@@ -35,7 +35,7 @@ positivity is involved.
   proposed flow; `isReversible_acceptReject_mhAcceptance`,
   `isReversible_acceptReject_of_ae_eq_mhAcceptance`: the Metropolis–Hastings kernel is
   `π`-reversible.
-* `ae_le_mhAcceptance_of_isReversible_acceptReject`: for σ-finite `π` and `π ⊗ₘ Q`, every
+* `ae_le_mhAcceptance_of_isReversible_acceptReject`: for a σ-finite `π ⊗ₘ Q` and any `π`, every
   acceptance `a ≤ 1` with accepted mass finite almost everywhere and a `π`-reversible
   accept–reject kernel is at most `π.mhAcceptance Q`, `π ⊗ₘ Q`-almost everywhere;
   `ae_le_mhAcceptance_of_isReversible_acceptReject_of_ae_ne_top` for a proposal finite
@@ -261,18 +261,33 @@ theorem isReversible_acceptReject_mhAcceptance [SFinite π] [IsSFiniteKernel Q] 
   isReversible_acceptReject_of_ae_eq_mhAcceptance (π.measurable_mhAcceptance Q)
     Filter.EventuallyEq.rfl
 
-/-- **Maximality of the Metropolis–Hastings acceptance.** For σ-finite `π` and `π ⊗ₘ Q`, among
-the acceptances `a ≤ 1` with accepted mass finite `π`-almost everywhere whose accept–reject kernel
-is `π`-reversible, the Metropolis–Hastings acceptance is the largest, `π ⊗ₘ Q`-almost
-everywhere. -/
-theorem ae_le_mhAcceptance_of_isReversible_acceptReject [IsSFiniteKernel Q] [SigmaFinite π]
+/-- **Maximality of the Metropolis–Hastings acceptance.** For a σ-finite proposed flow `π ⊗ₘ Q`
+and any measure `π`, among the acceptances `a ≤ 1` with accepted mass finite `π`-almost everywhere
+whose accept–reject kernel is `π`-reversible, the Metropolis–Hastings acceptance is the largest,
+`π ⊗ₘ Q`-almost everywhere. -/
+theorem ae_le_mhAcceptance_of_isReversible_acceptReject [IsSFiniteKernel Q]
     [SigmaFinite (π ⊗ₘ Q)] (ha : Measurable (Function.uncurry a))
     (ha_fin : ∀ᵐ x ∂π, ∫⁻ y, a x y ∂Q x ≠ ∞)
     (ha1 : ∀ᵐ p ∂(π ⊗ₘ Q), Function.uncurry a p ≤ 1) (h : (acceptReject Q a).IsReversible π) :
     Function.uncurry a ≤ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q) := by
+  by_cases hπ : SFinite π
+  swap
+  · rw [Measure.compProd_of_not_sfinite _ _ hπ, Filter.EventuallyLE, ae_zero]
+    exact Filter.eventually_bot
   have hα : (π ⊗ₘ Q).withDensity (Function.uncurry a) ≤ π ⊗ₘ Q :=
     (withDensity_mono ha1).trans_eq MeasureTheory.withDensity_one
-  have hsymm := (isReversible_acceptReject_iff_map_swap ha ha_fin).1 h
+  have hσ : SigmaFinite (π ⊗ₘ Q.withDensity a) := by
+    rw [Measure.compProd_withDensity ha]
+    exact SigmaFinite.withDensity_of_ne_top
+      (ha1.mono fun p hp ↦ (hp.trans_lt ENNReal.one_lt_top).ne)
+  have := Measure.sigmaFinite_fst_compProd_iff.2
+    (show ∀ᵐ x ∂π, Q.withDensity a x univ ≠ ∞ by
+      filter_upwards [ha_fin] with x hx
+      rwa [Kernel.withDensity_apply' _ ha, Measure.restrict_univ])
+  have hsymm := (isReversible_acceptReject_iff.trans isReversible_iff_map_swap_compProd).1 h
+  rw [Measure.compProd_withDensity ha] at hsymm
+  change ((π ⊗ₘ Q).withDensity (Function.uncurry a)).map Prod.swap =
+    (π ⊗ₘ Q).withDensity (Function.uncurry a) at hsymm
   have hle : (π ⊗ₘ Q).withDensity (Function.uncurry a) ≤
       (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q)) := by
     rw [withDensity_mhAcceptance]
