@@ -32,30 +32,41 @@ measurable `g` with `g² ≤ M (1 + V)`, write `ḡ = g - ∫ g ∂π`:
   (`ae_tendsto_inv_mul_sum_chain_comp_of_drift_of_minorization_pow`): the variance growth and
   Rajchman's argument (`ProbabilityTheory.ae_tendsto_inv_mul_sum_of_integral_sq_le`).
 * **The asymptotic variance**: `n⁻¹ ∫ (∑_{k < n} ḡ (ω k))² ∂(P.chain ∘ₘ μ) → σ²` for every initial
-  law `μ` integrating `V`, where
-  `σ² = Var_π[g (ω 0)] + 2 ∑_{l ≥ 1} cov_π[g (ω 0), g (ω l)]` is the series of the covariances of
-  the stationary chain `P.chain ∘ₘ π`, which converges absolutely
-  (`tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow`). The correlations from `μ`
+  law `μ` integrating `V` (`tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow`),
+  where `σ² = Var[g (ω 0)] + 2 ∑_{l ≥ 1} cov[g (ω 0), g (ω l)]` is the series of the covariances
+  of the stationary chain `P.chain ∘ₘ π`. The series converges absolutely
+  (`summable_covariance_comp_chain_comp_of_drift_of_minorization_pow`), `σ² ≥ 0`
+  (`variance_add_two_mul_tsum_covariance_comp_chain_comp_nonneg_of_drift_of_minorization_pow`),
+  its first term is `Var[g; π]` (`variance_comp_chain_comp_of_invariant`) and the covariance at
+  lag `l` is `∫ ḡ · Pˡḡ ∂π` (`covariance_comp_chain_comp_of_invariant`). The correlations from `μ`
   approach the stationary ones at the rate `ρᵏ ρˡ`
   (`exists_abs_integral_comp_mul_comp_chain_sub_le_of_drift_of_minorization_pow`).
 
-The class `g² ≤ M (1 + V)` is the class this second-moment argument reaches; it is not claimed
-optimal (for a Harris recurrent chain the strong law holds for every `g ∈ L¹(π)`). The
-hypotheses on the kernel are those of Harris' theorem with the minorization of a power
-(`exists_abs_integral_comp_pow_sub_integral_le_of_drift_of_minorization_pow`), and none is
-removable: the identity kernel of `Bool` has every Dirac mass as invariant law and its averages
-converge to `g x` from `x` (`ae_tendsto_inv_mul_sum_chain_id`,
-`not_forall_ae_tendsto_inv_mul_sum_chain_id_bool`), its centered sums have second moment `n²`
-(`integral_sq_sum_sub_chain_id_bool`), and with suitable `V`, `γ`, `K`, `R` it
-satisfies all the hypotheses but the threshold, all but the drift, and all but the minorization
-(the `example`s at the end). The moment `∫⁻ V ∂μ ≠ ∞` of the initial law is forced in the
-variance growth and in the asymptotic variance, and not needed in the strong law: for the descent
-`x ↦ x - 1` on `ℕ` with `V x = 2ˣ`, started at `∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{4ʲ}`, the second moment at `n = 4ᴶ`
-is at least `n 2ᴶ / 2` (`le_integral_sq_sum_sub_chain_descent_comp`,
-`not_exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow_nat`,
-`not_tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow_nat`). The hypotheses hold
-together on the halving chain of `Harris.lean`
-and on the Gaussian autoregression of `RandomMap.lean` (the last two `example`s).
+The class `g² ≤ M (1 + V)` is the class of the variance growth: at `n = 1` from a point `x` its
+left side is `(g x - ∫ g ∂π)²`. For the strong law it is the class this second-moment argument
+reaches, and it is not claimed optimal there.
+
+## The hypotheses are forced, and they hold together
+
+The hypotheses on the kernel are those of Harris' theorem with the minorization of a power
+(`exists_abs_integral_comp_pow_sub_integral_le_of_drift_of_minorization_pow`).
+
+* The identity kernel of `Bool` has every Dirac mass as invariant law, its averages converge to
+  `g x` from `x` (`ae_tendsto_inv_mul_sum_chain_id`,
+  `not_forall_ae_tendsto_inv_mul_sum_chain_id_bool`) and its centered sums have second moment `n²`
+  (`integral_sq_sum_sub_chain_id_bool`). Each of the drift, the threshold `K + γ R < R`, the
+  minorization and `α > 0`, left out of the statement of the strong law, of the variance growth
+  or of the asymptotic variance at `X = Bool`, gives a statement that this kernel refutes (the
+  twelve `example`s after `not_forall_tendsto_inv_mul_integral_sq_sum_sub_chain_id_bool`).
+* The moment `∫⁻ V ∂μ ≠ ∞` of the initial law is forced in the variance growth and in the
+  asymptotic variance, and is not needed in the strong law: for the descent `x ↦ x - 1` on `ℕ`
+  with `V x = 2ˣ` (`drift_and_minorization_descent`), started at `∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{4ʲ}`, the second
+  moment at `n = 4ᴶ` is at least `n 2ᴶ / 2` (`le_integral_sq_sum_sub_chain_descent_comp`,
+  `not_exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow_nat`,
+  `not_tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow_nat`).
+* The hypotheses hold together on the halving chain of `Harris.lean` (the strong law and the
+  asymptotic variance, with the invariant law of `invariant_of_halving`) and on the Gaussian
+  autoregression of `RandomMap.lean` (the last three `example`s).
 
 ## Search
 
@@ -213,7 +224,7 @@ theorem exists_abs_integral_comp_mul_comp_chain_le_of_drift_of_minorization_pow
   have hVk : Integrable (fun x ↦ (V x : ℝ)) ((P ^ k : Kernel X X) ∘ₘ μ) := by
     simpa using integrable_toReal_of_lintegral_ne_top hV.coe_nnreal_ennreal.aemeasurable
       (lintegral_comp_pow_ne_top_of_drift hV hdrift hμV k)
-  rw [integral_comp_mul_comp_chain_comp P μ hφ hψ k l
+  rw [integral_comp_mul_comp_chain_comp P μ k l hφ.aemeasurable hψ.aemeasurable
     ((memLp_comp_chain_comp_of_drift hV hdrift hμV hψ hψM k).integrable_mul
       (memLp_comp_chain_comp_of_drift hV hdrift hμV hφ hφM (k + l)))]
   calc |∫ x, ψ x * ∫ y, φ y ∂((P ^ l) x) ∂((P ^ k) ∘ₘ μ)|
@@ -480,7 +491,7 @@ theorem exists_abs_integral_comp_mul_comp_chain_sub_le_of_drift_of_minorization_
   have hI : 0 ≤ ∫ x, (V x : ℝ) ∂μ := integral_nonneg fun _ ↦ (V _).coe_nonneg
   have hs0 : 0 ≤ √(max ρ₁ (max ρ₂ ρ₃)) ^ k * √(max ρ₁ (max ρ₂ ρ₃)) ^ l := by positivity
   have hA := h₂ π hπ hinv μ hμ hμV φ ψ hφ hψ M hφM hψM k l
-  rw [← integral_comp_mul_comp_chain_comp P μ hφ hψ k l
+  rw [← integral_comp_mul_comp_chain_comp P μ k l hφ.aemeasurable hψ.aemeasurable
     ((memLp_comp_chain_comp_of_drift hV hdrift hμV hψ hψM k).integrable_mul
       (memLp_comp_chain_comp_of_drift hV hdrift hμV hφ hφM (k + l)))] at hA
   have hb := h₃ π hπ hinv φ ψ hφ hψ M hφM hψM l
@@ -504,63 +515,94 @@ theorem exists_abs_integral_comp_mul_comp_chain_sub_le_of_drift_of_minorization_
       (le_max_left _ _)) k).trans ((Real.pow_le_sqrt_pow_mul_sqrt_pow hρ0 hρ1.le hlk).trans_eq
         (mul_comm _ _))) (by positivity) (by positivity)
 
-/-- **The covariances of the stationary chain**: for an invariant probability measure `π` and a
-measurable `g` square integrable under `π`, the covariance of `g (ω 0)` and `g (ω l)` under
-`P.chain ∘ₘ π` is `∫ ḡ · (∫ ḡ ∂(P ^ l ·)) ∂π`, where `ḡ = g - ∫ g ∂π`. -/
+/-- **The covariances of the stationary chain**: for an invariant probability measure `π` and
+`g` square integrable under `π`, the covariance of `g (ω 0)` and `g (ω l)` under `P.chain ∘ₘ π` is
+`∫ ḡ · (∫ ḡ ∂(P ^ l ·)) ∂π`, where `ḡ = g - ∫ g ∂π`. -/
 theorem covariance_comp_chain_comp_of_invariant [IsMarkovKernel P] {π : Measure X}
-    [IsProbabilityMeasure π] (hπ : Invariant P π) {g : X → ℝ} (hg : Measurable g)
-    (hg2 : MemLp g 2 π) (l : ℕ) :
+    [IsProbabilityMeasure π] (hπ : Invariant P π) {g : X → ℝ} (hg : MemLp g 2 π) (l : ℕ) :
     cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω l); P.chain ∘ₘ π] =
       ∫ x, (g x - ∫ y, g y ∂π) * ∫ y, (g y - ∫ z, g z ∂π) ∂((P ^ l) x) ∂π := by
+  have hlaw (j : ℕ) : (P.chain ∘ₘ π).map (fun ω ↦ ω j) = π := by
+    rw [Measure.map_comp _ _ (measurable_pi_apply j), chain_map_eval, (hπ.pow j).def]
   have hmean (j : ℕ) : ∫ ω, g (ω j) ∂(P.chain ∘ₘ π) = ∫ y, g y ∂π := by
-    rw [← integral_map (measurable_pi_apply j).aemeasurable hg.aestronglyMeasurable,
-      Measure.map_comp _ _ (measurable_pi_apply j), chain_map_eval, (hπ.pow j).def]
-  have hmem (j : ℕ) : MemLp (fun ω ↦ g (ω j) - ∫ y, g y ∂π) 2 (P.chain ∘ₘ π) := by
-    refine ((memLp_map_measure_iff hg.aestronglyMeasurable
-      (measurable_pi_apply j).aemeasurable).1 ?_).sub (memLp_const _)
-    rwa [Measure.map_comp _ _ (measurable_pi_apply j), chain_map_eval, (hπ.pow j).def]
+    rw [← integral_map (measurable_pi_apply j).aemeasurable
+      (by rw [hlaw j]; exact hg.aestronglyMeasurable), hlaw j]
+  have hmem (j : ℕ) : MemLp (fun ω ↦ g (ω j) - ∫ y, g y ∂π) 2 (P.chain ∘ₘ π) :=
+    ((memLp_map_measure_iff (by rw [hlaw j]; exact hg.aestronglyMeasurable)
+      (measurable_pi_apply j).aemeasurable).1 (by rw [hlaw j]; exact hg)).sub (memLp_const _)
+  have hc (j : ℕ) : AEMeasurable (fun x ↦ g x - ∫ y, g y ∂π) ((P ^ j : Kernel X X) ∘ₘ π) := by
+    rw [(hπ.pow j).def]
+    exact hg.aestronglyMeasurable.aemeasurable.sub_const _
   simp only [covariance, hmean]
-  simpa only [zero_add, (hπ.pow 0).def] using integral_comp_mul_comp_chain_comp P π
-    (hg.sub_const _) (hg.sub_const _) 0 l ((hmem 0).integrable_mul (hmem (0 + l)))
+  simpa only [zero_add, (hπ.pow 0).def] using integral_comp_mul_comp_chain_comp P π 0 l
+    (hc (0 + l)) (hc 0) ((hmem 0).integrable_mul (hmem (0 + l)))
+
+/-- **The variance at a time of the stationary chain**: for an invariant measure `π` and `g`
+almost everywhere measurable under `π`, the variance of `g (ω j)` under `P.chain ∘ₘ π` is the
+variance of `g` under `π`. -/
+theorem variance_comp_chain_comp_of_invariant [IsMarkovKernel P] {π : Measure X}
+    (hπ : Invariant P π) {g : X → ℝ} (hg : AEMeasurable g π) (j : ℕ) :
+    Var[fun ω ↦ g (ω j); P.chain ∘ₘ π] = Var[g; π] := by
+  have hlaw : (P.chain ∘ₘ π).map (fun ω ↦ ω j) = π := by
+    rw [Measure.map_comp _ _ (measurable_pi_apply j), chain_map_eval, (hπ.pow j).def]
+  exact (variance_map (μ := P.chain ∘ₘ π) (X := g) (Y := fun ω ↦ ω j) (by rwa [hlaw])
+    (measurable_pi_apply j).aemeasurable).symm.trans (by rw [hlaw])
+
+/-- **The covariances of the stationary chain are summable**: under the drift and the
+minorization of `P ^ m` on `{V ≤ R}` (`α > 0`, `K + γ R < R`), for an invariant law `π` and a
+measurable `g` with `g² ≤ M (1 + V)`, the covariances `cov[g (ω 0), g (ω l)]` under
+`P.chain ∘ₘ π` are bounded by a geometric sequence. -/
+theorem summable_covariance_comp_chain_comp_of_drift_of_minorization_pow [IsMarkovKernel P]
+    (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) {ν : Measure X}
+    [IsProbabilityMeasure ν] {α R : ℝ≥0} {m : ℕ} (hα : 0 < α) (hR : K + γ * R < R)
+    (hmin : ∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) {π : Measure X} [IsProbabilityMeasure π]
+    (hπ : Invariant P π) {g : X → ℝ} (hg : Measurable g) {M : ℝ}
+    (hgM : ∀ x, g x ^ 2 ≤ M * (1 + V x)) :
+    Summable (fun l ↦ cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω l); P.chain ∘ₘ π]) := by
+  have hγ := NNReal.lt_one_of_add_mul_lt hR
+  obtain ⟨C₃, ρ₃, -, hρ₃0, hρ₃, h₃⟩ :=
+    exists_abs_integral_mul_integral_pow_sub_le_of_drift_of_minorization_pow hV hdrift hα hR hmin
+  have hc0 : ∫ x, (g x - ∫ y, g y ∂π) ∂π = 0 := by
+    simpa [average_eq_integral] using integral_sub_average π g
+  have hgM' := sq_sub_integral_le_of_invariant_of_drift hV hdrift hγ hπ hg hgM
+  have hcov := covariance_comp_chain_comp_of_invariant (P := P) hπ (memLp_two_of_sq_le
+    hg.aestronglyMeasurable (((integrable_const 1).add
+      (integrable_of_invariant_of_drift hV hdrift hγ hπ)).const_mul M) hgM)
+  refine Summable.of_norm_bounded ((summable_geometric_of_lt_one hρ₃0 hρ₃).mul_left
+    (C₃ * (2 * (2 + K / (1 - γ)) * M))) fun l ↦ ?_
+  rw [hcov, Real.norm_eq_abs]
+  refine (Eq.trans_le ?_ (h₃ π inferInstance hπ _ _ (hg.sub_const (∫ y, g y ∂π))
+    (hg.sub_const (∫ y, g y ∂π)) _ hgM' hgM' l)).trans_eq (by ring)
+  rw [hc0, mul_zero, sub_zero]
 
 /-- **The asymptotic variance of a Harris chain**: under the drift and the minorization of `P ^ m`
 on `{V ≤ R}` (`α > 0`, `K + γ R < R`), for an invariant law `π`, an initial law `μ` integrating `V`
-and a measurable `g` with `g² ≤ M (1 + V)`, the covariances `cov[g (ω 0), g (ω l)]` of the
-stationary chain `P.chain ∘ₘ π` are summable and
+and a measurable `g` with `g² ≤ M (1 + V)`,
 `n⁻¹ ∫ (∑_{k < n} (g (ω k) - ∫ g ∂π))² ∂(P.chain ∘ₘ μ) → Var[g (ω 0)] + 2 ∑_{l ≥ 1} cov[g (ω 0),
-g (ω l)]`, both under `P.chain ∘ₘ π`. -/
+g (ω l)]`, the variance and the covariances under `P.chain ∘ₘ π`. -/
 theorem tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow [IsMarkovKernel P]
     (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) {ν : Measure X}
     [IsProbabilityMeasure ν] {α R : ℝ≥0} {m : ℕ} (hα : 0 < α) (hR : K + γ * R < R)
     (hmin : ∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) {π : Measure X} [IsProbabilityMeasure π]
     (hπ : Invariant P π) {μ : Measure X} [IsProbabilityMeasure μ] (hμ : ∫⁻ x, V x ∂μ ≠ ∞)
     {g : X → ℝ} (hg : Measurable g) {M : ℝ} (hgM : ∀ x, g x ^ 2 ≤ M * (1 + V x)) :
-    Summable (fun l ↦ cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω l); P.chain ∘ₘ π]) ∧
-      Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
-        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
-        (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
-          2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π])) := by
+    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
+      ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
+      (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
+        2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π])) := by
   have hγ := NNReal.lt_one_of_add_mul_lt hR
   obtain ⟨C, r, -, hr0, hr, h⟩ :=
     exists_abs_integral_comp_mul_comp_chain_sub_le_of_drift_of_minorization_pow hV hdrift hα hR
       hmin
-  obtain ⟨C₃, ρ₃, -, hρ₃0, hρ₃, h₃⟩ :=
-    exists_abs_integral_mul_integral_pow_sub_le_of_drift_of_minorization_pow hV hdrift hα hR hmin
   have hc0 : ∫ x, (g x - ∫ y, g y ∂π) ∂π = 0 := by
     simpa [average_eq_integral] using integral_sub_average π g
   have hgM' := sq_sub_integral_le_of_invariant_of_drift hV hdrift hγ hπ hg hgM
-  have hcov := covariance_comp_chain_comp_of_invariant (P := P) hπ hg (memLp_two_of_sq_le
+  have hcov := covariance_comp_chain_comp_of_invariant (P := P) hπ (memLp_two_of_sq_le
     hg.aestronglyMeasurable (((integrable_const 1).add
       (integrable_of_invariant_of_drift hV hdrift hγ hπ)).const_mul M) hgM)
+  have hsum :=
+    summable_covariance_comp_chain_comp_of_drift_of_minorization_pow hV hdrift hα hR hmin hπ hg hgM
   set c := ∫ x, g x ∂π
-  have hsum : Summable fun l ↦ cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω l); P.chain ∘ₘ π] := by
-    refine Summable.of_norm_bounded ((summable_geometric_of_lt_one hρ₃0 hρ₃).mul_left
-      (C₃ * (2 * (2 + K / (1 - γ)) * M))) fun l ↦ ?_
-    rw [hcov, Real.norm_eq_abs]
-    refine (Eq.trans_le ?_ (h₃ π inferInstance hπ _ _ (hg.sub_const c) (hg.sub_const c) _ hgM'
-      hgM' l)).trans_eq (by ring)
-    rw [hc0, mul_zero, sub_zero]
-  refine ⟨hsum, ?_⟩
   rw [← covariance_self (X := fun ω : ℕ → X ↦ g (ω 0))
       (hg.comp (measurable_pi_apply 0)).aemeasurable,
     show cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
@@ -579,18 +621,40 @@ theorem tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow [IsMark
       (hg.sub_const c) hgM' k) n]
     simp only [add_zero, sq]
 
+/-- **The asymptotic variance is nonnegative**: under the drift and the minorization of `P ^ m`
+on `{V ≤ R}` (`α > 0`, `K + γ R < R`), for an invariant law `π` and a measurable `g` with
+`g² ≤ M (1 + V)`, `0 ≤ Var[g (ω 0)] + 2 ∑_{l ≥ 1} cov[g (ω 0), g (ω l)]` under `P.chain ∘ₘ π`. -/
+theorem variance_add_two_mul_tsum_covariance_comp_chain_comp_nonneg_of_drift_of_minorization_pow
+    [IsMarkovKernel P]
+    (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) {ν : Measure X}
+    [IsProbabilityMeasure ν] {α R : ℝ≥0} {m : ℕ} (hα : 0 < α) (hR : K + γ * R < R)
+    (hmin : ∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) {π : Measure X} [IsProbabilityMeasure π]
+    (hπ : Invariant P π) {g : X → ℝ} (hg : Measurable g) {M : ℝ}
+    (hgM : ∀ x, g x ^ 2 ≤ M * (1 + V x)) :
+    0 ≤ Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
+      2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π] :=
+  ge_of_tendsto' (tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow hV hdrift hα
+    hR hmin hπ (ne_top_of_le_ne_top (ENNReal.div_ne_top ENNReal.coe_ne_top (tsub_pos_of_lt
+      (by exact_mod_cast NNReal.lt_one_of_add_mul_lt hR)).ne')
+        (lintegral_le_of_invariant_of_drift hV hdrift (NNReal.lt_one_of_add_mul_lt hR) hπ))
+    hg hgM) fun n ↦ mul_nonneg (inv_nonneg.2 n.cast_nonneg) (integral_nonneg fun _ ↦ sq_nonneg _)
+
 /-! ### The hypotheses are forced, and they hold together -/
 
-/-- **The chain of a deterministic map follows the orbit**: with measurable singletons, for
-`(deterministic f hf).chain x`-almost every `ω`, `ω k = f^[k] x` for every `k`. -/
-theorem ae_forall_eq_iterate_chain_deterministic [MeasurableSingletonClass X] {f : X → X}
-    (hf : Measurable f) (x : X) :
-    ∀ᵐ ω ∂((deterministic f hf).chain x), ∀ k, ω k = f^[k] x := by
-  refine ae_all_iff.2 fun k ↦ ae_of_ae_map (f := fun ω : ℕ → X ↦ ω k)
-    (p := fun y ↦ y = f^[k] x) (measurable_pi_apply k).aemeasurable ?_
-  rw [← map_apply _ (measurable_pi_apply k), chain_map_eval, deterministic_pow,
-    deterministic_apply]
-  exact (ae_dirac_iff (measurableSet_singleton _)).2 rfl
+/-- **The class `g² ≤ M (1 + V)` is the class of the variance growth**: at `n = 1` from a point
+`x`, the left side of the bound is `(g x - c)²`, so a bound `B (1 + V x)` for it is a bound of
+this form for `g - c`. -/
+example [IsMarkovKernel P] {g : X → ℝ} (hg : Measurable g) (c : ℝ) (x : X) :
+    ∫ ω, (∑ k ∈ range 1, (g (ω k) - c)) ^ 2 ∂(P.chain x) = (g x - c) ^ 2 := by
+  have hF : Measurable fun y : X ↦ (g y - c) ^ 2 := (hg.sub_const c).pow_const 2
+  have h := integral_map (μ := P.chain x) (measurable_pi_apply 0).aemeasurable
+    hF.aestronglyMeasurable
+  rw [← map_apply _ (measurable_pi_apply 0), chain_map_eval, pow_zero] at h
+  simp only [sum_range_one]
+  rw [← h]
+  change ∫ y, (g y - c) ^ 2 ∂(Kernel.id x) = _
+  rw [Kernel.id_apply]
+  exact integral_dirac' _ _ hF.stronglyMeasurable
 
 /-- **The identity chain stays at its start**: with measurable singletons, from every point `x`,
 `n⁻¹ ∑_{k < n} g (ω k) → g x` for `Kernel.id.chain x`-almost every `ω`. -/
@@ -626,70 +690,297 @@ theorem integral_sq_sum_sub_chain_id_bool (n : ℕ) :
   filter_upwards [ae_forall_eq_iterate_chain_deterministic measurable_id false] with ω hω
   simp [hω]
 
-/-- **The drift is forced in the variance growth and in the asymptotic variance**: for the
-identity kernel of `Bool` (`drift_and_minorization_id_bool`), from `false`, with `π = dirac true`
-and `g = 1_{true}`, no `C` has `∫ (∑_{k < n} (g (ω k) - ∫ g ∂π))² ≤ C n` for every `n`, and
-`n⁻¹ ∫ (∑_{k < n} (g (ω k) - ∫ g ∂π))² = n` has no limit. -/
-example : (¬ ∃ C : ℝ, ∀ n : ℕ, ∫ ω, (∑ k ∈ range n, ((if ω k then (1 : ℝ) else 0) -
-      ∫ y, (if y then (1 : ℝ) else 0) ∂Measure.dirac true)) ^ 2
-        ∂((Kernel.id : Kernel Bool Bool).chain false) ≤ C * n) ∧
-    ¬ ∃ σ : ℝ, Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∫ ω, (∑ k ∈ range n,
-      ((if ω k then (1 : ℝ) else 0) - ∫ y, (if y then (1 : ℝ) else 0) ∂Measure.dirac true)) ^ 2
-        ∂((Kernel.id : Kernel Bool Bool).chain false)) atTop (𝓝 σ) := by
-  simp_rw [integral_sq_sum_sub_chain_id_bool]
-  refine ⟨fun ⟨C, hC⟩ ↦ ?_, fun ⟨σ, hσ⟩ ↦ ?_⟩
-  · obtain ⟨n, hn⟩ := exists_nat_gt (max C 0)
-    nlinarith [hC n, le_max_left C 0, le_max_right C 0]
-  · refine not_tendsto_nhds_of_tendsto_atTop tendsto_natCast_atTop_atTop σ
-      (hσ.congr' (eventually_atTop.2 ⟨1, fun n hn ↦ ?_⟩))
-    rw [sq, inv_mul_cancel_left₀ (Nat.cast_ne_zero.2 (by omega))]
-
-/-- **The threshold `K + γ R < R` is forced**: the identity kernel of `Bool` with
-`V = 1_{true}` has the drift with `γ = 0`, `K = 1` and the minorization `dirac false ≤ P x` on
-`{V ≤ 0}` (`α = 1`, `m = 1`), but `K + γ R = 1 > 0 = R`, and the strong law fails for
-`g = 1_{true}` (`g² ≤ 1 + V`). -/
-example :
-    (∀ x, ∫⁻ y, (if y then (1 : ℝ≥0) else 0) ∂((Kernel.id : Kernel Bool Bool) x) ≤
-      (0 : ℝ≥0) * (if x then (1 : ℝ≥0) else 0) + (1 : ℝ≥0)) ∧
-    (∀ x, (if x then (1 : ℝ≥0) else 0) ≤ 0 →
-      (1 : ℝ≥0) • Measure.dirac false ≤ ((Kernel.id : Kernel Bool Bool) ^ 1) x) ∧
-    ¬ ((1 : ℝ≥0) + 0 * 0 < 0) ∧
+/-- **The variance growth fails for the identity kernel of `Bool`**: for every `V` with
+`V false = 0` and every `C`, the bound of
+`exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow` fails for `Kernel.id` (at
+`π = dirac true`, `μ = dirac false`, `g = 1_{true}`, `M = 1`, where the second moment is `n²`). -/
+theorem not_forall_integral_sq_sum_sub_chain_id_bool_le {V : Bool → ℝ≥0} (hV0 : V false = 0)
+    (C : ℝ) :
     ¬ ∀ π : Measure Bool, IsProbabilityMeasure π → Invariant (Kernel.id : Kernel Bool Bool) π →
-      ∀ x, ∀ᵐ ω ∂((Kernel.id : Kernel Bool Bool).chain x),
-        Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, (if ω k then (1 : ℝ) else 0)) atTop
-          (𝓝 (∫ y, (if y then (1 : ℝ) else 0) ∂π)) :=
-  ⟨fun x ↦ by cases x <;> simp [Kernel.id_apply], fun x hx ↦ by
-    cases x with
-    | false => simp [Kernel.id_apply]
-    | true => simp at hx, by simp, not_forall_ae_tendsto_inv_mul_sum_chain_id_bool⟩
+      ∀ μ : Measure Bool, IsProbabilityMeasure μ → ∫⁻ x, V x ∂μ ≠ ∞ →
+      ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) → ∀ n : ℕ,
+        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2
+          ∂((Kernel.id : Kernel Bool Bool).chain ∘ₘ μ) ≤
+            C * M * n * (1 + ∫ x, (V x : ℝ) ∂μ) := by
+  intro hC
+  obtain ⟨n, hn⟩ := exists_nat_gt (max C 0)
+  have h := hC (Measure.dirac true) inferInstance Measure.id_comp (Measure.dirac false)
+    inferInstance (by simp) (fun y ↦ if y then 1 else 0) (measurable_of_countable _) 1
+    (fun y ↦ by cases y <;> simp [hV0]) n
+  rw [Measure.dirac_bind (Kernel.measurable _), integral_sq_sum_sub_chain_id_bool,
+    integral_dirac, hV0] at h
+  nlinarith [le_max_left C 0, le_max_right C 0, (by simpa using h : (n : ℝ) ^ 2 ≤ C * n)]
 
-/-- **The drift is forced**: the identity kernel of `Bool` with `V = 2 · 1_{true}` has the
-minorization `dirac false ≤ P x` on `{V ≤ 1}` (`α = 1`, `m = 1`) and `K + γ R < R` for `γ = K = 0`,
-`R = 1`, but not the drift, and the strong law fails for `g = 1_{true}`. -/
-example :
-    (∀ x, (if x then (2 : ℝ≥0) else 0) ≤ 1 →
-      (1 : ℝ≥0) • Measure.dirac false ≤ ((Kernel.id : Kernel Bool Bool) ^ 1) x) ∧
-    (0 : ℝ≥0) + 0 * 1 < 1 ∧
-    ¬ (∀ x, ∫⁻ y, (if y then (2 : ℝ≥0) else 0) ∂((Kernel.id : Kernel Bool Bool) x) ≤
-      (0 : ℝ≥0) * (if x then (2 : ℝ≥0) else 0) + (0 : ℝ≥0)) :=
-  ⟨fun x hx ↦ by
-    cases x with
-    | false => simp [Kernel.id_apply]
-    | true => norm_num at hx, by norm_num, fun h ↦ by simpa [Kernel.id_apply] using h true⟩
+/-- **The asymptotic variance fails for the identity kernel of `Bool`**: for every `V` with
+`V false = 0`, the limit of `tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow`
+fails for `Kernel.id` (at `π = dirac true`, `μ = dirac false`, `g = 1_{true}`, `M = 1`, where
+`n⁻¹ ∫ (∑_{k < n} (g (ω k) - ∫ g ∂π))² = n` has no limit). -/
+theorem not_forall_tendsto_inv_mul_integral_sq_sum_sub_chain_id_bool {V : Bool → ℝ≥0}
+    (hV0 : V false = 0) :
+    ¬ ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant (Kernel.id : Kernel Bool Bool) π →
+    ∀ (μ : Measure Bool) [IsProbabilityMeasure μ], ∫⁻ x, V x ∂μ ≠ ∞ → ∀ g : Bool → ℝ,
+    Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+      Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2
+          ∂((Kernel.id : Kernel Bool Bool).chain ∘ₘ μ)) atTop
+        (𝓝 (Var[fun ω ↦ g (ω 0); (Kernel.id : Kernel Bool Bool).chain ∘ₘ π] +
+          2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1));
+            (Kernel.id : Kernel Bool Bool).chain ∘ₘ π])) := by
+  intro h
+  have hσ := h (Measure.dirac true) Measure.id_comp (Measure.dirac false) (by simp)
+    (fun y ↦ if y then 1 else 0) (measurable_of_countable _) 1
+    (fun y ↦ by cases y <;> simp [hV0])
+  simp only [Measure.dirac_bind (Kernel.measurable _), integral_sq_sum_sub_chain_id_bool] at hσ
+  refine not_tendsto_nhds_of_tendsto_atTop tendsto_natCast_atTop_atTop _
+    (hσ.congr' (eventually_atTop.2 ⟨1, fun n hn ↦ ?_⟩))
+  rw [sq, inv_mul_cancel_left₀ (Nat.cast_ne_zero.2 (by omega))]
 
-/-- **The minorization is forced, and `α > 0` in it**: the identity kernel of `Bool` with `V = 0`
-has the drift with `γ = K = 0` and `K + γ R < R` for `R = 1`, and the minorization of `P ^ 1`
-(every power of the identity is the identity) holds with `α = 0` and with no `α > 0`: the strong
-law fails (`not_forall_ae_tendsto_inv_mul_sum_chain_id_bool`). -/
-example {ν : Measure Bool} [IsProbabilityMeasure ν] {α : ℝ≥0} (hα : 0 < α) :
-    (∀ x, ∫⁻ _y, ((0 : ℝ≥0) : ℝ≥0∞) ∂((Kernel.id : Kernel Bool Bool) x) ≤
-      (0 : ℝ≥0) * (0 : ℝ≥0) + (0 : ℝ≥0)) ∧
-    (0 : ℝ≥0) + 0 * 1 < 1 ∧
-    (∀ x, (0 : ℝ≥0) ≤ 1 → (0 : ℝ≥0) • ν ≤ ((Kernel.id : Kernel Bool Bool) ^ 1) x) ∧
-    ¬ (∀ x, (0 : ℝ≥0) ≤ 1 → α • ν ≤ ((Kernel.id : Kernel Bool Bool) ^ 1) x) :=
-  ⟨fun _ ↦ by simp, by norm_num, fun _ _ ↦ by rw [zero_smul]; exact Measure.zero_le _,
-    fun h ↦ not_forall_smul_le_id_bool hα
-    fun x ↦ by simpa using h x zero_le_one⟩
+/-- **The threshold `K + γ R < R` is forced in the strong law**: the statement of
+`ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow` at `X = Bool` with
+`K + γ * R < R` left out, and nothing else changed, is false, by the identity kernel with
+`V = 1_{true}`, `γ = 0`, `K = 1`, `R = 0`, `ν = dirac false`, `α = 1`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), 0 < α →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant P π →
+    ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    ∀ x, ∀ᵐ ω ∂(P.chain x), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, g (ω k)) atTop
+      (𝓝 (∫ y, g y ∂π)) := fun h ↦
+  not_forall_ae_tendsto_inv_mul_sum_chain_id_bool fun π _ hπ x ↦
+    h Kernel.id (fun y ↦ if y then 1 else 0) 0 1 (measurable_of_countable _)
+      (fun x ↦ by cases x <;> simp [Kernel.id_apply]) (Measure.dirac false) 1 0 1 one_pos
+      (fun x hx ↦ by
+        cases x with
+        | false => simp [Kernel.id_apply]
+        | true => simp at hx) π hπ
+      (fun y ↦ if y then 1 else 0) (measurable_of_countable _) 1
+      (fun y ↦ by cases y <;> norm_num) x
+
+/-- **The drift is forced in the strong law**: the statement of
+`ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow` at `X = Bool` with
+the drift left out, and nothing else changed, is false, by the identity kernel with
+`V = 2 · 1_{true}`, `γ = K = 0`, `R = 1`, `ν = dirac false`, `α = 1`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), 0 < α → K + γ * R < R →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant P π →
+    ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    ∀ x, ∀ᵐ ω ∂(P.chain x), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, g (ω k)) atTop
+      (𝓝 (∫ y, g y ∂π)) := fun h ↦
+  not_forall_ae_tendsto_inv_mul_sum_chain_id_bool fun π _ hπ x ↦
+    h Kernel.id (fun y ↦ if y then 2 else 0) 0 0 (measurable_of_countable _)
+      (Measure.dirac false) 1 1 1 one_pos (by norm_num)
+      (fun x hx ↦ by
+        cases x with
+        | false => simp [Kernel.id_apply]
+        | true => norm_num at hx) π hπ
+      (fun y ↦ if y then 1 else 0) (measurable_of_countable _) 1
+      (fun y ↦ by cases y <;> norm_num) x
+
+/-- **The minorization is forced in the strong law**: the statement of
+`ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow` at `X = Bool` with
+the minorization left out, and nothing else changed, is false, by the identity kernel with
+`V = 0`, `γ = K = 0`, `R = 1`, `α = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (_ : ℕ), 0 < α → K + γ * R < R →
+    ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant P π →
+    ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    ∀ x, ∀ᵐ ω ∂(P.chain x), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, g (ω k)) atTop
+      (𝓝 (∫ y, g y ∂π)) := fun h ↦
+  not_forall_ae_tendsto_inv_mul_sum_chain_id_bool fun π _ hπ x ↦
+    h Kernel.id (fun _ ↦ 0) 0 0 (measurable_of_countable _) (fun _ ↦ by simp)
+      (Measure.dirac false) 1 1 1 one_pos (by norm_num) π hπ
+      (fun y ↦ if y then 1 else 0) (measurable_of_countable _) 1
+      (fun y ↦ by cases y <;> norm_num) x
+
+/-- **`α > 0` is forced in the strong law**: the statement of
+`ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow` at `X = Bool` with
+`0 < α` left out, and nothing else changed, is false, by the identity kernel with
+`V = 0`, `γ = K = 0`, `R = 1`, `α = 0`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), K + γ * R < R →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant P π →
+    ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    ∀ x, ∀ᵐ ω ∂(P.chain x), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n, g (ω k)) atTop
+      (𝓝 (∫ y, g y ∂π)) := fun h ↦
+  not_forall_ae_tendsto_inv_mul_sum_chain_id_bool fun π _ hπ x ↦
+    h Kernel.id (fun _ ↦ 0) 0 0 (measurable_of_countable _) (fun _ ↦ by simp)
+      (Measure.dirac false) 0 1 1 (by norm_num)
+      (fun _ _ ↦ by rw [zero_smul]; exact Measure.zero_le _) π hπ
+      (fun y ↦ if y then 1 else 0) (measurable_of_countable _) 1
+      (fun y ↦ by cases y <;> norm_num) x
+
+/-- **The threshold `K + γ R < R` is forced in the variance growth**: the statement of
+`exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow` at `X = Bool` with
+`K + γ * R < R` left out, and nothing else changed, is false, by the identity kernel with
+`V = 1_{true}`, `γ = 0`, `K = 1`, `R = 0`, `ν = dirac false`, `α = 1`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), 0 < α →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ π : Measure Bool, IsProbabilityMeasure π → Invariant P π →
+      ∀ μ : Measure Bool, IsProbabilityMeasure μ → ∫⁻ x, V x ∂μ ≠ ∞ →
+      ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) → ∀ n : ℕ,
+        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ) ≤
+          C * M * n * (1 + ∫ x, (V x : ℝ) ∂μ) := fun h ↦ by
+  obtain ⟨C, -, hC⟩ :=
+    h Kernel.id (fun y ↦ if y then 1 else 0) 0 1 (measurable_of_countable _)
+      (fun x ↦ by cases x <;> simp [Kernel.id_apply]) (Measure.dirac false) 1 0 1 one_pos
+      (fun x hx ↦ by
+        cases x with
+        | false => simp [Kernel.id_apply]
+        | true => simp at hx)
+  exact not_forall_integral_sq_sum_sub_chain_id_bool_le (by simp) C hC
+
+/-- **The drift is forced in the variance growth**: the statement of
+`exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow` at `X = Bool` with
+the drift left out, and nothing else changed, is false, by the identity kernel with
+`V = 2 · 1_{true}`, `γ = K = 0`, `R = 1`, `ν = dirac false`, `α = 1`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), 0 < α → K + γ * R < R →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ π : Measure Bool, IsProbabilityMeasure π → Invariant P π →
+      ∀ μ : Measure Bool, IsProbabilityMeasure μ → ∫⁻ x, V x ∂μ ≠ ∞ →
+      ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) → ∀ n : ℕ,
+        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ) ≤
+          C * M * n * (1 + ∫ x, (V x : ℝ) ∂μ) := fun h ↦ by
+  obtain ⟨C, -, hC⟩ :=
+    h Kernel.id (fun y ↦ if y then 2 else 0) 0 0 (measurable_of_countable _)
+      (Measure.dirac false) 1 1 1 one_pos (by norm_num)
+      (fun x hx ↦ by
+        cases x with
+        | false => simp [Kernel.id_apply]
+        | true => norm_num at hx)
+  exact not_forall_integral_sq_sum_sub_chain_id_bool_le (by simp) C hC
+
+/-- **The minorization is forced in the variance growth**: the statement of
+`exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow` at `X = Bool` with
+the minorization left out, and nothing else changed, is false, by the identity kernel with
+`V = 0`, `γ = K = 0`, `R = 1`, `α = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (_ : ℕ), 0 < α → K + γ * R < R →
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ π : Measure Bool, IsProbabilityMeasure π → Invariant P π →
+      ∀ μ : Measure Bool, IsProbabilityMeasure μ → ∫⁻ x, V x ∂μ ≠ ∞ →
+      ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) → ∀ n : ℕ,
+        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ) ≤
+          C * M * n * (1 + ∫ x, (V x : ℝ) ∂μ) := fun h ↦ by
+  obtain ⟨C, -, hC⟩ :=
+    h Kernel.id (fun _ ↦ 0) 0 0 (measurable_of_countable _) (fun _ ↦ by simp)
+      (Measure.dirac false) 1 1 1 one_pos (by norm_num)
+  exact not_forall_integral_sq_sum_sub_chain_id_bool_le rfl C hC
+
+/-- **`α > 0` is forced in the variance growth**: the statement of
+`exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow` at `X = Bool` with
+`0 < α` left out, and nothing else changed, is false, by the identity kernel with
+`V = 0`, `γ = K = 0`, `R = 1`, `α = 0`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), K + γ * R < R →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ π : Measure Bool, IsProbabilityMeasure π → Invariant P π →
+      ∀ μ : Measure Bool, IsProbabilityMeasure μ → ∫⁻ x, V x ∂μ ≠ ∞ →
+      ∀ g : Bool → ℝ, Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) → ∀ n : ℕ,
+        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ) ≤
+          C * M * n * (1 + ∫ x, (V x : ℝ) ∂μ) := fun h ↦ by
+  obtain ⟨C, -, hC⟩ :=
+    h Kernel.id (fun _ ↦ 0) 0 0 (measurable_of_countable _) (fun _ ↦ by simp)
+      (Measure.dirac false) 0 1 1 (by norm_num)
+      (fun _ _ ↦ by rw [zero_smul]; exact Measure.zero_le _)
+  exact not_forall_integral_sq_sum_sub_chain_id_bool_le rfl C hC
+
+/-- **The threshold `K + γ R < R` is forced in the asymptotic variance**: the statement of
+`tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow` at `X = Bool` with
+`K + γ * R < R` left out, and nothing else changed, is false, by the identity kernel with
+`V = 1_{true}`, `γ = 0`, `K = 1`, `R = 0`, `ν = dirac false`, `α = 1`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), 0 < α →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant P π →
+    ∀ (μ : Measure Bool) [IsProbabilityMeasure μ], ∫⁻ x, V x ∂μ ≠ ∞ → ∀ g : Bool → ℝ,
+    Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
+      ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
+      (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
+        2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π])) := fun h ↦
+  not_forall_tendsto_inv_mul_integral_sq_sum_sub_chain_id_bool (by simp)
+    fun π _ hπ μ _ hμ g hg M hgM ↦
+      h Kernel.id (fun y ↦ if y then 1 else 0) 0 1 (measurable_of_countable _)
+      (fun x ↦ by cases x <;> simp [Kernel.id_apply]) (Measure.dirac false) 1 0 1 one_pos
+      (fun x hx ↦ by
+        cases x with
+        | false => simp [Kernel.id_apply]
+        | true => simp at hx) π hπ μ hμ g hg M hgM
+
+/-- **The drift is forced in the asymptotic variance**: the statement of
+`tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow` at `X = Bool` with
+the drift left out, and nothing else changed, is false, by the identity kernel with
+`V = 2 · 1_{true}`, `γ = K = 0`, `R = 1`, `ν = dirac false`, `α = 1`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), 0 < α → K + γ * R < R →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant P π →
+    ∀ (μ : Measure Bool) [IsProbabilityMeasure μ], ∫⁻ x, V x ∂μ ≠ ∞ → ∀ g : Bool → ℝ,
+    Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
+      ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
+      (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
+        2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π])) := fun h ↦
+  not_forall_tendsto_inv_mul_integral_sq_sum_sub_chain_id_bool (by simp)
+    fun π _ hπ μ _ hμ g hg M hgM ↦
+      h Kernel.id (fun y ↦ if y then 2 else 0) 0 0 (measurable_of_countable _)
+      (Measure.dirac false) 1 1 1 one_pos (by norm_num)
+      (fun x hx ↦ by
+        cases x with
+        | false => simp [Kernel.id_apply]
+        | true => norm_num at hx) π hπ μ hμ g hg M hgM
+
+/-- **The minorization is forced in the asymptotic variance**: the statement of
+`tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow` at `X = Bool` with
+the minorization left out, and nothing else changed, is false, by the identity kernel with
+`V = 0`, `γ = K = 0`, `R = 1`, `α = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (_ : ℕ), 0 < α → K + γ * R < R →
+    ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant P π →
+    ∀ (μ : Measure Bool) [IsProbabilityMeasure μ], ∫⁻ x, V x ∂μ ≠ ∞ → ∀ g : Bool → ℝ,
+    Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
+      ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
+      (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
+        2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π])) := fun h ↦
+  not_forall_tendsto_inv_mul_integral_sq_sum_sub_chain_id_bool rfl
+    fun π _ hπ μ _ hμ g hg M hgM ↦
+      h Kernel.id (fun _ ↦ 0) 0 0 (measurable_of_countable _) (fun _ ↦ by simp)
+      (Measure.dirac false) 1 1 1 one_pos (by norm_num) π hπ μ hμ g hg M hgM
+
+/-- **`α > 0` is forced in the asymptotic variance**: the statement of
+`tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow` at `X = Bool` with
+`0 < α` left out, and nothing else changed, is false, by the identity kernel with
+`V = 0`, `γ = K = 0`, `R = 1`, `α = 0`, `m = 1`. -/
+example : ¬ ∀ (P : Kernel Bool Bool) [IsMarkovKernel P] (V : Bool → ℝ≥0) (γ K : ℝ≥0),
+    Measurable V → (∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) →
+    ∀ (ν : Measure Bool) [IsProbabilityMeasure ν] (α R : ℝ≥0) (m : ℕ), K + γ * R < R →
+    (∀ x, V x ≤ R → α • ν ≤ (P ^ m) x) →
+    ∀ (π : Measure Bool) [IsProbabilityMeasure π], Invariant P π →
+    ∀ (μ : Measure Bool) [IsProbabilityMeasure μ], ∫⁻ x, V x ∂μ ≠ ∞ → ∀ g : Bool → ℝ,
+    Measurable g → ∀ M : ℝ, (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
+    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
+      ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
+      (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
+        2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π])) := fun h ↦
+  not_forall_tendsto_inv_mul_integral_sq_sum_sub_chain_id_bool rfl
+    fun π _ hπ μ _ hμ g hg M hgM ↦
+      h Kernel.id (fun _ ↦ 0) 0 0 (measurable_of_countable _) (fun _ ↦ by simp)
+      (Measure.dirac false) 0 1 1 (by norm_num)
+      (fun _ _ ↦ by rw [zero_smul]; exact Measure.zero_le _) π hπ μ hμ g hg M hgM
 
 /-- **A law with the masses `2⁻⁽ʲ⁺¹⁾`**: `∑ⱼ 2⁻⁽ʲ⁺¹⁾ δ_{x j}` is a probability measure. -/
 theorem _root_.MeasureTheory.isProbabilityMeasure_sum_inv_two_pow_smul_dirac {α : Type*}
@@ -848,11 +1139,10 @@ theorem not_tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow_nat
     ∀ (π : Measure ℕ) [IsProbabilityMeasure π], Invariant P π →
     ∀ (μ : Measure ℕ) [IsProbabilityMeasure μ] (g : ℕ → ℝ), Measurable g → ∀ M : ℝ,
     (∀ x, g x ^ 2 ≤ M * (1 + V x)) →
-    Summable (fun l ↦ cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω l); P.chain ∘ₘ π]) ∧
-      Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
-        ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
-        (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
-          2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π]))) := by
+    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ *
+      ∫ ω, (∑ k ∈ range n, (g (ω k) - ∫ x, g x ∂π)) ^ 2 ∂(P.chain ∘ₘ μ)) atTop
+      (𝓝 (Var[fun ω ↦ g (ω 0); P.chain ∘ₘ π] +
+        2 * ∑' l, cov[fun ω ↦ g (ω 0), fun ω ↦ g (ω (l + 1)); P.chain ∘ₘ π]))) := by
   intro h
   have := isProbabilityMeasure_sum_inv_two_pow_smul_dirac fun j : ℕ ↦ 4 ^ j
   obtain ⟨hd, hm, hinv⟩ := drift_and_minorization_descent
@@ -861,7 +1151,7 @@ theorem not_tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow_nat
     (Measure.dirac 0) 1 3 1 one_pos (by norm_num) hm (Measure.dirac 0) hinv
     (Measure.sum fun j : ℕ ↦ ((2 : ℝ≥0∞) ^ (j + 1))⁻¹ • Measure.dirac (4 ^ j))
     (fun y ↦ if y = 0 then 0 else 1) (measurable_of_countable _) 1
-    (fun x ↦ by by_cases hx : x = 0 <;> simp [hx])).2.bddAbove_range
+    (fun x ↦ by by_cases hx : x = 0 <;> simp [hx])).bddAbove_range
   obtain ⟨J, hJ⟩ := exists_nat_gt (2 * B)
   have hJ2 : 2 * B < (2 : ℝ) ^ J := hJ.trans (by exact_mod_cast Nat.lt_two_pow_self)
   have hb := hB ⟨4 ^ J, rfl⟩
@@ -888,6 +1178,19 @@ example : ∀ᵐ ω ∂((deterministic (fun x : ℕ ↦ x - 1) (measurable_of_co
     drift_and_minorization_descent.2.1 drift_and_minorization_descent.2.2
     (measurable_of_countable _) (M := 1) (fun x ↦ by by_cases hx : x = 0 <;> simp [hx]) _
 
+/-- **The invariant law of the halving chain** of `drift_and_minorization_of_halving`:
+`P 0 = (1/2) • dirac 0 + (1/2) • dirac 1` is invariant. -/
+theorem invariant_of_halving {P : Kernel ℕ ℕ} (hP : ∀ n, P n = if n ≤ 1 then
+    (1 / 2 : ℝ≥0) • Measure.dirac 0 + (1 / 2 : ℝ≥0) • Measure.dirac 1 else Measure.dirac (n / 2)) :
+    Invariant P (P 0) := by
+  refine Measure.ext fun s hs ↦ ?_
+  rw [Measure.bind_apply hs (Kernel.aemeasurable _), hP 0]
+  simp only [zero_le_one, ↓reduceIte]
+  rw [lintegral_add_measure, lintegral_smul_measure, lintegral_smul_measure, lintegral_dirac,
+    lintegral_dirac, hP, hP]
+  simp only [zero_le_one, le_refl, ↓reduceIte]
+  rw [← add_smul, add_halves, one_smul]
+
 /-- **The hypotheses hold together: the halving chain** of `drift_and_minorization_of_halving`
 (`V n = n`, `γ = K = 1/2`, the minorization `(1/2) • dirac 1 ≤ P x` on `{V ≤ 3}`) has the invariant
 law `P 0 = (1/2) • dirac 0 + (1/2) • dirac 1`, and from every start the chain spends half of its
@@ -898,23 +1201,35 @@ example {P : Kernel ℕ ℕ} [IsMarkovKernel P] (hP : ∀ n, P n = if n ≤ 1 th
     ∀ᵐ ω ∂(P.chain x), Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∑ k ∈ range n,
       Set.indicator {0} (1 : ℕ → ℝ) (ω k)) atTop (𝓝 (1 / 2)) := by
   obtain ⟨-, hd, hm⟩ := drift_and_minorization_of_halving hP
-  have hπ : Invariant P (P 0) := by
-    refine Measure.ext fun s hs ↦ ?_
-    rw [Measure.bind_apply hs (Kernel.aemeasurable _), hP 0]
-    simp only [zero_le_one, ↓reduceIte]
-    rw [lintegral_add_measure, lintegral_smul_measure, lintegral_smul_measure, lintegral_dirac,
-      lintegral_dirac, hP, hP]
-    simp only [zero_le_one, le_refl, ↓reduceIte]
-    rw [← add_smul, add_halves, one_smul]
   have h := ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow (P := P)
     (V := fun n : ℕ ↦ (n : ℝ≥0)) (γ := 1 / 2) (K := 1 / 2) (ν := Measure.dirac 1) (α := 1 / 2)
     (R := 3) (m := 1) (measurable_of_countable _) hd (by norm_num) (by norm_num)
-    (fun y hy ↦ by rw [pow_one]; exact hm y hy) hπ (g := Set.indicator ({0} : Set ℕ) 1)
-    (measurable_of_countable _) (M := 1)
+    (fun y hy ↦ by rw [pow_one]; exact hm y hy) (invariant_of_halving hP)
+    (g := Set.indicator ({0} : Set ℕ) 1) (measurable_of_countable _) (M := 1)
     (fun y ↦ by by_cases hy : y = 0 <;> simp [hy]; positivity) x
   rw [integral_indicator_one (measurableSet_singleton 0)] at h
   convert h using 2
   simp [Measure.real, hP 0]
+
+/-- **The hypotheses of the asymptotic variance hold together: the halving chain**, from every
+point `x`, for `g = 1_{0}`. -/
+example {P : Kernel ℕ ℕ} [IsMarkovKernel P] (hP : ∀ n, P n = if n ≤ 1 then
+    (1 / 2 : ℝ≥0) • Measure.dirac 0 + (1 / 2 : ℝ≥0) • Measure.dirac 1 else Measure.dirac (n / 2))
+    (x : ℕ) :
+    Tendsto (fun n : ℕ ↦ (n : ℝ)⁻¹ * ∫ ω, (∑ k ∈ range n,
+        (Set.indicator {0} (1 : ℕ → ℝ) (ω k) - ∫ y, Set.indicator {0} (1 : ℕ → ℝ) y ∂(P 0))) ^ 2
+          ∂(P.chain ∘ₘ Measure.dirac x)) atTop
+      (𝓝 (Var[fun ω ↦ Set.indicator {0} (1 : ℕ → ℝ) (ω 0); P.chain ∘ₘ P 0] +
+        2 * ∑' l, cov[fun ω ↦ Set.indicator {0} (1 : ℕ → ℝ) (ω 0),
+          fun ω ↦ Set.indicator {0} (1 : ℕ → ℝ) (ω (l + 1)); P.chain ∘ₘ P 0])) := by
+  obtain ⟨-, hd, hm⟩ := drift_and_minorization_of_halving hP
+  exact tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow (P := P)
+    (V := fun n : ℕ ↦ (n : ℝ≥0)) (γ := 1 / 2) (K := 1 / 2) (ν := Measure.dirac 1) (α := 1 / 2)
+    (R := 3) (m := 1) (measurable_of_countable _) hd (by norm_num) (by norm_num)
+    (fun y hy ↦ by rw [pow_one]; exact hm y hy) (invariant_of_halving hP) (μ := Measure.dirac x)
+    (by rw [lintegral_dirac' _ (measurable_of_countable _)]; exact ENNReal.coe_ne_top)
+    (g := Set.indicator ({0} : Set ℕ) 1) (measurable_of_countable _) (M := 1)
+    (fun y ↦ by by_cases hy : y = 0 <;> simp [hy]; positivity)
 
 /-- **The hypotheses hold together: the Gaussian autoregression** `y ↦ a y + w`,
 `w ∼ N(0, v)`, `|a| < 1`, `v ≠ 0`, of `exists_drift_minorization_gaussian_ar` (`V y = y²`): from

@@ -6,6 +6,7 @@ Authors: Matteo Cipollina
 
 module
 
+public import MCMC.ToMathlib.Probability.Kernel.Composition.CompMap
 public import MCMC.ToMathlib.Probability.Kernel.IonescuTulcea.Traj
 
 /-!
@@ -24,7 +25,9 @@ time `0`. No assumption on `X` is made.
   `k + m` has the law `(P ^ k) ⊗ₖ prodMkLeft X (P ^ m)`, that is, `(P ^ k) x (dy) (P ^ m) y (dz)`.
 * `ProbabilityTheory.Kernel.integral_comp_mul_comp_chain_comp`: from an s-finite initial measure
   `μ`, `∫ ψ (ω k) φ (ω (k + l)) = ∫ ψ · (∫ φ ∂(P ^ l ·)) ∂((P ^ k) ∘ₘ μ)` when the product is
-  integrable.
+  integrable and `ψ`, `φ` are almost everywhere measurable under the laws of the two times.
+* `ProbabilityTheory.Kernel.ae_forall_eq_iterate_chain_deterministic`: the chain of a
+  deterministic kernel follows the orbit of its map, when singletons are measurable.
 
 The two laws are identities of kernels, so they hold from every initial measure, finite or not,
 by `MeasureTheory.Measure.map_comp`.
@@ -85,28 +88,50 @@ theorem chain_map_eval_eval_add (k m : ℕ) :
 
 /-- **Correlations of two times of the chain**: started at an s-finite measure `μ`,
 `∫ ψ (ω k) φ (ω (k + l)) ∂(P.chain ∘ₘ μ) = ∫ ψ · (∫ φ ∂(P ^ l ·)) ∂((P ^ k) ∘ₘ μ)` whenever
-`ψ (ω k) φ (ω (k + l))` is integrable. -/
-theorem integral_comp_mul_comp_chain_comp (μ : Measure X) [SFinite μ] {φ ψ : X → ℝ}
-    (hφ : Measurable φ) (hψ : Measurable ψ) (k l : ℕ)
+`ψ (ω k) φ (ω (k + l))` is integrable, for `ψ` and `φ` almost everywhere measurable under the laws
+`(P ^ k) ∘ₘ μ` and `(P ^ (k + l)) ∘ₘ μ` of the two times. -/
+theorem integral_comp_mul_comp_chain_comp (μ : Measure X) [SFinite μ] {φ ψ : X → ℝ} (k l : ℕ)
+    (hφ : AEMeasurable φ ((P ^ (k + l) : Kernel X X) ∘ₘ μ))
+    (hψ : AEMeasurable ψ ((P ^ k : Kernel X X) ∘ₘ μ))
     (hint : Integrable (fun ω ↦ ψ (ω k) * φ (ω (k + l))) (P.chain ∘ₘ μ)) :
     ∫ ω, ψ (ω k) * φ (ω (k + l)) ∂(P.chain ∘ₘ μ) =
       ∫ x, ψ x * ∫ y, φ y ∂((P ^ l) x) ∂((P ^ k) ∘ₘ μ) := by
   have hp : Measurable fun ω : ℕ → X ↦ (ω k, ω (k + l)) :=
     (measurable_pi_apply k).prodMk (measurable_pi_apply (k + l))
-  have hg : Measurable fun p : X × X ↦ ψ p.1 * φ p.2 :=
-    (hψ.comp measurable_fst).mul (hφ.comp measurable_snd)
   have hpair : (P.chain ∘ₘ μ).map (fun ω ↦ (ω k, ω (k + l))) = ((P ^ k) ∘ₘ μ) ⊗ₘ (P ^ l) := by
     rw [Measure.map_comp _ _ hp, chain_map_eval_eval_add, compProd_prodMkLeft_eq_comp,
       ← Measure.comp_assoc, Measure.compProd_eq_comp_prod]
+  have hψ' : AEMeasurable (fun p : X × X ↦ ψ p.1) (((P ^ k : Kernel X X) ∘ₘ μ) ⊗ₘ (P ^ l)) :=
+    AEMeasurable.comp_aemeasurable' (f := Prod.fst)
+      (by rw [Measure.fst_compProd]; exact hψ :
+        AEMeasurable ψ (((P ^ k : Kernel X X) ∘ₘ μ) ⊗ₘ (P ^ l)).fst) measurable_fst.aemeasurable
+  have hφ' : AEMeasurable (fun p : X × X ↦ φ p.2) (((P ^ k : Kernel X X) ∘ₘ μ) ⊗ₘ (P ^ l)) :=
+    AEMeasurable.comp_aemeasurable' (f := Prod.snd)
+      (by rw [Measure.snd_compProd, Measure.comp_assoc,
+            (by exact (pow_add P l k).symm : (P ^ l) ∘ₖ (P ^ k) = P ^ (l + k)), add_comm l k]
+          exact hφ :
+        AEMeasurable φ (((P ^ k : Kernel X X) ∘ₘ μ) ⊗ₘ (P ^ l)).snd) measurable_snd.aemeasurable
+  have hg := (hψ'.mul hφ').aestronglyMeasurable
   have hint' : Integrable (fun p : X × X ↦ ψ p.1 * φ p.2)
       (((P ^ k : Kernel X X) ∘ₘ μ) ⊗ₘ (P ^ l)) := by
-    rw [← hpair, integrable_map_measure hg.aestronglyMeasurable hp.aemeasurable]
+    rw [← hpair, integrable_map_measure (hpair ▸ hg) hp.aemeasurable]
     exact hint
   calc ∫ ω, ψ (ω k) * φ (ω (k + l)) ∂(P.chain ∘ₘ μ)
       = ∫ p, ψ p.1 * φ p.2 ∂((P.chain ∘ₘ μ).map fun ω ↦ (ω k, ω (k + l))) :=
-        (integral_map hp.aemeasurable hg.aestronglyMeasurable).symm
+        (integral_map hp.aemeasurable (hpair ▸ hg)).symm
     _ = _ := by
         rw [hpair, Measure.integral_compProd hint']
         simp_rw [integral_const_mul]
+
+/-- **The chain of a deterministic map follows the orbit**: with measurable singletons, for
+`(deterministic f hf).chain x`-almost every `ω`, `ω k = f^[k] x` for every `k`. -/
+theorem ae_forall_eq_iterate_chain_deterministic [MeasurableSingletonClass X] {f : X → X}
+    (hf : Measurable f) (x : X) :
+    ∀ᵐ ω ∂((deterministic f hf).chain x), ∀ k, ω k = f^[k] x := by
+  refine ae_all_iff.2 fun k ↦ ae_of_ae_map (f := fun ω : ℕ → X ↦ ω k)
+    (p := fun y ↦ y = f^[k] x) (measurable_pi_apply k).aemeasurable ?_
+  rw [← map_apply _ (measurable_pi_apply k), chain_map_eval, deterministic_pow,
+    deterministic_apply]
+  exact (ae_dirac_iff (measurableSet_singleton _)).2 rfl
 
 end ProbabilityTheory.Kernel
