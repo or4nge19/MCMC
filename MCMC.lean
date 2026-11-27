@@ -89,7 +89,7 @@ import MCMC.ToMathlib.Probability.Kernel.Harris
 import MCMC.ToMathlib.Probability.Kernel.Invariance
 import MCMC.ToMathlib.Probability.Kernel.IonescuTulcea.Traj
 import MCMC.ToMathlib.Probability.Kernel.Mixing
-import MCMC.ToMathlib.Probability.Kernel.ProperInvariant
+import MCMC.ToMathlib.Probability.Kernel.Proper
 import MCMC.ToMathlib.Probability.Kernel.RandomMap
 import MCMC.ToMathlib.Probability.Kernel.RandomWalk
 import MCMC.ToMathlib.Probability.Kernel.Reversible
