@@ -18,7 +18,7 @@ points whose orbit does so is invariant, and by Poincaré recurrence it contains
 Staged for `Mathlib/Dynamics/Ergodic/Ergodic.lean`. Searched on 2026-11-27 in the pinned Mathlib:
 `grep -rn "frequently" Mathlib/Dynamics/Ergodic | grep "theorem\|lemma"` finds only the
 `Conservative` recurrence lemmas (returns of points of the set itself) and
-`ae_frequently_mem_of_mem_nhds`.
+`MeasureTheory.Conservative.ae_frequently_mem_of_mem_nhds`.
 -/
 
 @[expose] public section
