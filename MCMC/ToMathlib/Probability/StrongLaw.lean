@@ -30,8 +30,8 @@ interaction between the `Y k`.
 At Mathlib `d13f23b`: `grep -rn "Rajchman\|rajchman" Mathlib` finds nothing;
 `Probability/StrongLaw.lean` proves Etemadi's law for pairwise independent identically
 distributed functions through truncations, and none of its lemmas assumes a bound on the second
-moments of the partial sums. `grep -rn "tsum_eLpNorm\|tendsto_atTop_zero_of_tsum_ne_top" Mathlib` finds
-`MeasureTheory.summable_norm_of_tsum_eLpNorm_ne_top` (`MeasureTheory/Function/LpSpace/
+moments of the partial sums. `grep -rn "tsum_eLpNorm\|tendsto_atTop_zero_of_tsum_ne_top" Mathlib`
+finds `MeasureTheory.summable_norm_of_tsum_eLpNorm_ne_top` (`MeasureTheory/Function/LpSpace/
 InfiniteSum.lean`: summable `Lᵖ` norms give pointwise summable norms almost everywhere), which
 proves `ae_tendsto_zero_of_summable_integral_sq` at `p = 1` for the squares, and the uses of the
 series lemma in `MeasureTheory/Function/LpSpace/Complete.lean`; no statement with second

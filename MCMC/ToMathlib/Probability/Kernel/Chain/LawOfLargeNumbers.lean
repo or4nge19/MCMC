@@ -150,23 +150,17 @@ theorem sq_integral_le_of_invariant_of_drift [IsMarkovKernel P] (hV : Measurable
   nlinarith [mul_le_mul_of_nonneg_left (integral_le_of_invariant_of_drift hV hdrift hγ hπ) hM]
 
 /-- **Centering at an invariant law**: under a drift with `γ < 1`, for an invariant probability
-measure `π` and measurable `g` with `g² ≤ M (1 + V)`, the function `g - ∫ g ∂π` has integral `0`
-under `π` and `(g - ∫ g ∂π)² ≤ 2 (2 + K / (1 - γ)) M (1 + V)`. -/
-theorem integral_sub_integral_eq_zero_and_sq_sub_integral_le_of_invariant_of_drift
-    [IsMarkovKernel P] (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K)
-    (hγ : γ < 1) {π : Measure X} [IsProbabilityMeasure π] (hπ : Invariant P π) {g : X → ℝ}
-    (hg : Measurable g) {M : ℝ} (hgM : ∀ x, g x ^ 2 ≤ M * (1 + V x)) :
-    ∫ x, (g x - ∫ y, g y ∂π) ∂π = 0 ∧
-      ∀ x, (g x - ∫ y, g y ∂π) ^ 2 ≤ 2 * (2 + K / (1 - γ)) * M * (1 + V x) := by
-  obtain ⟨x₀⟩ : Nonempty X := nonempty_of_isProbabilityMeasure π
-  have hM : 0 ≤ M := nonneg_of_mul_nonneg_left ((sq_nonneg _).trans (hgM x₀)) (by positivity)
+measure `π` and measurable `g` with `g² ≤ M (1 + V)`,
+`(g - ∫ g ∂π)² ≤ 2 (2 + K / (1 - γ)) M (1 + V)`. -/
+theorem sq_sub_integral_le_of_invariant_of_drift [IsMarkovKernel P] (hV : Measurable V)
+    (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) (hγ : γ < 1) {π : Measure X}
+    [IsProbabilityMeasure π] (hπ : Invariant P π) {g : X → ℝ} (hg : Measurable g) {M : ℝ}
+    (hgM : ∀ x, g x ^ 2 ≤ M * (1 + V x)) (x : X) :
+    (g x - ∫ y, g y ∂π) ^ 2 ≤ 2 * (2 + K / (1 - γ)) * M * (1 + V x) := by
+  have hM : 0 ≤ M := nonneg_of_mul_nonneg_left ((sq_nonneg _).trans (hgM x)) (by positivity)
   have hL : 0 ≤ (K : ℝ) / (1 - γ) :=
     div_nonneg K.coe_nonneg (by linarith [(by exact_mod_cast hγ : (γ : ℝ) < 1)])
-  have hgi : Integrable g π := (memLp_two_of_sq_le hg.aestronglyMeasurable
-    (((integrable_const 1).add (integrable_of_invariant_of_drift hV hdrift hγ hπ)).const_mul M)
-      hgM).integrable one_le_two
   have hc := sq_integral_le_of_invariant_of_drift hV hdrift hγ hπ hg hgM
-  refine ⟨by rw [integral_sub hgi (integrable_const _)]; simp, fun x ↦ ?_⟩
   nlinarith [sq_nonneg (g x + ∫ y, g y ∂π), hgM x, (V x).coe_nonneg,
     mul_nonneg (mul_nonneg hM (by positivity : (0 : ℝ) ≤ 1 + K / (1 - γ))) (V x).coe_nonneg]
 
@@ -248,8 +242,9 @@ theorem exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow [IsMarkovKern
   have hρ1 : 0 ≤ (1 - ρ)⁻¹ := inv_nonneg.2 (sub_nonneg.2 hρ.le)
   refine ⟨C * (2 * (2 + K / (1 - γ))) * (2 * (1 - ρ)⁻¹), by positivity,
     fun π hπ hinv μ hμ hμV g hg M hgM n ↦ ?_⟩
-  obtain ⟨hc0, hgM'⟩ := integral_sub_integral_eq_zero_and_sq_sub_integral_le_of_invariant_of_drift
-    hV hdrift hγ hinv hg hgM
+  have hc0 : ∫ x, (g x - ∫ y, g y ∂π) ∂π = 0 := by
+    simpa [average_eq_integral] using integral_sub_average π g
+  have hgM' := sq_sub_integral_le_of_invariant_of_drift hV hdrift hγ hinv hg hgM
   set c := ∫ x, g x ∂π
   obtain ⟨x₀⟩ : Nonempty X := nonempty_of_isProbabilityMeasure μ
   have hM : 0 ≤ M := nonneg_of_mul_nonneg_left ((sq_nonneg _).trans (hgM x₀)) (by positivity)
@@ -290,8 +285,9 @@ theorem ae_tendsto_inv_mul_sum_chain_of_drift_of_minorization_pow [IsMarkovKerne
     exists_integral_sq_sum_sub_le_of_drift_of_minorization_pow hV hdrift hα hR hmin
   obtain ⟨C₁, ρ₁, hC₁, -, -, h₁⟩ :=
     exists_abs_integral_comp_mul_comp_chain_le_of_drift_of_minorization_pow hV hdrift hα hR hmin
-  obtain ⟨hc0, hgM'⟩ := integral_sub_integral_eq_zero_and_sq_sub_integral_le_of_invariant_of_drift
-    hV hdrift hγ hπ hg hgM
+  have hc0 : ∫ x, (g x - ∫ y, g y ∂π) ∂π = 0 := by
+    simpa [average_eq_integral] using integral_sub_average π g
+  have hgM' := sq_sub_integral_le_of_invariant_of_drift hV hdrift hγ hπ hg hgM
   set c := ∫ y, g y ∂π
   have hM : 0 ≤ M := nonneg_of_mul_nonneg_left ((sq_nonneg _).trans (hgM x)) (by positivity)
   have hx : ∫⁻ y, V y ∂(Measure.dirac x) ≠ ∞ := by
@@ -495,8 +491,9 @@ theorem tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow [IsMark
       hmin
   obtain ⟨C₃, ρ₃, -, hρ₃0, hρ₃, h₃⟩ :=
     exists_abs_integral_mul_integral_pow_sub_le_of_drift_of_minorization_pow hV hdrift hα hR hmin
-  obtain ⟨hc0, hgM'⟩ := integral_sub_integral_eq_zero_and_sq_sub_integral_le_of_invariant_of_drift
-    hV hdrift hγ hπ hg hgM
+  have hc0 : ∫ x, (g x - ∫ y, g y ∂π) ∂π = 0 := by
+    simpa [average_eq_integral] using integral_sub_average π g
+  have hgM' := sq_sub_integral_le_of_invariant_of_drift hV hdrift hγ hπ hg hgM
   have hcov := covariance_comp_chain_comp_of_invariant (P := P) hπ hg (memLp_two_of_sq_le
     hg.aestronglyMeasurable (((integrable_const 1).add
       (integrable_of_invariant_of_drift hV hdrift hγ hπ)).const_mul M) hgM)
