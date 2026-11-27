@@ -10,6 +10,7 @@ public import MCMC.ToMathlib.Probability.Kernel.Composition.Comp
 public import MCMC.ToMathlib.Probability.Kernel.Composition.IntegralCompProd
 public import Mathlib.Probability.Kernel.Invariance
 public import MCMC.ToMathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
+public import MCMC.ToMathlib.MeasureTheory.Integral.Lebesgue.Basic
 public import MCMC.ToMathlib.MeasureTheory.Measure.Prod
 public import MCMC.ToMathlib.Probability.Kernel.Composition.MeasureCompProd
 public import MCMC.ToMathlib.Probability.Kernel.WithDensity
@@ -37,6 +38,10 @@ The powers `κ ^ n` of a kernel on one space are Mathlib's (`Kernel.instMonoid`,
   `ProbabilityTheory.Kernel.IsReversible.withDensity_const`,
   `ProbabilityTheory.Kernel.isReversible_sum_withDensity_const`: mixtures of `π`-reversible kernels
   (random-scan samplers) are `π`-reversible, as are `0` and `Kernel.id`.
+* `ProbabilityTheory.Kernel.IsReversible.withDensity_simpleFunc`,
+  `ProbabilityTheory.Kernel.IsReversible.withDensity_iSup`: a `π`-reversible kernel stays
+  `π`-reversible with a density that is a symmetric function of a simple function of the two
+  states, and under monotone limits of densities; no hypothesis on `π`.
 
 Searched on 2026-11-25 (Mathlib `d13f23b`): `Probability/Kernel/Invariance.lean` has
 `Invariant.comp` and no statement on powers or differences; `grep -rn "Invariant.*sub\|
@@ -239,6 +244,60 @@ theorem IsReversible.withDensity_const [IsSFiniteKernel κ] (hκ : κ.IsReversib
     smul_eq_mul]
   rw [lintegral_const_mul _ (κ.measurable_coe ht), lintegral_const_mul _ (κ.measurable_coe hs),
     hκ hs ht]
+
+/-- The monotone limit of densities with `π`-reversible kernels gives a `π`-reversible kernel. -/
+theorem IsReversible.withDensity_iSup [IsSFiniteKernel κ] {h : ℕ → X → X → ℝ≥0∞}
+    (hh : ∀ n, Measurable (Function.uncurry (h n))) (hmono : ∀ x y, Monotone fun n ↦ h n x y)
+    (hrev : ∀ n, (κ.withDensity (h n)).IsReversible π) :
+    (κ.withDensity fun x y ↦ ⨆ n, h n x y).IsReversible π := by
+  have hsm : Measurable (Function.uncurry fun x y ↦ ⨆ n, h n x y) := Measurable.iSup hh
+  have key : ∀ ⦃u v : Set X⦄, MeasurableSet u → MeasurableSet v →
+      ∫⁻ x in u, (κ.withDensity fun x y ↦ ⨆ n, h n x y) x v ∂π =
+        ⨆ n, ∫⁻ x in u, κ.withDensity (h n) x v ∂π := fun u v hu hv ↦ by
+    refine Eq.trans ?_ (lintegral_iSup (μ := π.restrict u)
+      (f := fun n x ↦ κ.withDensity (h n) x v) (fun n ↦ Kernel.measurable_coe _ hv)
+      fun n m hnm x ↦ ?_)
+    · exact lintegral_congr fun x ↦ (Kernel.withDensity_apply' _ hsm x v).trans
+        ((lintegral_iSup (f := fun n y ↦ h n x y) (fun n ↦ (hh n).comp measurable_prodMk_left)
+          fun n m hnm y ↦ hmono x y hnm).trans
+            (iSup_congr fun n ↦ (Kernel.withDensity_apply' _ (hh n) x v).symm))
+    · change κ.withDensity (h n) x v ≤ κ.withDensity (h m) x v
+      rw [Kernel.withDensity_apply' _ (hh n), Kernel.withDensity_apply' _ (hh m)]
+      exact lintegral_mono fun y ↦ hmono x y hnm
+  intro s t hs ht
+  rw [key hs ht, key ht hs]
+  exact iSup_congr fun n ↦ hrev n hs ht
+
+/-- A `π`-reversible kernel with a density that is a symmetric function `w` of a simple function
+`g` of the two states is `π`-reversible, for every measure `π`: the flow from `s` to `t` is
+`∑ c, ∑ d, w c d * ∫⁻ x in s ∩ g ⁻¹' {c}, κ x (t ∩ g ⁻¹' {d}) ∂π`. -/
+theorem IsReversible.withDensity_simpleFunc [IsSFiniteKernel κ] (hκ : κ.IsReversible π)
+    {β : Type*} (g : SimpleFunc X β) {w : β → β → ℝ≥0∞} (hw : ∀ c d, w c d = w d c) :
+    (κ.withDensity fun x y ↦ w (g x) (g y)).IsReversible π := by
+  have hm : Measurable (Function.uncurry fun x y ↦ w (g x) (g y)) :=
+    (((g.comp Prod.fst measurable_fst).pair (g.comp Prod.snd measurable_snd)).map
+      (Function.uncurry w)).measurable
+  have hA : ∀ c, MeasurableSet (g ⁻¹' {c}) := g.measurableSet_fiber
+  have hpt : ∀ x ⦃v : Set X⦄, MeasurableSet v → (κ.withDensity fun x y ↦ w (g x) (g y)) x v =
+      ∑ d ∈ g.range, w (g x) d * κ x (v ∩ g ⁻¹' {d}) := fun x v hv ↦ by
+    rw [Kernel.withDensity_apply' _ hm, g.setLIntegral_eq_sum_fiber _ hv]
+    exact Finset.sum_congr rfl fun d _ ↦ (setLIntegral_congr_fun (hv.inter (hA d)) fun y hy ↦ by
+      rw [show g y = d from hy.2]).trans (MeasureTheory.setLIntegral_const _ _)
+  have key : ∀ ⦃u v : Set X⦄, MeasurableSet u → MeasurableSet v →
+      ∫⁻ x in u, (κ.withDensity fun x y ↦ w (g x) (g y)) x v ∂π = ∑ c ∈ g.range,
+        ∑ d ∈ g.range, w c d * ∫⁻ x in u ∩ g ⁻¹' {c}, κ x (v ∩ g ⁻¹' {d}) ∂π :=
+    fun u v hu hv ↦ by
+      rw [g.setLIntegral_eq_sum_fiber _ hu]
+      refine Finset.sum_congr rfl fun c _ ↦ ?_
+      rw [setLIntegral_congr_fun (hu.inter (hA c)) fun x hx ↦ by
+        rw [hpt x hv, show g x = c from hx.2], lintegral_finsetSum _ fun d _ ↦
+          (Kernel.measurable_coe κ (hv.inter (hA d))).const_mul _]
+      exact Finset.sum_congr rfl fun d _ ↦
+        lintegral_const_mul _ (Kernel.measurable_coe κ (hv.inter (hA d)))
+  intro s t hs ht
+  rw [key hs ht, key ht hs, Finset.sum_comm]
+  refine Finset.sum_congr rfl fun c _ ↦ Finset.sum_congr rfl fun d _ ↦ ?_
+  rw [hw, hκ (hs.inter (hA d)) (ht.inter (hA c))]
 
 /-- **Random-scan mixtures are reversible**: the mixture `∑ i, w i • κ i` of `π`-reversible
 kernels, written with Mathlib's `Kernel.sum` and constant densities, is `π`-reversible. -/

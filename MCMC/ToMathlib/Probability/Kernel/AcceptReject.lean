@@ -5,7 +5,6 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 public import Mathlib.MeasureTheory.Measure.Decomposition.RadonNikodym
 public import Mathlib.Probability.Kernel.Composition.WithDensity
 public import MCMC.ToMathlib.MeasureTheory.Measure.CompleteLattice
@@ -43,7 +42,7 @@ positivity is involved.
   `π`-almost everywhere.
 * `IsReversible.withDensity_min`, `isReversible_acceptReject_min_one_div`: for a proposal
   reversible for a reference measure `μ`, the acceptance `min 1 (f y / f x)` gives a kernel
-  reversible for `μ.withDensity f`; `μ` and `Q` need not be finite.
+  reversible for `μ.withDensity f`; `μ` is any measure and `Q` need not be finite.
 * `mhAcceptance_eq_min_one_div` (on atoms) and `mhAcceptance_withDensity_ae_eq` (with densities):
   `π.mhAcceptance Q` is the classical ratio `min 1 (π(y) q(y, x) / (π(x) q(x, y)))`;
   `mhAcceptance_ae_eq_of_compProd_eq_withDensity` for any flow with a density with respect to a
@@ -409,54 +408,36 @@ theorem exists_isReversible_acceptReject_not_ae_le_mhAcceptance_isFiniteMeasure 
   have h22 := ae_iff_of_countable.1 h (2, 2) (by rw [hρ]; simp)
   simp [h0] at h22
 
-/-- If `Q` is `μ`-reversible, so is `Q` with density `min (f x) (f y)`, for every measurable `f`.
-The proof is the layer-cake formula `min (f x) (f y) = ∫⁻ r in Ioi 0, 1[r < f x] 1[r < f y]`,
-which turns the flow into an integral of flows between rectangles; no finiteness is assumed. -/
-theorem IsReversible.withDensity_min [SFinite μ] [IsSFiniteKernel Q] (hQ : Q.IsReversible μ)
+/-- If `Q` is `μ`-reversible, so is `Q` with density `min (f x) (f y)`, for every measure `μ` and
+every measurable `f`: for a simple `f` the flow is a finite sum of flows between level sets
+(`IsReversible.withDensity_simpleFunc`), and `min (f x) (f y)` is a monotone limit of such
+densities. -/
+theorem IsReversible.withDensity_min [IsSFiniteKernel Q] (hQ : Q.IsReversible μ)
     {f : X → ℝ≥0∞} (hf : Measurable f) :
     (Q.withDensity fun x y ↦ min (f x) (f y)).IsReversible μ := by
-  have hm : Measurable (Function.uncurry fun x y ↦ min (f x) (f y)) :=
-    (hf.comp measurable_fst).min (hf.comp measurable_snd)
-  have hF : ∀ r : ℝ, MeasurableSet {x | ENNReal.ofReal r < f x} := fun r ↦
-    measurableSet_lt measurable_const hf
-  have hvol : ∀ c : ℝ≥0∞, ∫⁻ r in Ioi (0 : ℝ), {r : ℝ | ENNReal.ofReal r < c}.indicator 1 r = c :=
-    fun c ↦ by
-      rw [lintegral_indicator_one (measurableSet_lt ENNReal.measurable_ofReal measurable_const),
-        Measure.restrict_apply (measurableSet_lt ENNReal.measurable_ofReal measurable_const)]
-      rcases eq_or_ne c ∞ with rfl | hc
-      · simp
-      rw [show {r : ℝ | ENNReal.ofReal r < c} ∩ Ioi 0 = Ioo 0 c.toReal by
-        ext r; exact ⟨fun h ↦ ⟨h.2, (ENNReal.ofReal_lt_iff_lt_toReal h.2.le hc).1 h.1⟩,
-          fun h ↦ ⟨(ENNReal.ofReal_lt_iff_lt_toReal h.1.le hc).2 h.2, h.1⟩⟩,
-        Real.volume_Ioo, sub_zero, ENNReal.ofReal_toReal hc]
-  have hS : Measurable (Function.uncurry fun (p : X × X) (r : ℝ) ↦
-      {r : ℝ | ENNReal.ofReal r < min (f p.1) (f p.2)}.indicator (1 : ℝ → ℝ≥0∞) r) :=
-    measurable_one.indicator (measurableSet_lt (ENNReal.measurable_ofReal.comp measurable_snd)
-      (hm.comp measurable_fst))
-  have key : ∀ ⦃u v : Set X⦄, MeasurableSet u → MeasurableSet v →
-      ∫⁻ x in u, (Q.withDensity fun x y ↦ min (f x) (f y)) x v ∂μ = ∫⁻ r in Ioi (0 : ℝ),
-        (μ ⊗ₘ Q) ((u ∩ {x | ENNReal.ofReal r < f x}) ×ˢ (v ∩ {x | ENNReal.ofReal r < f x})) :=
-    fun u v hu hv ↦ by
-      rw [← Measure.compProd_apply_prod hu hv, Measure.compProd_withDensity hm,
-        withDensity_apply _ (hu.prod hv),
-        setLIntegral_congr_fun (hu.prod hv) fun p _ ↦ (hvol (min (f p.1) (f p.2))).symm,
-        lintegral_lintegral_swap hS.aemeasurable]
-      refine setLIntegral_congr_fun measurableSet_Ioi fun r _ ↦ ?_
-      rw [← prod_inter_prod, inter_comm, ← Measure.restrict_apply ((hF r).prod (hF r)),
-        ← lintegral_indicator_one ((hF r).prod (hF r))]
-      exact lintegral_congr fun p ↦ by simp [indicator, lt_min_iff]
-  intro s t hs ht
-  rw [key hs ht, key ht hs]
-  refine setLIntegral_congr_fun measurableSet_Ioi fun r _ ↦ ?_
-  rw [Measure.compProd_apply_prod (hs.inter (hF r)) (ht.inter (hF r)),
-    Measure.compProd_apply_prod (ht.inter (hF r)) (hs.inter (hF r))]
-  exact hQ (hs.inter (hF r)) (ht.inter (hF r))
+  have hsup : (fun x y ↦ min (f x) (f y)) =
+      fun x y ↦ ⨆ n, min (SimpleFunc.eapprox f n x) (SimpleFunc.eapprox f n y) := by
+    funext x y
+    calc min (f x) (f y)
+        = min (⨆ n, SimpleFunc.eapprox f n x) (⨆ n, SimpleFunc.eapprox f n y) := by
+          rw [SimpleFunc.iSup_eapprox_apply hf, SimpleFunc.iSup_eapprox_apply hf]
+      _ = _ := (iSup_inf_of_monotone (f := fun n ↦ SimpleFunc.eapprox f n x)
+          (g := fun n ↦ SimpleFunc.eapprox f n y)
+          (fun _ _ h ↦ SimpleFunc.monotone_eapprox f h x)
+          (fun _ _ h ↦ SimpleFunc.monotone_eapprox f h y)).symm
+  rw [hsup]
+  exact IsReversible.withDensity_iSup
+    (fun n ↦ ((SimpleFunc.eapprox f n).measurable.comp measurable_fst).min
+      ((SimpleFunc.eapprox f n).measurable.comp measurable_snd))
+    (fun x y n m h ↦ min_le_min (SimpleFunc.monotone_eapprox f h x)
+      (SimpleFunc.monotone_eapprox f h y))
+    fun n ↦ hQ.withDensity_simpleFunc (SimpleFunc.eapprox f n) min_comm
 
 /-- **The Metropolis acceptance.** If the proposal `Q` is reversible for a reference measure `μ`,
 the accept–reject kernel with acceptance `min 1 (f y / f x)` is reversible for `μ.withDensity f`.
-Neither `μ` nor `Q` needs to be finite: `μ` may be Lebesgue measure and `Q` a random walk, or `μ`
-a Gaussian measure and `Q` the preconditioned Crank–Nicolson proposal. -/
-theorem isReversible_acceptReject_min_one_div [SFinite μ] [IsSFiniteKernel Q]
+The measure `μ` is arbitrary and `Q` need not be finite: `μ` may be Lebesgue measure and `Q` a
+random walk, or `μ` a Gaussian measure and `Q` the preconditioned Crank–Nicolson proposal. -/
+theorem isReversible_acceptReject_min_one_div [IsSFiniteKernel Q]
     (hQ : Q.IsReversible μ) {f : X → ℝ≥0∞} (hf : Measurable f) (hf_top : ∀ᵐ x ∂μ, f x ≠ ∞) :
     (acceptReject Q fun x y ↦ min 1 (f y / f x)).IsReversible (μ.withDensity f) := by
   have ha : Measurable (Function.uncurry fun x y ↦ min 1 (f y / f x)) :=

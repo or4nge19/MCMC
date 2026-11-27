@@ -70,6 +70,7 @@ import MCMC.ToMathlib.Analysis.Normed.Operator.SpectralGap
 import MCMC.ToMathlib.Analysis.Subadditive
 import MCMC.ToMathlib.LinearAlgebra.KerRangePow
 import MCMC.ToMathlib.MeasureTheory.Function.LpOrder
+import MCMC.ToMathlib.MeasureTheory.Integral.Lebesgue.Basic
 import MCMC.ToMathlib.MeasureTheory.Measure.CompleteLattice
 import MCMC.ToMathlib.MeasureTheory.Measure.Prod
 import MCMC.ToMathlib.MeasureTheory.Measure.UniformLimit
