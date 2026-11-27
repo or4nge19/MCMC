@@ -49,6 +49,12 @@ Searched on 2026-11-27 (Mathlib `v4.34.1`): `grep -rln "birkhoffAverage" Mathlib
 `grep -rni "pointwise ergodic" Mathlib` finds nothing. Mathlib's
 `tendsto_birkhoffAverage_apply_sub_birkhoffAverage` compares the averages at `x` and `f x` when
 `g (f^[n] x) - g x` is bounded; `limsup_birkhoffAverage_apply` has no hypothesis.
+Outside Mathlib: the repository `or4nge19/GibbsMeasure` has the maximal inequality and the
+pointwise theorem for actions of abelian groups along regular sequences of finite sets
+(`GibbsMeasure/Mathlib/Dynamics/Ergodic/{MaximalInequality, Pointwise}.lean`, a covering argument),
+which does not cover a single map that is not invertible; nothing is ported from it. A web search
+found two public Lean 4 projects on Birkhoff's theorem (`mseri/BET` and
+`lua-vr/BirkhoffErgodicThm` on Reservoir); they were not read and nothing is taken from them.
 -/
 
 @[expose] public section
@@ -126,10 +132,9 @@ theorem measure_lt_limsup_birkhoffAverage_eq_zero (hf : MeasurePreserving f μ �
       ext x; simp only [mem_preimage, mem_ofPred_eq, limsup_birkhoffAverage_apply]⟩
   have hsub : {x | (ε : EReal) < limsup (fun n ↦ ((birkhoffAverage ℝ f ψ n x : ℝ) : EReal)) atTop} ⊆
       {x | ∃ n, ε < birkhoffAverage ℝ f ψ (n + 1) x} := fun x
-      (hx : (ε : EReal) < limsup (fun n ↦ ((birkhoffAverage ℝ f ψ n x : ℝ) : EReal)) atTop) ↦ by
-    obtain ⟨n, hn, hn0⟩ := ((frequently_lt_of_lt_limsup (h := hx)).and_eventually
-      (eventually_gt_atTop 0)).exists
-    exact ⟨n - 1, by rw [Nat.sub_add_cancel hn0]; exact EReal.coe_lt_coe_iff.1 hn⟩
+      (hx : (ε : EReal) < limsup (fun n ↦ ((birkhoffAverage ℝ f ψ n x : ℝ) : EReal)) atTop) ↦
+    ((frequently_lt_of_lt_limsup (h := hx)).and_eventually (eventually_gt_atTop 0)).exists.elim
+      fun n hn ↦ ⟨n - 1, by rw [Nat.sub_add_cancel hn.2]; exact EReal.coe_lt_coe_iff.1 hn.1⟩
   have hfin := (measure_mono hsub).trans_lt (hf.measure_exists_lt_birkhoffAverage_lt_top hψ hε)
   have h := hf.mul_measureReal_inter_le_setIntegral hψ hε.le hD
   rw [inter_eq_left.2 hsub] at h
