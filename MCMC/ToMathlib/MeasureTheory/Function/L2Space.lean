@@ -16,8 +16,8 @@ public import Mathlib.MeasureTheory.Function.L2Space
 Staged for `Mathlib/MeasureTheory/Function/L2Space.lean`.
 
 * `MeasureTheory.integral_sq_sum_range_eq`: the second moment of `∑_{k < n} Y k`, by lags.
-* `MeasureTheory.integral_sq_sum_abs_le_card_mul_sum_integral_sq`: the Cauchy–Schwarz inequality
-  `∫ (∑_{i ∈ s} |Y i|)² ≤ #s ∑_{i ∈ s} ∫ (Y i)²`.
+* `MeasureTheory.integral_sq_sum_norm_le_card_mul_sum_integral_sq_norm`: the Cauchy–Schwarz
+  inequality `∫ (∑_{i ∈ s} ‖Y i‖)² ≤ #s ∑_{i ∈ s} ∫ ‖Y i‖²`, for functions into a normed group.
 
 ## Search
 
@@ -55,14 +55,15 @@ theorem integral_sq_sum_range_eq {Y : ℕ → Ω → ℝ} (hY : ∀ k, MemLp (Y 
   · exact fun k _ ↦ ((hi k).const_mul 2).sub (hY k).integrable_sq
 
 /-- **Cauchy–Schwarz for a finite sum of square integrable functions**:
-`∫ (∑_{i ∈ s} |Y i|)² ≤ #s ∑_{i ∈ s} ∫ (Y i)²`. -/
-theorem integral_sq_sum_abs_le_card_mul_sum_integral_sq {ι : Type*} (s : Finset ι)
-    {Y : ι → Ω → ℝ} (hY : ∀ i ∈ s, MemLp (Y i) 2 μ) :
-    ∫ ω, (∑ i ∈ s, |Y i ω|) ^ 2 ∂μ ≤ #s * ∑ i ∈ s, ∫ ω, Y i ω ^ 2 ∂μ := by
-  rw [← integral_finsetSum _ fun i hi ↦ (hY i hi).integrable_sq, ← integral_const_mul]
-  refine integral_mono_of_nonneg (ae_of_all _ fun _ ↦ sq_nonneg _)
-    ((integrable_finsetSum _ fun i hi ↦ (hY i hi).integrable_sq).const_mul _)
-    (ae_of_all _ fun ω ↦ ?_)
-  simpa only [sq_abs] using sq_sum_le_card_mul_sum_sq (s := s) (f := fun i ↦ |Y i ω|)
+`∫ (∑_{i ∈ s} ‖Y i‖)² ≤ #s ∑_{i ∈ s} ∫ ‖Y i‖²`. -/
+theorem integral_sq_sum_norm_le_card_mul_sum_integral_sq_norm {ι E : Type*}
+    [NormedAddCommGroup E] (s : Finset ι) {Y : ι → Ω → E} (hY : ∀ i ∈ s, MemLp (Y i) 2 μ) :
+    ∫ ω, (∑ i ∈ s, ‖Y i ω‖) ^ 2 ∂μ ≤ #s * ∑ i ∈ s, ∫ ω, ‖Y i ω‖ ^ 2 ∂μ := by
+  have hi (i : ι) (hi : i ∈ s) : Integrable (fun ω ↦ ‖Y i ω‖ ^ 2) μ :=
+    (memLp_two_iff_integrable_sq_norm (hY i hi).aestronglyMeasurable).1 (hY i hi)
+  rw [← integral_finsetSum _ hi, ← integral_const_mul]
+  exact integral_mono_of_nonneg (ae_of_all _ fun _ ↦ sq_nonneg _)
+    ((integrable_finsetSum _ hi).const_mul _)
+    (ae_of_all _ fun ω ↦ sq_sum_le_card_mul_sum_sq (s := s) (f := fun i ↦ ‖Y i ω‖))
 
 end MeasureTheory
