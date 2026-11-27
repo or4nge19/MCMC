@@ -72,6 +72,7 @@ import MCMC.ToMathlib.MeasureTheory.Measure.UniformLimit
 import MCMC.ToMathlib.MeasureTheory.VectorMeasure.Decomposition.JordanSub
 import MCMC.ToMathlib.Probability.Independence.Basic
 import MCMC.ToMathlib.Probability.Kernel.Augmented
+import MCMC.ToMathlib.Probability.Kernel.Chain.Basic
 import MCMC.ToMathlib.Probability.Kernel.Composition.Comp
 import MCMC.ToMathlib.Probability.Kernel.Composition.CompMap
 import MCMC.ToMathlib.Probability.Kernel.Composition.IntegralCompProd
