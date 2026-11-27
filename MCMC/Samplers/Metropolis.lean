@@ -111,13 +111,12 @@ example (hf : Measurable f) (hf_top : ∀ᵐ x, f x ≠ ∞) :
 
 /-- The Metropolis–Hastings kernel of the random-walk proposal for `volume.withDensity f` is
 reversible. -/
-example (hf_top : ∀ᵐ x, f x ≠ ∞) :
+example :
     (Kernel.acceptReject ((Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map
       fun p : ℝ × ℝ ↦ p.1 + p.2) ((volume.withDensity f).mhAcceptance
         ((Kernel.id ×ₖ Kernel.const ℝ (gaussianReal 0 v)).map
-          fun p : ℝ × ℝ ↦ p.1 + p.2))).IsReversible (volume.withDensity f) := by
-  have := SigmaFinite.withDensity_of_ne_top hf_top
-  exact Kernel.isReversible_acceptReject_mhAcceptance
+          fun p : ℝ × ℝ ↦ p.1 + p.2))).IsReversible (volume.withDensity f) :=
+  Kernel.isReversible_acceptReject_mhAcceptance
 
 end Examples
 

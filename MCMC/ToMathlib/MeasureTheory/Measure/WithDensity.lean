@@ -9,14 +9,16 @@ public import Mathlib.MeasureTheory.Measure.WithDensity
 public import Mathlib.MeasureTheory.Measure.CompleteLattice
 
 /-!
-# Infima and images of measures with densities
+# Infima, truncations and images of measures with densities
 
 The infimum of `μ.withDensity f` and `μ.withDensity g` is `μ.withDensity (f ⊓ g)`, for measurable
-`f` and `g` and any measure `μ`; and the image of `μ.withDensity f` under a measurable equivalence
-`e` is `(μ.map e).withDensity (f ∘ e.symm)`.
+`f` and `g` and any measure `μ`; if `μ.withDensity f ≤ μ`, truncating `f` at `1` does not change
+`μ.withDensity f`, with no finiteness of `μ`; and the image of `μ.withDensity f` under a measurable
+equivalence `e` is `(μ.map e).withDensity (f ∘ e.symm)`.
 
 Staged for `Mathlib/MeasureTheory/Measure/WithDensity.lean`. Searched on 2026-11-26 in the pinned
-Mathlib: `grep -rn "withDensity_inf\|inf_withDensity\|withDensity_min" Mathlib` has no hit;
+Mathlib: `grep -rn "withDensity_inf\|inf_withDensity\|withDensity_min" Mathlib` has no hit
+(`Measure.rnDeriv_le_one_of_le` gives the truncation for σ-finite measures only);
 `grep -rn "map_withDensity\|withDensity_map" Mathlib/MeasureTheory` finds only
 `MeasurableEmbedding.map_withDensity_rnDeriv` and the change-of-variables statements of
 `Function/Jacobian.lean`.
@@ -50,6 +52,26 @@ theorem withDensity_inf_withDensity {f g : α → ℝ≥0∞} (hf : Measurable f
         · exact setLIntegral_congr_fun (hs.inter hT) fun x hx ↦ (inf_eq_left.2 hx.2).symm
         · exact setLIntegral_congr_fun (hs.diff hT) fun x hx ↦
             (inf_eq_right.2 (not_le.1 hx.2).le).symm
+
+/-- If `μ.withDensity f ≤ μ`, truncating the density at `1` does not change the measure. No
+finiteness is assumed: on `{1 < f}` the measures `μ.withDensity f` and `μ` agree. -/
+theorem withDensity_min_one_of_le {f : α → ℝ≥0∞} (hf : Measurable f)
+    (h : μ.withDensity f ≤ μ) : μ.withDensity (fun x ↦ min 1 (f x)) = μ.withDensity f := by
+  ext s hs
+  have hA : MeasurableSet {x | f x ≤ 1} := measurableSet_le hf measurable_const
+  have h1 : ∫⁻ x in s \ {x | f x ≤ 1}, min 1 (f x) ∂μ = μ (s \ {x | f x ≤ 1}) := by
+    rw [setLIntegral_congr_fun (hs.diff hA) (g := fun _ ↦ 1)
+      fun x hx ↦ min_eq_left (not_le.1 hx.2).le]
+    simp
+  have h2 : μ (s \ {x | f x ≤ 1}) = ∫⁻ x in s \ {x | f x ≤ 1}, f x ∂μ := by
+    refine le_antisymm ?_ ((withDensity_apply _ (hs.diff hA)).symm.trans_le (h _))
+    calc μ (s \ {x | f x ≤ 1}) = ∫⁻ _ in s \ {x | f x ≤ 1}, 1 ∂μ := by simp
+      _ ≤ ∫⁻ x in s \ {x | f x ≤ 1}, f x ∂μ :=
+        setLIntegral_mono' (hs.diff hA) fun x hx ↦ (not_le.1 hx.2).le
+  rw [withDensity_apply _ hs, withDensity_apply _ hs, ← lintegral_inter_add_sdiff _ s hA,
+    ← lintegral_inter_add_sdiff (fun x ↦ f x) s hA, h1, h2]
+  congr 1
+  exact setLIntegral_congr_fun (hs.inter hA) fun x hx ↦ min_eq_right hx.2
 
 /-- The image of a measure with density under a measurable equivalence. -/
 theorem _root_.MeasurableEquiv.map_withDensity (e : α ≃ᵐ β) (f : α → ℝ≥0∞) :

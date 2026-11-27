@@ -167,24 +167,47 @@ instance isMarkovKernel_acceptReject_mhAcceptance [IsMarkovKernel Q] :
   (isMarkovKernel_acceptReject_iff (π.measurable_mhAcceptance Q)).2 fun x ↦
     (lintegral_mono fun y ↦ π.mhAcceptance_le_one Q x y).trans (by simp)
 
+/-- The symmetric part of a σ-finite flow has a Lebesgue decomposition with respect to it. -/
+instance haveLebesgueDecomposition_inf_map_swap_compProd [SigmaFinite (π ⊗ₘ Q)] :
+    ((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).HaveLebesgueDecomposition (π ⊗ₘ Q) :=
+  have := Measure.sigmaFinite_of_le (π ⊗ₘ Q)
+    (inf_le_left : (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap ≤ π ⊗ₘ Q)
+  inferInstance
+
 /-- The flow accepted by the Metropolis–Hastings acceptance is the symmetric part
-`(π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap` of the proposed flow. -/
-theorem withDensity_mhAcceptance [SigmaFinite (π ⊗ₘ Q)] :
+`(π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap` of the proposed flow, when the symmetric part has a Lebesgue
+decomposition with respect to the flow; in particular when `π ⊗ₘ Q` is σ-finite. -/
+theorem withDensity_mhAcceptance
+    [((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).HaveLebesgueDecomposition (π ⊗ₘ Q)] :
     (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q)) =
       (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap := by
   have hle : (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap ≤ π ⊗ₘ Q := inf_le_left
-  have := Measure.sigmaFinite_of_le _ hle
+  have h := Measure.withDensity_rnDeriv_eq _ _ (Measure.absolutelyContinuous_of_le hle)
   calc (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q))
-      = (π ⊗ₘ Q).withDensity (((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).rnDeriv (π ⊗ₘ Q)) := by
-        refine MeasureTheory.withDensity_congr_ae ?_
-        filter_upwards [Measure.rnDeriv_le_one_of_le hle] with p hp
-        exact min_eq_right hp
-    _ = (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap :=
-        Measure.withDensity_rnDeriv_eq _ _ (Measure.absolutelyContinuous_of_le hle)
+      = (π ⊗ₘ Q).withDensity (((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).rnDeriv (π ⊗ₘ Q)) :=
+        withDensity_min_one_of_le (Measure.measurable_rnDeriv _ _) (h.trans_le hle)
+    _ = (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap := h
 
-/-- σ-finiteness of `π ⊗ₘ Q` is needed in `withDensity_mhAcceptance`: on `Bool`, with the flip
-proposal and `π = ∞ • δ_true + δ_false`, the symmetric part of the flow has mass `1` at
-`(true, false)`, where `π ⊗ₘ Q` has mass `∞`, so it has no density with respect to `π ⊗ₘ Q`. -/
+/-- The identity of `withDensity_mhAcceptance` holds exactly when the symmetric part of the flow
+has a Lebesgue decomposition with respect to the flow. -/
+theorem withDensity_mhAcceptance_eq_iff :
+    (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q)) =
+        (π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap ↔
+      ((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).HaveLebesgueDecomposition (π ⊗ₘ Q) :=
+  ⟨fun h ↦ ⟨⟨(0, Function.uncurry (π.mhAcceptance Q)), π.measurable_mhAcceptance Q,
+    Measure.MutuallySingular.zero_left, by simp [h]⟩⟩, fun _ ↦ withDensity_mhAcceptance⟩
+
+/-- Without a Lebesgue decomposition of the symmetric part, the Metropolis–Hastings acceptance
+is `0` (the convention of `Measure.rnDeriv`): every proposal is rejected. -/
+theorem _root_.MeasureTheory.Measure.mhAcceptance_of_not_haveLebesgueDecomposition
+    (h : ¬ ((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).HaveLebesgueDecomposition (π ⊗ₘ Q)) (x y : X) :
+    π.mhAcceptance Q x y = 0 := by
+  simp [Measure.mhAcceptance, Measure.rnDeriv_of_not_haveLebesgueDecomposition h]
+
+/-- A Lebesgue decomposition of the symmetric part is needed in `withDensity_mhAcceptance`: on
+`Bool`, with the flip proposal and `π = ∞ • δ_true + δ_false`, the symmetric part of the flow has
+mass `1` at `(true, false)`, where `π ⊗ₘ Q` has mass `∞`, so it has no density with respect to
+`π ⊗ₘ Q`. -/
 theorem exists_withDensity_mhAcceptance_ne :
     ∃ (π : Measure Bool) (Q : Kernel Bool Bool) (_ : IsMarkovKernel Q), SFinite π ∧
       (π ⊗ₘ Q).withDensity (Function.uncurry (π.mhAcceptance Q)) ≠
@@ -205,24 +228,29 @@ theorem exists_withDensity_mhAcceptance_ne :
   · simp [ENNReal.mul_top h0, Kernel.deterministic_apply] at h1
 
 /-- An accept–reject kernel whose acceptance agrees `π ⊗ₘ Q`-almost everywhere with the
-Metropolis–Hastings acceptance is `π`-reversible. -/
+Metropolis–Hastings acceptance is `π`-reversible. No σ-finiteness is assumed. -/
 theorem isReversible_acceptReject_of_ae_eq_mhAcceptance [SFinite π] [IsSFiniteKernel Q]
-    [SigmaFinite (π ⊗ₘ Q)] (ha : Measurable (Function.uncurry a))
+    (ha : Measurable (Function.uncurry a))
     (h : Function.uncurry a =ᵐ[π ⊗ₘ Q] Function.uncurry (π.mhAcceptance Q)) :
     (acceptReject Q a).IsReversible π := by
   refine (isReversible_acceptReject_iff ha).2 (IsReversible.of_map_swap_compProd ?_)
   rw [Measure.compProd_withDensity ha]
   change ((π ⊗ₘ Q).withDensity (Function.uncurry a)).map Prod.swap =
     (π ⊗ₘ Q).withDensity (Function.uncurry a)
-  have hswap := MeasurableEquiv.prodComm.map_inf (π ⊗ₘ Q) ((π ⊗ₘ Q).map Prod.swap)
-  rw [show ⇑(MeasurableEquiv.prodComm : X × X ≃ᵐ X × X) = Prod.swap from rfl,
-    Measure.map_map measurable_swap measurable_swap, Prod.swap_swap_eq, Measure.map_id] at hswap
-  rw [MeasureTheory.withDensity_congr_ae h, withDensity_mhAcceptance, hswap, inf_comm]
+  rw [MeasureTheory.withDensity_congr_ae h]
+  by_cases hL : ((π ⊗ₘ Q) ⊓ (π ⊗ₘ Q).map Prod.swap).HaveLebesgueDecomposition (π ⊗ₘ Q)
+  · have hswap := MeasurableEquiv.prodComm.map_inf (π ⊗ₘ Q) ((π ⊗ₘ Q).map Prod.swap)
+    rw [show ⇑(MeasurableEquiv.prodComm : X × X ≃ᵐ X × X) = Prod.swap from rfl,
+      Measure.map_map measurable_swap measurable_swap, Prod.swap_swap_eq, Measure.map_id] at hswap
+    rw [withDensity_mhAcceptance, hswap, inf_comm]
+  · rw [show Function.uncurry (π.mhAcceptance Q) = 0 from
+      funext fun p ↦ π.mhAcceptance_of_not_haveLebesgueDecomposition hL p.1 p.2,
+      MeasureTheory.withDensity_zero, Measure.map_zero]
 
 /-- **Metropolis–Hastings.** The accept–reject kernel of the Metropolis–Hastings acceptance is
-`π`-reversible, for every proposal with `π ⊗ₘ Q` σ-finite. -/
-theorem isReversible_acceptReject_mhAcceptance [SFinite π] [IsSFiniteKernel Q]
-    [SigmaFinite (π ⊗ₘ Q)] : (acceptReject Q (π.mhAcceptance Q)).IsReversible π :=
+`π`-reversible, for every s-finite `π` and every s-finite proposal. -/
+theorem isReversible_acceptReject_mhAcceptance [SFinite π] [IsSFiniteKernel Q] :
+    (acceptReject Q (π.mhAcceptance Q)).IsReversible π :=
   isReversible_acceptReject_of_ae_eq_mhAcceptance (π.measurable_mhAcceptance Q)
     Filter.EventuallyEq.rfl
 
