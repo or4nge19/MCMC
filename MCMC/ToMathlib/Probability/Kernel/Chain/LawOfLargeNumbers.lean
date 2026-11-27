@@ -74,38 +74,57 @@ The hypotheses on the kernel are those of Harris' theorem with the minorization 
 ## References
 
 * S. P. Meyn and R. L. Tweedie, *Markov Chains and Stochastic Stability*, Springer 1993, in the
-  authors' version compiled in September 2005, Theorem 17.0.1 (p. 416; read). For a positive
-  Harris chain with invariant probability `π`: (i) the law of large numbers holds for every `g`
-  with `π(|g|) < ∞`; (ii) if the chain is `V`-uniformly ergodic and `g² ≤ V`, then
-  `γ² = E_π[ḡ(Φ₀)²] + 2 ∑_{k ≥ 1} E_π[ḡ(Φ₀) ḡ(Φ_k)]` (17.3) is well defined, nonnegative and
-  finite, and `n⁻¹ E_π[(S_n ḡ)²] → γ²` (17.4); (iii) if `γ² = 0` then `n^(-1/2) S_n ḡ → 0` almost
-  surely; (iv) if `γ² > 0` the central limit theorem and the law of the iterated logarithm hold.
+  authors' version compiled in September 2005 (statements read on its pages). Theorem 17.0.1
+  (p. 416), for a positive Harris chain with invariant probability `π`: (i) the law of large
+  numbers holds for every `g` with `π(|g|) < ∞`; (ii) if the chain is `V`-uniformly ergodic and
+  `g² ≤ V`, then `γ² = E_π[ḡ²(Φ₀)] + 2 ∑_{k ≥ 1} E_π[ḡ(Φ₀) ḡ(Φ_k)]` (17.3) is well defined,
+  nonnegative and finite, and `n⁻¹ E_π[(S_n(ḡ))²] → γ²` (17.4); (iii) if moreover `γ² = 0`, then
+  `n^(-1/2) S_n(ḡ) → 0` almost surely (printed with `S_n(g)`; the proof, p. 446, is for
+  `S_n(ḡ)`); (iv) if moreover `γ² > 0`, the central limit theorem and the law of the iterated
+  logarithm hold for `g`. There `S_n(g) = ∑_{k=1}^n g(Φ_k)` (17.1), each limit theorem is from
+  every initial condition, and a chain is `V`-uniformly ergodic (p. 387) if it is ergodic and
+  `‖Pⁿ - π‖_V → 0`, for a function `V ≥ 1`.
   * The asymptotic variance theorem of this file is part (ii), for the same class of functions
-    (`g² ≤ M (1 + V)` against `g² ≤ V`). It differs in three ways: the hypotheses are the drift
-    and the minorization of a power, which give `V`-uniform ergodicity; the limit is taken from
-    every initial law integrating `V`, where (17.4) is under `E_π`, and that moment is shown
-    forced; nonnegativity of the limit is the corollary
-    `variance_add_two_mul_tsum_covariance_comp_chain_comp_nonneg_of_drift_of_minorization_pow`.
+    (`g² ≤ M (1 + V)` with `V ≥ 0` here, `g² ≤ V` with `V ≥ 1` there), with the convergence of
+    the series (`summable_covariance_comp_chain_comp_of_drift_of_minorization_pow`) and the
+    nonnegativity
+    (`variance_add_two_mul_tsum_covariance_comp_chain_comp_nonneg_of_drift_of_minorization_pow`).
+    It differs in two ways. The hypotheses are the drift and the minorization of a power, with no
+    irreducibility, aperiodicity or recurrence assumed: the kernel layer's Harris theorem gives
+    from them `|Pⁿφ(x) - π(φ)| ≤ C ρⁿ M (1 + V x)` for `|φ| ≤ M (1 + V)`, which is the bound
+    (16.3) of the book for the weight `1 + V`; in the book (Theorem 16.0.1, p. 388) that bound is
+    equivalent to `V`-uniform ergodicity, and to the drift condition (V4) to a petite set, for a
+    ψ-irreducible aperiodic chain. The limit is taken from every initial law integrating `V`,
+    where (17.4) is under `E_π`, and that moment is shown forced. The sums here run over the
+    times `0, …, n - 1`. In the book (17.4) is proved in Theorem 17.5.3 (p. 445) with Theorem
+    17.5.4 (p. 446), which also give `γ² = π(ĝ² - (Pĝ)²)` for a solution `ĝ` of the Poisson
+    equation; that formula is not in this file.
   * The strong law of this file is the case `g² ≤ M (1 + V)` of part (i). The form for all of
-    `L¹(π)` is not proved here: its proof in the book (Theorem 17.1.2, the law for the stationary
-    chain from `π`-almost every start, by the strong law for stationary sequences; Theorem 17.1.7,
-    positive Harris iff the law for every `f ∈ L¹(π)` from every start iff the invariant σ-field
-    is `P_x`-trivial for every `x`) needs the pointwise ergodic theorem, which Mathlib does not
-    have at this pin.
-  * Parts (iii) and (iv) are not here (Theorems 17.4.4, 17.5.3 and 17.5.4 of the book).
+    `L¹(π)` is not proved here: its proof in the book (Theorem 17.1.2, p. 418: for a chain with an
+    invariant probability `π` and a function `X ∈ L¹(P_π)` of the path, the averages of `X` along
+    the shifts converge `P_x`-almost surely to the conditional expectation given the invariant
+    σ-field, for `x` in a set of full `π`-measure, by the strong law for stationary sequences;
+    Theorem 17.1.7, p. 421: when an invariant probability exists, positive Harris iff the law for
+    every `f ∈ L¹(π)` from every start iff the invariant σ-field is `P_x`-trivial for every `x`)
+    needs the pointwise ergodic theorem, which Mathlib does not have at this pin.
+  * Parts (iii) and (iv) are not here. In the book (iii) is Theorem 17.5.4 (p. 446), and the
+    central limit theorem and the law of the iterated logarithm of (iv) are Theorem 17.3.6
+    (p. 434); Theorem 17.4.4 (p. 440) is the functional central limit theorem.
 * G. O. Roberts and J. S. Rosenthal, *General state space Markov chains and MCMC algorithms*,
   arXiv:math/0404033 (read, in its TeX source): the Fact labelled "SLLN" is the strong law for
   `π(|h|) < ∞` on a countably generated state space, for a φ-irreducible aperiodic chain with a
   stationary distribution, and cites Theorem 17.0.1 above; the formula labelled "sigmaformula"
   gives `σ² = τ Var_π(h)`, `τ = ∑_{k ∈ ℤ} Corr(X₀, X_k)`, as a consequence of a `√n` central
   limit theorem for the chain started in stationarity, and cites Chan–Geyer.
-* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed. (from the extracted text; numbers
-  to be checked against the printed book): Theorem 25.6 (ergodic theorem, Birkhoff), Theorem
-  26.10 (strong ergodicity and mixing, Orey: triviality of the tail σ-field, mixing, and
-  `‖P_μ ∘ θ_t⁻¹ - P_ν ∘ θ_t⁻¹‖ → 0`) and Theorem 26.21 (pathwise limits, stated for regular
-  Feller processes: `t⁻¹ ∫₀ᵗ f (θ_s X) ds → E_λ f(X)` almost surely for bounded measurable `f` of
-  the path) are the route to the strong law for `g ∈ L¹(π)` and for functionals of the path.
-  Their statements were read; none of them is in this file.
+* O. Kallenberg, *Foundations of Modern Probability*, 3rd ed., Springer (2021): Theorem 25.6
+  (ergodic theorem, Birkhoff), Theorem 26.10 (strong ergodicity and mixing, Orey; for a
+  conservative Markov semi-group, the equivalence of triviality of the tail σ-field under every
+  `P_μ`, mixing of every `P_μ`, and `‖P_μ ∘ θ_t⁻¹ - P_ν ∘ θ_t⁻¹‖ → 0` for all `μ`, `ν`, among
+  its conditions) and Theorem 26.21 (pathwise limits, stated for regular Feller processes: when
+  the process is positive-recurrent with invariant distribution `λ`,
+  `t⁻¹ ∫₀ᵗ f (θ_s X) ds → E_λ f(X)` almost surely for bounded measurable `f` of the path) are
+  the route to the strong law for `g ∈ L¹(π)` and for functionals of the path. Their statements
+  were read; none of them is in this file.
 * M. Hairer and J. C. Mattingly, arXiv:0810.2777: the drift and the minorization are those of
   `Harris.lean`, which cites it; not read again for this file.
 
@@ -491,7 +510,7 @@ theorem variance_comp_chain_comp_of_invariant [IsMarkovKernel P] {π : Measure X
 /-- **The covariances of the stationary chain are summable**: under the drift and the
 minorization of `P ^ m` on `{V ≤ R}` (`α > 0`, `K + γ R < R`), for an invariant law `π` and a
 measurable `g` with `g² ≤ M (1 + V)`, the covariances `cov[g (ω 0), g (ω l)]` under
-`P.chain ∘ₘ π` are bounded by a geometric sequence. -/
+`P.chain ∘ₘ π` are summable in `l`. -/
 theorem summable_covariance_comp_chain_comp_of_drift_of_minorization_pow [IsMarkovKernel P]
     (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) {ν : Measure X}
     [IsProbabilityMeasure ν] {α R : ℝ≥0} {m : ℕ} (hα : 0 < α) (hR : K + γ * R < R)
@@ -518,8 +537,9 @@ theorem summable_covariance_comp_chain_comp_of_drift_of_minorization_pow [IsMark
 /-- **The asymptotic variance of a Harris chain**: under the drift and the minorization of `P ^ m`
 on `{V ≤ R}` (`α > 0`, `K + γ R < R`), for an invariant law `π`, an initial law `μ` integrating `V`
 and a measurable `g` with `g² ≤ M (1 + V)`,
-`n⁻¹ ∫ (∑_{k < n} (g (ω k) - ∫ g ∂π))² ∂(P.chain ∘ₘ μ) → Var[g (ω 0)] + 2 ∑_{l ≥ 1} cov[g (ω 0),
-g (ω l)]`, the variance and the covariances under `P.chain ∘ₘ π`. -/
+`n⁻¹ ∫ (∑_{k < n} (g (ω k) - ∫ g ∂π))² ∂(P.chain ∘ₘ μ) → σ²`, where
+`σ² = Var[g (ω 0)] + 2 ∑_{l ≥ 1} cov[g (ω 0), g (ω l)]`, the variance and the covariances under
+`P.chain ∘ₘ π`. -/
 theorem tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow [IsMarkovKernel P]
     (hV : Measurable V) (hdrift : ∀ x, ∫⁻ y, V y ∂(P x) ≤ γ * V x + K) {ν : Measure X}
     [IsProbabilityMeasure ν] {α R : ℝ≥0} {m : ℕ} (hα : 0 < α) (hR : K + γ * R < R)
@@ -554,7 +574,7 @@ theorem tendsto_inv_mul_integral_sq_sum_sub_of_drift_of_minorization_pow [IsMark
     (a := fun k l ↦ ∫ ω, (g (ω k) - c) * (g (ω (k + l)) - c) ∂(P.chain ∘ₘ μ))
     (c := fun k ↦ C * (2 * (2 + K / (1 - γ)) * M) * (1 + ∫ x, (V x : ℝ) ∂μ) * r ^ k)
     (d := fun l ↦ r ^ l) (fun k l ↦ ?_) ?_ (summable_geometric_of_lt_one hr0 hr)
-    hsum).congr fun n ↦ ?_
+    hsum.hasSum.tendsto_sum_nat).congr fun n ↦ ?_
   · rw [hcov]
     exact (h π inferInstance hπ μ inferInstance hμ _ _ (hg.sub_const c) (hg.sub_const c) hc0 _
       hgM' hgM' k l).trans_eq (by ring)
